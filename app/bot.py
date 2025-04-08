@@ -160,20 +160,19 @@ def obtener_cedula(notification: Notification) -> None:
     sender_name = sender_data["senderName"]
     
     # Verificar si hay datos de estado para este usuario
-    user_state = notification.state_manager.get_state(sender)
+    user_state = get_user_state(notification, sender)
     
-    # Verificar si el usuario está en estado de menú post-registro
+    # Verificar el estado del usuario y dirigir a la función correspondiente
     if user_state:
         try:
-            if hasattr(user_state, "state") and user_state.state == "menu_post_registro":
+            state_value = user_state.get("state")
+            if state_value == "menu_post_registro":
                 handle_post_registro_menu(notification, sender, message_data)
                 return
-            # Verificar si el usuario está en estado de menú principal
-            elif hasattr(user_state, "state") and user_state.state == "menu_principal":
+            elif state_value == "menu_principal":
                 handle_menu_principal(notification, sender, message_data)
                 return
-            # Verificar si el usuario está en proceso de registro (esperando teléfono)
-            elif hasattr(user_state, "state") and user_state.state == "esperando_telefono":
+            elif state_value == "esperando_telefono":
                 handle_registro_telefono(notification, sender, message_data)
                 return
         except Exception as e:
@@ -358,43 +357,24 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
     
     print(f"Mensaje de teléfono recibido: {message_text}")
     
-    # Obtener la cédula guardada anteriormente
-    user_state = notification.state_manager.get_state(sender)
+    # Obtener el estado del usuario
+    user_state = get_user_state(notification, sender)
     print(f"Estado del usuario recuperado: {user_state}")
     
-    # Acceder a los atributos del objeto State
-    cedula = None
-    nombre = "Usuario"
-    
-    if user_state:
-        try:
-            if hasattr(user_state, "cedula"):
-                cedula = user_state.cedula
-                print(f"Cédula recuperada del estado: {cedula}")
-            elif isinstance(user_state, dict) and "cedula" in user_state:
-                cedula = user_state["cedula"]
-                print(f"Cédula recuperada del diccionario de estado: {cedula}")
-            else:
-                print(f"No se encontró cédula en el estado. Atributos disponibles: {dir(user_state) if not isinstance(user_state, dict) else user_state.keys()}")
-                
-            if hasattr(user_state, "nombre"):
-                nombre = user_state.nombre
-                print(f"Nombre recuperado del estado: {nombre}")
-            elif isinstance(user_state, dict) and "nombre" in user_state:
-                nombre = user_state["nombre"]
-                print(f"Nombre recuperado del diccionario de estado: {nombre}")
-        except Exception as e:
-            print(f"Error al obtener atributos del estado: {e}")
-    else:
-        print("No se encontró estado del usuario")
+    # Obtener datos del estado
+    cedula = user_state.get("cedula")
+    nombre = user_state.get("nombre", "Usuario")
     
     if not cedula:
         notification.answer("No he podido recuperar tus datos de registro. Por favor intenta nuevamente.")
         show_menu_principal(notification, nombre)
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
         return
     
     if not message_text:
         notification.answer("No he podido obtener tu mensaje. Por favor, envía tu número de teléfono (ejemplo: 0414-1234567):")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
         return
     
     # Extraer el número de teléfono
@@ -407,6 +387,8 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
         print(f"Texto después de filtrar solo dígitos: {digits_only}")
         
         notification.answer("No he podido identificar un número de teléfono válido. Por favor, envía tu número con formato 04XX-XXXXXXX:")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
         return
     
     # Llamar a la API para registrar al usuario
@@ -444,7 +426,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 notification.answer(f"Ha ocurrido un error durante el registro. ❌\n\n{error_message}")
                 notification.answer("Por favor, intenta nuevamente o contacta a soporte con este mensaje de error.")
                 show_menu_principal(notification, nombre)
-                notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": nombre})
+                set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
                 return
                 
             # Continuar solo si la respuesta es exitosa
@@ -475,8 +457,8 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             # Mostrar el menú después del registro
             show_post_registro_menu(notification, nombre)
             
-            # Actualizar el estado del usuario - Usando un diccionario serializado para el estado
-            notification.state_manager.set_state(sender, {"state": "menu_post_registro", "nombre": nombre})
+            # Actualizar el estado del usuario
+            set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
             
         except requests.exceptions.RequestException as req_err:
             print(f"Error en la solicitud HTTP: {req_err}")
@@ -484,7 +466,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             notification.answer(error_message)
             notification.answer("Por favor, verifica tu conexión e intenta nuevamente.")
             show_menu_principal(notification, nombre)
-            notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": nombre})
+            set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
         
     except requests.exceptions.HTTPError as e:
         print(f"Error HTTP al registrar: {e}")
@@ -496,14 +478,14 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             pass
         notification.answer(error_message)
         show_menu_principal(notification, nombre)
-        notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": nombre})
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
     except Exception as e:
         print(f"Error inesperado al registrar: {e}")
         error_message = f"❌ Error inesperado: {str(e)}"
         notification.answer(error_message)
         notification.answer("Por favor, intenta nuevamente más tarde o contacta a soporte con este mensaje de error.")
         show_menu_principal(notification, nombre)
-        notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": nombre})
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
 
 def show_menu_principal(notification: Notification, nombre: str):
     """Muestra el menú principal para usuarios sin cédula registrada"""
@@ -550,15 +532,8 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
                     break
     
     # Obtener el estado y nombre del usuario
-    user_state = notification.state_manager.get_state(sender)
-    nombre = "Usuario"
-    
-    if user_state:
-        try:
-            if hasattr(user_state, "nombre"):
-                nombre = user_state.nombre
-        except Exception as e:
-            print(f"Error al obtener nombre del usuario: {e}")
+    user_state = get_user_state(notification, sender)
+    nombre = user_state.get("nombre", "Usuario")
     
     print(f"Opción seleccionada: {option}")
     
@@ -569,11 +544,15 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
     elif option == "2":
         # Opción 2: Visitar sitio web
         notification.answer(f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
         # Volver a mostrar el menú para permitir al usuario elegir otra opción
         show_menu_principal(notification, nombre)
     elif option == "3":
         # Opción 3: Unirse al canal de Telegram
         notification.answer(f"¡Genial! Únete a nuestro canal de Telegram para recibir noticias y actualizaciones:\n{TELEGRAM_CHANNEL}")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
         # Volver a mostrar el menú para permitir al usuario elegir otra opción
         show_menu_principal(notification, nombre)
     elif option == "4":
@@ -587,6 +566,8 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
     else:
         # Opción no válida
         notification.answer("No he podido entender tu selección. Por favor, responde con el número de la opción deseada (1, 2, 3, 4 o 5):")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
         show_menu_principal(notification, nombre)
 
 def show_post_registro_menu(notification: Notification, nombre: str):
@@ -633,33 +614,30 @@ def handle_post_registro_menu(notification: Notification, sender: str, message_d
                     break
     
     # Obtener el estado y nombre del usuario
-    user_state = notification.state_manager.get_state(sender)
-    nombre = "Usuario"
-    
-    if user_state:
-        try:
-            if hasattr(user_state, "nombre"):
-                nombre = user_state.nombre
-        except Exception as e:
-            print(f"Error al obtener nombre del usuario: {e}")
+    user_state = get_user_state(notification, sender)
+    nombre = user_state.get("nombre", "Usuario")
     
     print(f"Opción seleccionada post-registro: {option}")
     
     if option == "1":
         # Opción 1: Visitar sitio web
         notification.answer(f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
         # Volver a mostrar el menú para que el usuario pueda elegir otra opción
         show_post_registro_menu(notification, nombre)
     elif option == "2":
         # Opción 2: Unirse al canal de Telegram
         notification.answer(f"¡Genial! Únete a nuestro canal de Telegram para recibir noticias y actualizaciones:\n{TELEGRAM_CHANNEL}")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
         # Volver a mostrar el menú para que el usuario pueda elegir otra opción
         show_post_registro_menu(notification, nombre)
     elif option == "3":
         # Opción 3: Regresar al menú principal
         notification.answer("Regresando al menú principal...")
         show_menu_principal(notification, nombre)
-        notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": nombre})
+        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
     elif option == "4":
         # Opción 4: Finalizar conversación
         notification.answer(f"¡Gracias por registrarte, {nombre}! Estamos emocionados de tenerte como participante en Lotto Bueno. Te notificaremos si eres el ganador. ¡Buena suerte! 🍀")
@@ -667,6 +645,8 @@ def handle_post_registro_menu(notification: Notification, sender: str, message_d
     else:
         # Opción no válida
         notification.answer("No he podido entender tu selección. Por favor, responde con el número de la opción deseada (1, 2, 3 o 4):")
+        # Mantener el estado actual
+        set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
         show_post_registro_menu(notification, nombre)
 
 def check_inactive_users():
@@ -694,15 +674,31 @@ def check_inactive_users():
 def set_user_state(notification, sender, state_dict):
     """Guarda el estado del usuario de forma compatible con la biblioteca"""
     try:
+        # Intenta guardar directamente como diccionario (forma preferida)
         notification.state_manager.set_state(sender, state_dict)
+        print(f"Estado guardado exitosamente como diccionario: {state_dict}")
     except Exception as e:
-        print(f"Error al guardar estado del usuario: {e}")
+        print(f"Error al guardar estado como diccionario: {e}")
         # Intentar otras formas de guardar estado si la primera falla
         try:
             serialized_state = json.dumps(state_dict)
             notification.state_manager.set_state(sender, serialized_state)
+            print(f"Estado guardado como JSON string: {serialized_state}")
         except Exception as e2:
             print(f"Error al guardar estado serializado: {e2}")
+            # Último intento: crear un objeto simple
+            try:
+                class SimpleState:
+                    pass
+                
+                state_obj = SimpleState()
+                for key, value in state_dict.items():
+                    setattr(state_obj, key, value)
+                
+                notification.state_manager.set_state(sender, state_obj)
+                print(f"Estado guardado como objeto con atributos: {state_obj.__dict__}")
+            except Exception as e3:
+                print(f"Error al guardar estado como objeto: {e3}")
 
 def get_user_state(notification, sender):
     """Obtiene el estado del usuario manejando diferentes formatos posibles"""
@@ -711,21 +707,28 @@ def get_user_state(notification, sender):
         
         # Si es None, retornar un diccionario vacío
         if state is None:
+            print("No se encontró estado para el usuario")
             return {}
             
         # Si es un objeto, intentar convertirlo a diccionario
         if hasattr(state, "__dict__"):
-            return state.__dict__
+            result = state.__dict__
+            print(f"Estado obtenido como objeto y convertido a diccionario: {result}")
+            return result
             
         # Si es un string, intentar parsearlo como JSON
         if isinstance(state, str):
             try:
-                return json.loads(state)
-            except:
-                pass
+                result = json.loads(state)
+                print(f"Estado obtenido como string JSON y parseado: {result}")
+                return result
+            except json.JSONDecodeError as e:
+                print(f"Error al parsear estado JSON: {e}")
+                return {"raw_state": state}
                 
         # Si es un diccionario, retornarlo directamente
         if isinstance(state, dict):
+            print(f"Estado obtenido como diccionario: {state}")
             return state
             
         # Último recurso: crear un diccionario con los atributos del objeto
@@ -733,6 +736,7 @@ def get_user_state(notification, sender):
         for attr in dir(state):
             if not attr.startswith('_') and not callable(getattr(state, attr)):
                 result[attr] = getattr(state, attr)
+        print(f"Estado obtenido como objeto desconocido y convertido a: {result}")
         return result
     except Exception as e:
         print(f"Error al obtener estado del usuario: {e}")
