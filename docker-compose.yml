@@ -1,0 +1,236 @@
+version: '3.8'
+
+services:
+  postgres:
+    build:
+      context: .
+      target: db
+    environment:
+      POSTGRES_USER: lottobueno
+      POSTGRES_PASSWORD: lottobueno
+      POSTGRES_DB: lottobueno
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./lottobueno_backup.dump:/docker-entrypoint-initdb.d/lottobueno_backup.dump
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./wait-for-it.sh:/docker-entrypoint-initdb.d/wait-for-it.sh
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5547:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lottobueno -h postgres"]
+      interval: 10s
+      retries: 5
+    networks:
+      - lotto-bueno-network
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks:
+      - lotto-bueno-network
+
+  app:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE:-7103942544}"
+      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - lotto-bueno-network
+    command: >
+      sh -c "pip install aiosmtplib && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  whatsapp-bot:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE:-7103942544}"
+      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+      WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
+      TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
+    depends_on:
+      app:
+        condition: service_healthy
+    command: python app/bot.py
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  telegram-bot:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN:-8187061957:AAEKVKWfBKuECSC7G63qFYzKbZJiFx4N18Q}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+      WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
+      TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
+    depends_on:
+      app:
+        condition: service_healthy
+    command: python app/telegram_bot/bot.py
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  bot-monitor:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE:-7103942544}"
+      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    depends_on:
+      - whatsapp-bot
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "while true; do 
+             sleep 300; 
+             curl -s -X POST http://app:8000/api/reboot_instance || echo 'Error rebooting instance'; 
+             echo 'Automatic reboot executed at '`date`; 
+             done"
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    ports:
+      - "3000:3000"
+    networks:
+      - lotto-bueno-network
+    depends_on:
+      - app
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/www/certbot:/var/www/certbot
+    networks:
+      - lotto-bueno-network
+    depends_on:
+      - app
+
+  # --- Servicios de Monitoreo ---
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - lotto-bueno-network
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    network_mode: host # Necesario para obtener métricas del host directamente
+    pid: host
+    volumes:
+      - /:/hostfs:ro,rslave
+    command: 
+      - '--path.rootfs=/hostfs'
+    restart: unless-stopped
+    # No necesita networks explícitamente por network_mode: host
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8082:8080" # Cambiado puerto para evitar colisión con app si es necesario
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - lotto-bueno-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000" # Cambiado puerto para evitar colisión con frontend
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - lotto-bueno-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:
+  redis-data:
+  grafana-storage: # Añadir volumen para Grafana
+
+networks:
+  lotto-bueno-network:
+
+  k6:
+    image: grafana/k6:latest
+    container_name: k6
+    ports:
+      - "6565:6565" # Puerto para la UI web de k6 (opcional)
+    volumes:
+      - ./load_test.js:/scripts/load_test.js # Monta el script
+    networks:
+      - lotto-bueno-network
+    depends_on:
+      - app
+    entrypoint: [""] # Sobrescribe el entrypoint por defecto para que no inicie una prueba automáticamente
+    command: ["sleep", "infinity"] # Mantiene el contenedor corriendo

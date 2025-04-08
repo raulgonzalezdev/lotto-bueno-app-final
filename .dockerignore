@@ -1,0 +1,19 @@
+# Exclude data directory
+data/
+
+# Exclude Python cache files
+__pycache__/
+*.pyc
+
+# Exclude virtual environment directories
+venv/
+env/
+.virtualenv/
+
+# Exclude other build-related directories
+build/
+dist/
+*.egg-info/
+
+# Exclude local environment configuration files
+.env

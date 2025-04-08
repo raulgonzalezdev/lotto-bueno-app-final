@@ -1,0 +1,42 @@
+# Excluir archivos y carpetas específicos
+data/
+#.env
+__pycache__/
+.DS_Store
+.pytest_cache/
+.python-version
+*.egg-info/
+venv/
+env/
+build/
+~/
+
+.local/
+.cache/
+.vscode/
+test.py
+cache.txt
+.ruff_cache/
+*_secrets.json
+#lottobueno_backup.dump
+
+
+
+data/re20240416_pp.txt
+data/geo20240416_pp.txt
+data/cva20240416.txt
+
+# Archivos de credenciales y configuración sensible
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/credentials.json
+**/client_secrets.json
+.credentials/
+.env
+
+# Excluir archivos que puedan contener tokens
+**/*.pem
+**/*.key
+**/*.p12
