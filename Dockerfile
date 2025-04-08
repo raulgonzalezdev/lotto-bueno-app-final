@@ -18,16 +18,10 @@ FROM python:3.10-slim as app
 
 WORKDIR /app
 
-# Instalar curl para healthchecks y wget/unzip para Bombardier
-RUN apt-get update && apt-get install -y curl wget unzip && rm -rf /var/lib/apt/lists/*
+# Instalar curl para healthchecks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Instalar Bombardier
-RUN apt-get update && apt-get install -y --no-install-recommends tar && \
-    wget https://github.com/codesenberg/bombardier/releases/download/v1.2.6/bombardier-linux-amd64.tar.gz && \
-    tar -xzf bombardier-linux-amd64.tar.gz && \
-    mv bombardier /usr/local/bin/bombardier && \
-    rm bombardier-linux-amd64.tar.gz && \
-    apt-get purge -y --auto-remove tar && rm -rf /var/lib/apt/lists/*
+# Eliminar intentos de instalar Bombardier
 
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
