@@ -22,10 +22,12 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl wget unzip && rm -rf /var/lib/apt/lists/*
 
 # Instalar Bombardier
-RUN wget https://github.com/codesenberg/bombardier/releases/download/v1.2.6/bombardier-linux-amd64.zip && \
-    unzip bombardier-linux-amd64.zip && \
-    mv bombardier-linux-amd64 /usr/local/bin/bombardier && \
-    rm bombardier-linux-amd64.zip
+RUN apt-get update && apt-get install -y --no-install-recommends tar && \
+    wget https://github.com/codesenberg/bombardier/releases/download/v1.2.6/bombardier-linux-amd64.tar.gz && \
+    tar -xzf bombardier-linux-amd64.tar.gz && \
+    mv bombardier /usr/local/bin/bombardier && \
+    rm bombardier-linux-amd64.tar.gz && \
+    apt-get purge -y --auto-remove tar && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
