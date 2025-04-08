@@ -213,14 +213,6 @@ services:
     depends_on:
       - prometheus
 
-volumes:
-  pgdata:
-  redis-data:
-  grafana-storage: # Añadir volumen para Grafana
-
-networks:
-  lotto-bueno-network:
-
   k6:
     image: grafana/k6:latest
     container_name: k6
@@ -234,3 +226,11 @@ networks:
       - app
     entrypoint: [""] # Sobrescribe el entrypoint por defecto para que no inicie una prueba automáticamente
     command: ["sleep", "infinity"] # Mantiene el contenedor corriendo
+
+volumes:
+  pgdata:
+  redis-data:
+  grafana-storage: # Añadir volumen para Grafana
+
+networks:
+  lotto-bueno-network:
