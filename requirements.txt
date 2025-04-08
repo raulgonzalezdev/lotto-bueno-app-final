@@ -66,7 +66,6 @@ XlsxWriter==3.2.0
 aiosmtplib>=1.1.0,<3.1.0
 google-cloud-core
 google-auth
-whatsapp-chatbot-python>=1.0.0,<2.0.0
 python-jose[cryptography]>=3.3.0,<4.0.0
 passlib[bcrypt]>=1.7.4,<2.0.0
 bcrypt>=4.0.1,<5.0.0
