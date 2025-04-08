@@ -167,6 +167,7 @@ def extract_phone_number(text):
 def start(update: Update, context: CallbackContext) -> int:
     """Iniciar conversación y solicitar cédula"""
     user = update.effective_user
+    logger.info(f"Comando /start recibido de {user.first_name}")
     
     # Verificar si hay una cédula en el comando /start
     message_text = update.message.text
@@ -174,14 +175,13 @@ def start(update: Update, context: CallbackContext) -> int:
     
     if cedula:
         # Si encontramos una cédula en el mensaje, procesarla directamente
+        logger.info(f"Cédula encontrada en comando /start: {cedula}")
         context.user_data['cedula'] = cedula
         return asyncio.run(procesar_cedula(update, context))
     
-    # Si no hay cédula, pedir una
-    update.message.reply_text(
-        f"👋 Hola, {user.first_name}. Para validar tu registro, por favor envíame tu número de cédula."
-    )
-    return ESPERANDO_CEDULA
+    # Si no hay cédula, mostrar menú principal directamente
+    logger.info(f"Mostrando menú principal para {user.first_name}")
+    return mostrar_menu_principal(update, context)
 
 async def procesar_cedula(update: Update, context: CallbackContext) -> int:
     """Procesar la cédula ingresada por el usuario"""
@@ -473,6 +473,39 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
         
         update.message.reply_text(message)
         
+        # MODIFICADO: Crear enlaces para WhatsApp y Telegram en lugar de enviar mensajes directos
+        try:
+            # Preparar el mensaje para el enlace de WhatsApp
+            welcome_message = f"¡Hola! Has sido registrado en Lotto Bueno con el número de cédula {cedula}. " \
+                            f"Tu ticket ha sido generado exitosamente. " \
+                            f"Para más información, guarda este contacto y comunícate con nosotros. " \
+                            f"Puedes unirte a nuestro canal de Telegram: {TELEGRAM_CHANNEL}"
+            
+            # Formatear el número para el enlace de WhatsApp
+            whatsapp_number = telefono
+            if whatsapp_number.startswith('58'):
+                whatsapp_number = whatsapp_number.lstrip('58')
+            
+            # Crear el enlace de WhatsApp
+            whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
+            logger.info(f"Enlace de WhatsApp generado: {whatsapp_link}")
+            
+            # Crear el enlace de Telegram con la cédula como parámetro de inicio
+            telegram_bot_username = TELEGRAM_TOKEN.split(':')[0]
+            telegram_link = f"https://t.me/{telegram_bot_username}?start={cedula}"
+            logger.info(f"Enlace de Telegram generado: {telegram_link}")
+            
+            # Enviar los enlaces al usuario
+            update.message.reply_text(
+                f"Puedes enviar un mensaje de bienvenida al número registrado a través de WhatsApp: {whatsapp_link}"
+            )
+            update.message.reply_text(
+                f"O puedes iniciar una conversación en Telegram con la cédula registrada: {telegram_link}"
+            )
+        except Exception as e:
+            logger.error(f"Error al generar enlaces: {e}")
+            # No interrumpimos el flujo si falla la generación de enlaces
+        
         # Limpiar datos del contexto que ya no necesitamos
         try:
             if 'cedula_registro' in context.user_data:
@@ -513,15 +546,15 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
     if opcion == REGISTRARSE:
         logger.info(f"Usuario {user_name} seleccionó registrarse")
         query.edit_message_text(
-            "Para registrarte en Lotto Bueno, necesito algunos datos.\n\n"
-            "Por favor, envíame tu número de cédula:"
+            f"👍 ¡Excelente elección {user_name}!\n\n"
+            f"Para registrarte en Lotto Bueno, por favor envía tu número de cédula:"
         )
         return ESPERANDO_CEDULA
     
     elif opcion == VISITAR_WEB_PRINCIPAL:
         logger.info(f"Usuario {user_name} seleccionó visitar web")
         query.edit_message_text(
-            f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
+            f"🌐 ¡Perfecto! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
         )
         # Volver a mostrar el menú para continuar interactuando
         context.bot.send_message(
@@ -533,7 +566,7 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
     elif opcion == UNIRSE_WHATSAPP_PRINCIPAL:
         logger.info(f"Usuario {user_name} seleccionó contacto WhatsApp")
         query.edit_message_text(
-            f"¡Genial! Puedes contactarnos por WhatsApp en el siguiente enlace:\n{WHATSAPP_URL}"
+            f"📱 ¡Excelente! Puedes contactarnos por WhatsApp en el siguiente enlace:\n{WHATSAPP_URL}"
         )
         # Volver a mostrar el menú para continuar interactuando
         context.bot.send_message(
@@ -545,14 +578,14 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
     elif opcion == INTENTAR_CEDULA:
         logger.info(f"Usuario {user_name} seleccionó verificar cédula")
         query.edit_message_text(
-            "Por favor, envíame tu número de cédula para verificar tu registro:"
+            f"🔢 Por favor, envíame tu número de cédula para verificar tu registro:"
         )
         return ESPERANDO_CEDULA
     
     elif opcion == FINALIZAR_PRINCIPAL:
         logger.info(f"Usuario {user_name} seleccionó finalizar conversación")
         query.edit_message_text(
-            f"¡Gracias por contactarnos, {user_name}! Esperamos verte pronto en Lotto Bueno. "
+            f"👋 ¡Gracias por contactarnos, {user_name}! Esperamos verte pronto en Lotto Bueno. "
             "¡Que tengas un excelente día! 🍀"
         )
         # Limpiar cualquier dato de contexto pendiente
@@ -582,7 +615,7 @@ def button_callback(update: Update, context: CallbackContext) -> int:
     if opcion == VISITAR_WEB:
         logger.info(f"Usuario {user_name} seleccionó visitar web desde menú post-registro")
         query.edit_message_text(
-            f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
+            f"🌐 ¡Perfecto! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
         )
         # Volver a mostrar el menú para continuar interactuando
         context.bot.send_message(
@@ -594,7 +627,7 @@ def button_callback(update: Update, context: CallbackContext) -> int:
     elif opcion == UNIRSE_WHATSAPP:
         logger.info(f"Usuario {user_name} seleccionó contacto WhatsApp desde menú post-registro")
         query.edit_message_text(
-            f"¡Genial! Puedes contactarnos por WhatsApp en el siguiente enlace:\n{WHATSAPP_URL}"
+            f"📱 ¡Excelente! Puedes contactarnos por WhatsApp en el siguiente enlace:\n{WHATSAPP_URL}"
         )
         # Volver a mostrar el menú para continuar interactuando
         context.bot.send_message(
@@ -606,7 +639,7 @@ def button_callback(update: Update, context: CallbackContext) -> int:
     elif opcion == VOLVER_MENU_PRINCIPAL:
         logger.info(f"Usuario {user_name} seleccionó regresar al menú principal")
         query.edit_message_text(
-            "Regresando al menú principal..."
+            "🔄 Regresando al menú principal..."
         )
         # Mostrar el menú principal
         return mostrar_menu_principal(update, context)
@@ -615,7 +648,7 @@ def button_callback(update: Update, context: CallbackContext) -> int:
         nombre = context.user_data.get('nombre', user_name)
         logger.info(f"Usuario {user_name} seleccionó finalizar desde menú post-registro")
         query.edit_message_text(
-            f"¡Gracias por registrarte, {nombre}! Estamos emocionados de tenerte como participante en Lotto Bueno. "
+            f"👋 ¡Gracias por registrarte, {nombre}! Estamos emocionados de tenerte como participante en Lotto Bueno. "
             "Te notificaremos si eres el ganador. ¡Buena suerte! 🍀"
         )
         # Limpiar cualquier dato de contexto pendiente
@@ -630,47 +663,100 @@ def button_callback(update: Update, context: CallbackContext) -> int:
     query.edit_message_text("No pude entender tu selección. Por favor, intenta nuevamente.")
     return mostrar_menu_post_registro(update, context)
 
+def mensaje_cedula(update: Update, context: CallbackContext) -> int:
+    """Procesa mensajes de texto recibidos cuando se espera una cédula"""
+    user_name = update.effective_user.first_name
+    text = update.message.text
+    logger.info(f"Mensaje recibido en estado ESPERANDO_CEDULA: {text} de usuario: {user_name}")
+    
+    # Tratar de extraer cédula y procesarla
+    cedula = extract_cedula(text)
+    if cedula:
+        logger.info(f"Cédula extraída del mensaje: {cedula}")
+        context.user_data['cedula'] = cedula
+        return asyncio.run(procesar_cedula(update, context))
+    else:
+        # Si no se identifica una cédula, informar al usuario
+        update.message.reply_text(
+            "No pude identificar un número de cédula válido en tu mensaje.\n"
+            "Por favor envía solo tu número de cédula (entre 6 y 10 dígitos).\n\n"
+            "Ejemplo: 12345678"
+        )
+        return ESPERANDO_CEDULA
+
+def cancel(update: Update, context: CallbackContext) -> int:
+    """Cancelar y finalizar la conversación"""
+    user_name = update.effective_user.first_name
+    logger.info(f"Usuario {user_name} canceló la conversación")
+    
+    update.message.reply_text(
+        f"👋 ¡Adiós {user_name}! La conversación ha sido finalizada.\n"
+        f"Puedes enviar cualquier mensaje cuando quieras volver a hablar conmigo."
+    )
+    
+    # Limpiar datos del contexto
+    try:
+        context.user_data.clear()
+        logger.info(f"Contexto limpiado para usuario {user_name}")
+    except Exception as e:
+        logger.error(f"Error al limpiar contexto: {e}")
+        
+    return ConversationHandler.END
+
+def mensaje_inicial(update: Update, context: CallbackContext) -> None:
+    """Responde a cualquier mensaje cuando no hay una conversación activa mostrando el menú principal"""
+    user = update.effective_user
+    logger.info(f"Mensaje inicial recibido de {user.first_name}: {update.message.text}")
+    
+    # En lugar de pedir /start, mostrar directamente el menú principal
+    logger.info(f"Mostrando menú principal automáticamente para {user.first_name}")
+    return mostrar_menu_principal(update, context)
+
 def mostrar_menu_principal(update: Update, context: CallbackContext) -> int:
     """Mostrar menú principal para usuarios sin cédula registrada"""
     user_name = update.effective_user.first_name
     
     keyboard = [
-        [InlineKeyboardButton("Registrarme en Lotto Bueno 📝", callback_data=REGISTRARSE)],
-        [InlineKeyboardButton("Visitar sitio web 🌐", callback_data=VISITAR_WEB_PRINCIPAL)],
-        [InlineKeyboardButton("Contactarnos por WhatsApp 📱", callback_data=UNIRSE_WHATSAPP_PRINCIPAL)],
-        [InlineKeyboardButton("Verificar otra cédula 🔢", callback_data=INTENTAR_CEDULA)],
-        [InlineKeyboardButton("Finalizar conversación 👋", callback_data=FINALIZAR_PRINCIPAL)]
+        [InlineKeyboardButton("🎟️ Registrarme en Lotto Bueno", callback_data=REGISTRARSE)],
+        [InlineKeyboardButton("🌐 Visitar sitio web", callback_data=VISITAR_WEB_PRINCIPAL)],
+        [InlineKeyboardButton("📱 Contactarnos por WhatsApp", callback_data=UNIRSE_WHATSAPP_PRINCIPAL)],
+        [InlineKeyboardButton("🔢 Verificar mi cédula", callback_data=INTENTAR_CEDULA)],
+        [InlineKeyboardButton("👋 Finalizar conversación", callback_data=FINALIZAR_PRINCIPAL)]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     logger.info(f"Mostrando menú principal a usuario: {user_name}")
     
+    # Mensaje de bienvenida con instrucciones claras
+    welcome_message = f"👋 Hola {user_name}, bienvenido a Lotto Bueno!\n\n" \
+                     f"¿Cómo puedo ayudarte hoy? Elige una opción:"
+    
     # Enviar mensaje con el menú
     try:
         if update.message:
             update.message.reply_text(
-                f"Hola {user_name}, estamos aquí para ayudarte. ¿Qué te gustaría hacer?",
+                welcome_message,
                 reply_markup=reply_markup
             )
         elif update.callback_query:
             # Si viene de un callback, actualizar el mensaje anterior o enviar uno nuevo
             try:
                 update.callback_query.edit_message_text(
-                    f"Hola {user_name}, estamos aquí para ayudarte. ¿Qué te gustaría hacer?",
+                    welcome_message,
                     reply_markup=reply_markup
                 )
             except Exception as e:
                 logger.error(f"Error al editar mensaje: {e}")
                 context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text=f"Hola {user_name}, estamos aquí para ayudarte. ¿Qué te gustaría hacer?",
+                    text=welcome_message,
                     reply_markup=reply_markup
                 )
         else:
             # En caso de que no haya ni mensaje ni callback
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"Hola {user_name}, estamos aquí para ayudarte. ¿Qué te gustaría hacer?",
+                text=welcome_message,
                 reply_markup=reply_markup
             )
     except Exception as e:
@@ -678,7 +764,7 @@ def mostrar_menu_principal(update: Update, context: CallbackContext) -> int:
         try:
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"Hola {user_name}, estamos aquí para ayudarte. ¿Qué te gustaría hacer?",
+                text=welcome_message,
                 reply_markup=reply_markup
             )
         except Exception as e2:
@@ -688,42 +774,48 @@ def mostrar_menu_principal(update: Update, context: CallbackContext) -> int:
 
 def mostrar_menu_post_registro(update: Update, context: CallbackContext) -> int:
     """Mostrar menú post-registro"""
+    user_name = context.user_data.get('nombre', update.effective_user.first_name)
+    
     keyboard = [
-        [InlineKeyboardButton("Visitar Sitio Web 🌐", callback_data=VISITAR_WEB)],
-        [InlineKeyboardButton("Contactarnos por WhatsApp 📱", callback_data=UNIRSE_WHATSAPP)],
-        [InlineKeyboardButton("Regresar al Menú Principal 🔄", callback_data=VOLVER_MENU_PRINCIPAL)],
-        [InlineKeyboardButton("Finalizar Conversación 👋", callback_data=FINALIZAR)]
+        [InlineKeyboardButton("🌐 Visitar Sitio Web", callback_data=VISITAR_WEB)],
+        [InlineKeyboardButton("📱 Contactarnos por WhatsApp", callback_data=UNIRSE_WHATSAPP)],
+        [InlineKeyboardButton("🔄 Regresar al Menú Principal", callback_data=VOLVER_MENU_PRINCIPAL)],
+        [InlineKeyboardButton("👋 Finalizar Conversación", callback_data=FINALIZAR)]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     logger.info(f"Mostrando menú post-registro a usuario: {update.effective_user.first_name}")
     
+    # Mensaje amigable
+    post_reg_message = f"¡Felicidades {user_name}! Tu ticket está registrado.\n\n" \
+                      f"¿Qué te gustaría hacer ahora?"
+    
     # Enviar mensaje con el menú
     try:
         if update.message:
             update.message.reply_text(
-                "¿Qué te gustaría hacer ahora?",
+                post_reg_message,
                 reply_markup=reply_markup
             )
         elif update.callback_query:
             # Si viene de un callback, actualizar el mensaje anterior o enviar uno nuevo
             try:
                 update.callback_query.edit_message_text(
-                    "¿Qué te gustaría hacer ahora?",
+                    post_reg_message,
                     reply_markup=reply_markup
                 )
             except Exception as e:
                 logger.error(f"Error al editar mensaje post-registro: {e}")
                 context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text="¿Qué te gustaría hacer ahora?",
+                    text=post_reg_message,
                     reply_markup=reply_markup
                 )
         else:
             # En caso de que no haya ni mensaje ni callback
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="¿Qué te gustaría hacer ahora?",
+                text=post_reg_message,
                 reply_markup=reply_markup
             )
     except Exception as e:
@@ -731,28 +823,13 @@ def mostrar_menu_post_registro(update: Update, context: CallbackContext) -> int:
         try:
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="¿Qué te gustaría hacer ahora?",
+                text=post_reg_message,
                 reply_markup=reply_markup
             )
         except Exception as e2:
             logger.error(f"Error secundario al mostrar menú post-registro: {e2}")
     
     return MENU_POST_REGISTRO
-
-def cancel(update: Update, context: CallbackContext) -> int:
-    """Cancelar y finalizar la conversación"""
-    update.message.reply_text("Conversación finalizada. Envía /start para comenzar de nuevo.")
-    return ConversationHandler.END
-
-def mensaje_inicial(update: Update, context: CallbackContext) -> None:
-    """Responde a cualquier mensaje cuando no hay una conversación activa"""
-    user = update.effective_user
-    update.message.reply_text(
-        f"👋 Hola, {user.first_name}. Bienvenido al bot de Lotto Bueno.\n\n"
-        f"Para iniciar tu registro o verificar tu cédula, por favor envía el comando /start\n\n"
-        f"Si ya enviaste tu cédula antes, puedes escribir directamente:\n"
-        f"/start TUCEDULA (ejemplo: /start 12345678)"
-    )
 
 def main():
     """Función principal para iniciar el bot"""
@@ -768,26 +845,36 @@ def main():
     
     # Registrar manejadores con manejo de excepciones
     try:
-        # Crear el manejador de conversación
+        # Crear el manejador de conversación con más entry points
         conv_handler = ConversationHandler(
-            entry_points=[CommandHandler('start', start)],
+            entry_points=[
+                CommandHandler('start', start),
+                # Añadir un manejador para cualquier mensaje de texto como punto de entrada
+                MessageHandler(Filters.text & ~Filters.command, mensaje_inicial)
+            ],
             states={
                 ESPERANDO_CEDULA: [
-                    MessageHandler(Filters.text & ~Filters.command, lambda update, context: asyncio.run(procesar_cedula(update, context)))
+                    MessageHandler(Filters.text & ~Filters.command, mensaje_cedula)
                 ],
                 ESPERANDO_TELEFONO: [
                     MessageHandler(Filters.text & ~Filters.command, registrar_usuario)
                 ],
                 MENU_POST_REGISTRO: [
-                    CallbackQueryHandler(button_callback)
+                    CallbackQueryHandler(button_callback),
+                    # Manejar texto enviado mientras está en menú post-registro
+                    MessageHandler(Filters.text & ~Filters.command, lambda update, context: mostrar_menu_post_registro(update, context))
                 ],
                 MENU_PRINCIPAL: [
-                    CallbackQueryHandler(handle_menu_principal_callback)
+                    CallbackQueryHandler(handle_menu_principal_callback),
+                    # Manejar texto enviado mientras está en menú principal
+                    MessageHandler(Filters.text & ~Filters.command, lambda update, context: mostrar_menu_principal(update, context))
                 ]
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             per_message=True,  # Importante para rastrear callbacks en cada mensaje
-            name="conversacion_principal"
+            name="conversacion_principal",
+            # Hacer el manejador de conversación persistente
+            allow_reentry=True
         )
         
         # Añadir el manejador al dispatcher
@@ -796,10 +883,10 @@ def main():
         
         # Manejador para comandos no reconocidos
         dispatcher.add_handler(MessageHandler(Filters.command & ~Filters.regex(r'^/start'), 
-                              lambda update, context: update.message.reply_text("Comando no reconocido. Usa /start para iniciar.")))
+                              lambda update, context: mostrar_menu_principal(update, context)))
         
-        # Manejador para mensajes de texto cuando no hay conversación activa
-        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, mensaje_inicial))
+        # Ya no necesitamos este manejador ya que lo incluimos en entry_points
+        # dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, mensaje_inicial))
         logger.info("Manejadores adicionales registrados correctamente")
         
         # Iniciar el bot con polling más agresivo para mayor responsividad
@@ -818,7 +905,6 @@ def main():
             pass
         
         logger.info("Intentando reiniciar el bot después de error crítico...")
-        # Aquí podría haber código para un reinicio limpio o notificación a administradores
 
 if __name__ == '__main__':
     main() 

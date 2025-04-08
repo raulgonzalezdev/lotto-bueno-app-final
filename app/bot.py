@@ -442,6 +442,28 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             data = response.json()
             print(f"Registro exitoso: {data}")
             
+            # MODIFICADO: Crear un enlace para WhatsApp en lugar de enviar mensaje directo
+            if telefono:
+                try:
+                    # Preparar el mensaje para el enlace
+                    welcome_message = f"¡Hola! Has sido registrado en Lotto Bueno con el número de cédula {cedula}. Tu ticket ha sido generado exitosamente. Para más información, guarda este contacto y comunícate con nosotros. Puedes unirte a nuestro canal de Telegram: {TELEGRAM_CHANNEL}"
+                    
+                    # Formatear el número para el enlace de WhatsApp (sin el prefijo de país en el enlace)
+                    whatsapp_number = telefono
+                    if whatsapp_number.startswith('58'):
+                        whatsapp_number = whatsapp_number.lstrip('58')
+                    
+                    # Crear el enlace de WhatsApp
+                    whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
+                    print(f"Enlace de WhatsApp generado: {whatsapp_link}")
+                    
+                    # Enviar el enlace al usuario
+                    notification.answer(f"Se ha generado un enlace para enviar mensaje al número registrado. Haz clic aquí para enviarlo:\n{whatsapp_link}")
+                    
+                except Exception as e:
+                    print(f"Error al generar enlace de WhatsApp: {e}")
+                    # No interrumpimos el flujo si falla la generación del enlace
+            
             # Si el registro fue exitoso
             notification.answer(f"¡Felicidades! Tu registro ha sido completado exitosamente.")
             
