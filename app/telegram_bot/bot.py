@@ -55,24 +55,35 @@ def extract_cedula(text):
     Busca un número que tenga entre 6 y 10 dígitos.
     """
     if not text:
+        logger.warning("Texto vacío recibido en extract_cedula")
         return None
         
     # Eliminar /start si está presente
     if text.startswith('/start'):
         text = text[6:].strip()
     
+    logger.info(f"Procesando texto para extraer cédula: '{text}'")
+    
     # Buscar patrones de cédula (números de 6-10 dígitos)
     cedula_matches = re.findall(r'\b\d{6,10}\b', text)
     
     if cedula_matches:
         # Tomar el primer número que parece una cédula
-        return cedula_matches[0]
+        cedula = cedula_matches[0]
+        logger.info(f"Cédula encontrada con regex: '{cedula}'")
+        return cedula
     
+    logger.info("No se encontró cédula con regex, intentando extraer solo dígitos")
     # Si no encuentra números que parezcan cédula, intentar limpiar y extraer solo dígitos
     digits_only = ''.join(filter(str.isdigit, text))
+    logger.info(f"Dígitos extraídos: '{digits_only}', longitud: {len(digits_only)}")
+    
     if len(digits_only) >= 6:
-        return digits_only[:10]  # Limitar a 10 dígitos máximo
+        cedula = digits_only[:10]  # Limitar a 10 dígitos máximo
+        logger.info(f"Cédula extraída de dígitos: '{cedula}'")
+        return cedula
         
+    logger.warning(f"No se pudo extraer una cédula válida del texto")
     return None
 
 def extract_phone_number(text):
@@ -81,40 +92,76 @@ def extract_phone_number(text):
     El formato final debe ser 584XXXXXXXXX (12 dígitos).
     """
     if not text:
+        logger.warning("Texto vacío recibido en extract_phone_number")
         return None
+    
+    logger.info(f"Procesando número de teléfono: '{text}'")
     
     # Eliminar espacios, guiones y paréntesis
     text = re.sub(r'[\s\-\(\)]', '', text)
+    logger.info(f"Texto limpio sin espacios/guiones: '{text}'")
     
     # Extraer solo los dígitos
     digits_only = ''.join(filter(str.isdigit, text))
+    logger.info(f"Solo dígitos: '{digits_only}', longitud: {len(digits_only)}")
     
-    # Manejar diferentes formatos
+    # Manejar diferentes formatos comunes en Venezuela
     if len(digits_only) >= 10:
-        # Si comienza con 58, verificar que tenga al menos 12 dígitos
+        # Si comienza con 58, verificar que tenga un código de operadora válido
         if digits_only.startswith('58'):
+            logger.info(f"Detectado número que comienza con 58: '{digits_only}'")
             # Verificar que después del 58 tenga un código de operadora válido
             if re.match(r'^58(412|414|416|424|426)', digits_only):
-                return digits_only[:12]  # Tomar solo los primeros 12 dígitos
+                result = digits_only[:12]  # Tomar solo los primeros 12 dígitos
+                logger.info(f"Número con prefijo internacional 58 válido: '{result}'")
+                return result
             else:
+                logger.warning(f"Prefijo de operadora inválido después del 58: '{digits_only[2:5] if len(digits_only) > 4 else digits_only[2:]}'")
                 return None
         
         # Si comienza con 0, quitar el 0 y agregar 58
         elif digits_only.startswith('0'):
+            logger.info(f"Detectado número que comienza con 0: '{digits_only}'")
             # Verificar que sea una operadora venezolana válida
             if re.match(r'^0(412|414|416|424|426)', digits_only):
-                return '58' + digits_only[1:11]  # Formato: 58 + 10 dígitos sin el 0
+                result = '58' + digits_only[1:11]  # Formato: 58 + 10 dígitos sin el 0
+                logger.info(f"Número con prefijo 0 convertido a: '{result}'")
+                return result
             else:
+                logger.warning(f"Prefijo de operadora inválido después del 0: '{digits_only[1:4] if len(digits_only) > 3 else digits_only[1:]}'")
                 return None
         
         # Si comienza directamente con el código de operadora (sin 0)
         elif re.match(r'^(412|414|416|424|426)', digits_only):
-            return '58' + digits_only[:10]  # Formato: 58 + 10 dígitos
+            logger.info(f"Detectado número que comienza con código de operadora: '{digits_only}'")
+            if len(digits_only) >= 10:
+                result = '58' + digits_only[:10]  # Formato: 58 + 10 dígitos
+                logger.info(f"Número sin prefijo convertido a: '{result}'")
+                return result
+            else:
+                logger.warning(f"Número de operadora sin prefijo demasiado corto: '{digits_only}', longitud: {len(digits_only)}")
+                return None
+        
+        # Intento adicional: si tiene 10 dígitos y no coincide con los patrones anteriores
+        elif len(digits_only) == 10:
+            # Asumir que los primeros 3 dígitos son el código de operadora
+            operator_code = digits_only[:3]
+            logger.info(f"Intentando procesar número de 10 dígitos con código de operadora: '{operator_code}'")
+            if operator_code in ['412', '414', '416', '424', '426']:
+                result = '58' + digits_only
+                logger.info(f"Número de 10 dígitos convertido a: '{result}'")
+                return result
+            else:
+                logger.warning(f"Código de operadora no reconocido: '{operator_code}' (debe ser uno de: 412, 414, 416, 424, 426)")
+                return None
         
         # Otros casos no válidos
         else:
+            logger.warning(f"Formato no reconocido: '{digits_only}', longitud: {len(digits_only)}")
+            logger.warning("El número debe comenzar con: 58, 0 o directamente el código de operadora (412, 414, 416, 424, 426)")
             return None
     
+    logger.warning(f"Número demasiado corto: '{digits_only}', longitud: {len(digits_only)} (se requieren al menos 10 dígitos)")
     return None
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -160,6 +207,7 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
         update.message.reply_text(
             f"No he podido identificar un número de cédula válido en tu mensaje. Por favor, envía solo tu número de cédula (entre 6 y 10 dígitos)."
         )
+        update.message.reply_text("Ejemplo de formato correcto: 12345678")
         # Mostrar menú principal como alternativa
         return mostrar_menu_principal(update, context)
     
@@ -168,9 +216,12 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
     
     try:
         # 1. Primero verificamos si la cédula existe en la base de datos de electores
+        logger.info(f"Verificando cédula {cedula} en la base de datos")
         elector_response = await verificar_cedula(CedulaRequest(numero_cedula=cedula), db)
+        logger.info(f"Respuesta verificación elector: {elector_response}")
         
         if not elector_response.get("elector"):
+            logger.info(f"Cédula {cedula} no registrada en el sistema electoral")
             update.message.reply_text(
                 f"El número de cédula {cedula} no está registrado en nuestra base de datos."
             )
@@ -181,6 +232,7 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
             # Guardar la cédula en el contexto para usarla durante el registro
             try:
                 context.user_data['cedula_registro'] = cedula
+                logger.info(f"Cédula {cedula} guardada en el contexto para registro")
             except Exception as e:
                 logger.error(f"Error al guardar cédula en contexto: {e}")
                 # Alternativa si falla guardar en el contexto
@@ -198,10 +250,12 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
         # Obtener datos del elector
         elector_data = elector_response.get("elector")
         nombre_completo = f"{elector_data['p_nombre']} {elector_data['s_nombre']} {elector_data['p_apellido']} {elector_data['s_apellido']}"
+        logger.info(f"Elector encontrado: {nombre_completo}")
         
         # Guardar información del usuario en el contexto
         try:
             context.user_data['nombre'] = nombre_completo
+            logger.info(f"Nombre guardado en contexto: {nombre_completo}")
         except Exception as e:
             logger.error(f"Error al guardar nombre en contexto: {e}")
             # No es crítico, continuamos sin guardar el nombre
@@ -209,11 +263,17 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
         # 2. Verificar si ya tiene un ticket registrado con esta cédula
         try:
             # Llamada a la API para obtener el ticket por cédula
-            response = requests.get(f"{NEXT_PUBLIC_API_URL}/api/tickets/cedula/{cedula}")
+            logger.info(f"Verificando ticket para cédula {cedula}")
+            ticket_url = f"{NEXT_PUBLIC_API_URL}/api/tickets/cedula/{cedula}"
+            logger.info(f"URL de verificación ticket: {ticket_url}")
+            
+            response = requests.get(ticket_url)
+            logger.info(f"Respuesta de verificación ticket: Status {response.status_code}")
             
             # Si la respuesta es exitosa, la cédula ya tiene un ticket
             if response.status_code == 200:
                 existing_ticket = response.json()
+                logger.info(f"Ticket encontrado: ID: {existing_ticket.get('id')}")
                 
                 # Extraer el QR del ticket
                 qr_code_base64 = existing_ticket["qr_ticket"]
@@ -239,6 +299,7 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
             
             # Si la respuesta es 404, la cédula no tiene ticket, debemos registrarla
             elif response.status_code == 404:
+                logger.info(f"Cédula {cedula} registrada pero sin ticket")
                 update.message.reply_text(
                     f"La cédula {cedula} está registrada en el sistema pero aún no tiene un ticket de Lotto Bueno."
                 )
@@ -249,6 +310,7 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
                 # Guardar la cédula en el contexto para el registro
                 try:
                     context.user_data['cedula_registro'] = cedula
+                    logger.info(f"Cédula {cedula} guardada para registro")
                 except Exception as e:
                     logger.error(f"Error al guardar cédula para registro: {e}")
                     update.message.reply_text(
@@ -264,7 +326,9 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
             
             else:
                 # Otros errores en la API
-                raise Exception(f"Error al verificar ticket: {response.status_code} - {response.text}")
+                error_msg = f"Error al verificar ticket: {response.status_code} - {response.text[:200]}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
         
         except requests.RequestException as e:
             logger.error(f"Error en la solicitud HTTP: {e}")
@@ -301,36 +365,46 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
     """Procesar el teléfono y registrar al usuario"""
     user_name = update.effective_user.first_name
     chat_id = update.effective_chat.id
+    logger.info(f"Procesando registro para usuario: {user_name}")
     
     # Obtener la cédula guardada anteriormente
     cedula = None
     try:
         cedula = context.user_data.get('cedula_registro')
+        logger.info(f"Cédula recuperada del contexto: {cedula}")
     except Exception as e:
         logger.error(f"Error al obtener cédula de registro del contexto: {e}")
     
     # Si no se encuentra la cédula, verificar si el usuario la envió junto con el teléfono
     if not cedula:
         message_text = update.message.text
+        logger.info(f"Mensaje recibido para procesar teléfono: {message_text}")
+        
         if ":" in message_text:
             parts = message_text.split(":")
             if len(parts) >= 2:
                 cedula_part = parts[0].strip()
                 cedula = extract_cedula(cedula_part)
                 phone_text = parts[1].strip()
+                logger.info(f"Cédula extraída del mensaje: {cedula}, teléfono: {phone_text}")
             else:
                 phone_text = message_text
+                logger.warning("Formato incorrecto CEDULA:TELEFONO")
         else:
             phone_text = message_text
             update.message.reply_text("No se encontró la cédula para el registro. Por favor inicia el proceso nuevamente.")
+            logger.warning(f"No se encontró cédula para el usuario {user_name}")
             return mostrar_menu_principal(update, context)
     else:
         phone_text = update.message.text
+        logger.info(f"Procesando número de teléfono: {phone_text} para cédula: {cedula}")
     
     # Extraer el número de teléfono del mensaje
     telefono = extract_phone_number(phone_text)
+    logger.info(f"Número de teléfono extraído: {telefono}")
     
     if not telefono:
+        logger.warning(f"No se pudo extraer un número de teléfono válido de: {phone_text}")
         update.message.reply_text(
             "No he podido identificar un número de teléfono válido. Por favor, envía tu número con formato 04XX-XXXXXXX:"
         )
@@ -348,21 +422,47 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
         }
         
         # Llamar a la API para registrar al usuario
+        logger.info(f"Enviando solicitud a la API para registrar ticket: {payload}")
+        api_url = f"{NEXT_PUBLIC_API_URL}/api/generate_tickets"
+        logger.info(f"URL de registro: {api_url}")
+        
         response = requests.post(
-            f"{NEXT_PUBLIC_API_URL}/api/generate_tickets", 
+            api_url, 
             json=payload
         )
+        
+        # Verificar si hay errores en la respuesta
+        if response.status_code != 200:
+            error_message = f"Error durante el registro (HTTP {response.status_code})."
+            try:
+                error_details = response.json()
+                error_detail = error_details.get("detail", "")
+                error_message += f" Detalle del error: {error_detail}"
+            except Exception:
+                error_message += f" Respuesta de la API: {response.text[:200]}"
+            
+            logger.error(f"Error en registro: {error_message}")
+            update.message.reply_text(f"Ha ocurrido un error durante el registro. ❌\n\n{error_message}")
+            update.message.reply_text("Por favor, intenta nuevamente o contacta a soporte con este mensaje de error.")
+            return mostrar_menu_principal(update, context)
+        
+        # Continuar solo si la respuesta es exitosa
         response.raise_for_status()
         data = response.json()
+        logger.info(f"Registro exitoso: {data.get('id', 'ID no disponible')}")
         
         # Mensaje de éxito
         update.message.reply_text("¡Felicidades! Tu registro ha sido completado exitosamente.")
         
         # Si hay un QR code, mostrarlo
         if data.get("qr_code"):
+            logger.info("QR Code recibido de la API")
             qr_bytes = base64.b64decode(data["qr_code"])
             with BytesIO(qr_bytes) as bio:
                 update.message.reply_photo(bio, caption=f"Ticket #{data.get('id', 'generado')}")
+            logger.info("QR Code enviado al usuario")
+        else:
+            logger.warning("No se recibió QR Code de la API")
         
         # Mensaje informativo
         message = f"¡Bienvenido a Lotto Bueno! Tu ticket ha sido generado.\n\n" \
@@ -377,13 +477,16 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
         try:
             if 'cedula_registro' in context.user_data:
                 del context.user_data['cedula_registro']
+                logger.info("Cédula de registro eliminada del contexto")
             
             # Guardar el nombre del usuario para usarlo en los menús
             context.user_data['nombre'] = user_name
+            logger.info(f"Nombre guardado en el contexto: {user_name}")
         except Exception as e:
             logger.error(f"Error al manipular datos del contexto: {e}")
         
         # Mostrar menú post-registro
+        logger.info("Mostrando menú post-registro después de registro exitoso")
         return mostrar_menu_post_registro(update, context)
         
     except requests.exceptions.HTTPError as e:
@@ -399,14 +502,16 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
     """Manejar los callbacks del menú principal"""
     query = update.callback_query
     query.answer()
+    user_name = update.effective_user.first_name
     
     # Logging para depuración
-    logger.info(f"Callback recibido: {query.data}")
+    logger.info(f"Callback recibido: {query.data} de usuario: {user_name}")
     
     # Obtener la opción seleccionada
     opcion = query.data
     
     if opcion == REGISTRARSE:
+        logger.info(f"Usuario {user_name} seleccionó registrarse")
         query.edit_message_text(
             "Para registrarte en Lotto Bueno, necesito algunos datos.\n\n"
             "Por favor, envíame tu número de cédula:"
@@ -414,6 +519,7 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
         return ESPERANDO_CEDULA
     
     elif opcion == VISITAR_WEB_PRINCIPAL:
+        logger.info(f"Usuario {user_name} seleccionó visitar web")
         query.edit_message_text(
             f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
         )
@@ -425,6 +531,7 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
         return mostrar_menu_principal(update, context)
     
     elif opcion == UNIRSE_WHATSAPP_PRINCIPAL:
+        logger.info(f"Usuario {user_name} seleccionó contacto WhatsApp")
         query.edit_message_text(
             f"¡Genial! Puedes contactarnos por WhatsApp en el siguiente enlace:\n{WHATSAPP_URL}"
         )
@@ -436,17 +543,24 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
         return mostrar_menu_principal(update, context)
     
     elif opcion == INTENTAR_CEDULA:
+        logger.info(f"Usuario {user_name} seleccionó verificar cédula")
         query.edit_message_text(
             "Por favor, envíame tu número de cédula para verificar tu registro:"
         )
         return ESPERANDO_CEDULA
     
     elif opcion == FINALIZAR_PRINCIPAL:
-        user_name = update.effective_user.first_name
+        logger.info(f"Usuario {user_name} seleccionó finalizar conversación")
         query.edit_message_text(
             f"¡Gracias por contactarnos, {user_name}! Esperamos verte pronto en Lotto Bueno. "
             "¡Que tengas un excelente día! 🍀"
         )
+        # Limpiar cualquier dato de contexto pendiente
+        try:
+            context.user_data.clear()
+            logger.info(f"Contexto limpiado para usuario {user_name}")
+        except Exception as e:
+            logger.error(f"Error al limpiar contexto: {e}")
         return ConversationHandler.END
     
     logger.warning(f"Opción desconocida recibida: {opcion}")
@@ -457,14 +571,16 @@ def button_callback(update: Update, context: CallbackContext) -> int:
     """Manejar los callbacks de los botones del menú post-registro"""
     query = update.callback_query
     query.answer()
+    user_name = update.effective_user.first_name
     
     # Logging para depuración
-    logger.info(f"Callback post-registro recibido: {query.data}")
+    logger.info(f"Callback post-registro recibido: {query.data} de usuario: {user_name}")
     
     # Obtener la opción seleccionada
     opcion = query.data
     
     if opcion == VISITAR_WEB:
+        logger.info(f"Usuario {user_name} seleccionó visitar web desde menú post-registro")
         query.edit_message_text(
             f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
         )
@@ -476,6 +592,7 @@ def button_callback(update: Update, context: CallbackContext) -> int:
         return mostrar_menu_post_registro(update, context)
     
     elif opcion == UNIRSE_WHATSAPP:
+        logger.info(f"Usuario {user_name} seleccionó contacto WhatsApp desde menú post-registro")
         query.edit_message_text(
             f"¡Genial! Puedes contactarnos por WhatsApp en el siguiente enlace:\n{WHATSAPP_URL}"
         )
@@ -487,6 +604,7 @@ def button_callback(update: Update, context: CallbackContext) -> int:
         return mostrar_menu_post_registro(update, context)
     
     elif opcion == VOLVER_MENU_PRINCIPAL:
+        logger.info(f"Usuario {user_name} seleccionó regresar al menú principal")
         query.edit_message_text(
             "Regresando al menú principal..."
         )
@@ -494,11 +612,18 @@ def button_callback(update: Update, context: CallbackContext) -> int:
         return mostrar_menu_principal(update, context)
     
     elif opcion == FINALIZAR:
-        nombre = context.user_data.get('nombre', 'Usuario')
+        nombre = context.user_data.get('nombre', user_name)
+        logger.info(f"Usuario {user_name} seleccionó finalizar desde menú post-registro")
         query.edit_message_text(
             f"¡Gracias por registrarte, {nombre}! Estamos emocionados de tenerte como participante en Lotto Bueno. "
             "Te notificaremos si eres el ganador. ¡Buena suerte! 🍀"
         )
+        # Limpiar cualquier dato de contexto pendiente
+        try:
+            context.user_data.clear()
+            logger.info(f"Contexto limpiado para usuario {user_name}")
+        except Exception as e:
+            logger.error(f"Error al limpiar contexto: {e}")
         return ConversationHandler.END
     
     logger.warning(f"Opción post-registro desconocida recibida: {opcion}")
@@ -631,50 +756,69 @@ def mensaje_inicial(update: Update, context: CallbackContext) -> None:
 
 def main():
     """Función principal para iniciar el bot"""
+    # Configurar logging más detallado
+    logging.getLogger('telegram').setLevel(logging.INFO)
+    logging.getLogger('telegram.ext').setLevel(logging.INFO)
+    
+    logger.info(f"Iniciando bot de Telegram con token: {TELEGRAM_TOKEN[:6]}...")
+    
+    # Crear el updater con un nivel de polling más agresivo
     updater = Updater(TELEGRAM_TOKEN)
     dispatcher = updater.dispatcher
     
-    # Nivel de logging más detallado para depurar problemas
-    logging.getLogger('telegram').setLevel(logging.DEBUG)
-    logging.getLogger('telegram.ext').setLevel(logging.DEBUG)
-    
-    # Crear el manejador de conversación
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
-        states={
-            ESPERANDO_CEDULA: [
-                MessageHandler(Filters.text & ~Filters.command, lambda update, context: asyncio.run(procesar_cedula(update, context)))
-            ],
-            ESPERANDO_TELEFONO: [
-                MessageHandler(Filters.text & ~Filters.command, registrar_usuario)
-            ],
-            MENU_POST_REGISTRO: [
-                CallbackQueryHandler(button_callback)
-            ],
-            MENU_PRINCIPAL: [
-                CallbackQueryHandler(handle_menu_principal_callback)
-            ]
-        },
-        fallbacks=[CommandHandler('cancel', cancel)],
-        per_message=True,  # Importante para rastrear callbacks en cada mensaje
-        name="conversacion_principal"
-    )
-    
-    # Añadir el manejador al dispatcher
-    dispatcher.add_handler(conv_handler)
-    
-    # Manejador para comandos no reconocidos - Este debe ir DESPUÉS del ConversationHandler
-    # y además debe excluir específicamente el comando /start
-    dispatcher.add_handler(MessageHandler(Filters.command & ~Filters.regex(r'^/start'), 
-                          lambda update, context: update.message.reply_text("Comando no reconocido. Usa /start para iniciar.")))
-    
-    # Manejador para mensajes de texto cuando no hay conversación activa
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, mensaje_inicial))
-    
-    # Iniciar el bot con polling más agresivo para mayor responsividad
-    updater.start_polling(poll_interval=0.5, timeout=30, drop_pending_updates=True)
-    logger.info("Bot de Telegram iniciado correctamente")
-    updater.idle()
+    # Registrar manejadores con manejo de excepciones
+    try:
+        # Crear el manejador de conversación
+        conv_handler = ConversationHandler(
+            entry_points=[CommandHandler('start', start)],
+            states={
+                ESPERANDO_CEDULA: [
+                    MessageHandler(Filters.text & ~Filters.command, lambda update, context: asyncio.run(procesar_cedula(update, context)))
+                ],
+                ESPERANDO_TELEFONO: [
+                    MessageHandler(Filters.text & ~Filters.command, registrar_usuario)
+                ],
+                MENU_POST_REGISTRO: [
+                    CallbackQueryHandler(button_callback)
+                ],
+                MENU_PRINCIPAL: [
+                    CallbackQueryHandler(handle_menu_principal_callback)
+                ]
+            },
+            fallbacks=[CommandHandler('cancel', cancel)],
+            per_message=True,  # Importante para rastrear callbacks en cada mensaje
+            name="conversacion_principal"
+        )
+        
+        # Añadir el manejador al dispatcher
+        dispatcher.add_handler(conv_handler)
+        logger.info("Manejador de conversación registrado correctamente")
+        
+        # Manejador para comandos no reconocidos
+        dispatcher.add_handler(MessageHandler(Filters.command & ~Filters.regex(r'^/start'), 
+                              lambda update, context: update.message.reply_text("Comando no reconocido. Usa /start para iniciar.")))
+        
+        # Manejador para mensajes de texto cuando no hay conversación activa
+        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, mensaje_inicial))
+        logger.info("Manejadores adicionales registrados correctamente")
+        
+        # Iniciar el bot con polling más agresivo para mayor responsividad
+        logger.info("Iniciando polling...")
+        updater.start_polling(poll_interval=0.5, timeout=30, drop_pending_updates=True)
+        logger.info("Bot de Telegram iniciado correctamente")
+        updater.idle()
+        
+    except Exception as e:
+        logger.critical(f"Error crítico al iniciar el bot: {e}")
+        # Intentar un reinicio limpio si es posible
+        try:
+            if updater:
+                updater.stop()
+        except:
+            pass
+        
+        logger.info("Intentando reiniciar el bot después de error crítico...")
+        # Aquí podría haber código para un reinicio limpio o notificación a administradores
 
 if __name__ == '__main__':
     main() 
