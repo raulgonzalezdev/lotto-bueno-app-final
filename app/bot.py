@@ -161,23 +161,28 @@ def obtener_cedula(notification: Notification) -> None:
     
     # Verificar si hay datos de estado para este usuario
     user_state = get_user_state(notification, sender)
+    print(f"Estado actual al recibir mensaje: {user_state}")
     
     # Verificar el estado del usuario y dirigir a la función correspondiente
     if user_state:
-        try:
-            state_value = user_state.get("state")
-            if state_value == "menu_post_registro":
-                handle_post_registro_menu(notification, sender, message_data)
-                return
-            elif state_value == "menu_principal":
-                handle_menu_principal(notification, sender, message_data)
-                return
-            elif state_value == "esperando_telefono":
-                handle_registro_telefono(notification, sender, message_data)
-                return
-        except Exception as e:
-            print(f"Error al verificar estado del usuario: {e}")
-            # Si hay error al procesar el estado, continuar con el flujo normal
+        state_value = user_state.get("state")
+        print(f"Estado del usuario: {state_value}")
+        
+        if state_value == "esperando_telefono":
+            print("Procesando número de teléfono...")
+            handle_registro_telefono(notification, sender, message_data)
+            return
+        elif state_value == "menu_post_registro":
+            print("Procesando selección del menú post-registro...")
+            handle_post_registro_menu(notification, sender, message_data)
+            return
+        elif state_value == "menu_principal":
+            print("Procesando selección del menú principal...")
+            handle_menu_principal(notification, sender, message_data)
+            return
+    
+    # Si no hay estado o no coincide con ninguno de los anteriores, 
+    # procesar como entrada de cédula (comportamiento predeterminado)
     
     # Obtener el texto del mensaje
     message_text = None
@@ -359,13 +364,14 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
     
     # Obtener el estado del usuario
     user_state = get_user_state(notification, sender)
-    print(f"Estado del usuario recuperado: {user_state}")
+    print(f"Estado del usuario recuperado en handle_registro_telefono: {user_state}")
     
     # Obtener datos del estado
     cedula = user_state.get("cedula")
     nombre = user_state.get("nombre", "Usuario")
     
     if not cedula:
+        print(f"No se encontró cédula en el estado: {user_state}")
         notification.answer("No he podido recuperar tus datos de registro. Por favor intenta nuevamente.")
         show_menu_principal(notification, nombre)
         set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
@@ -376,6 +382,8 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
         # Mantener el estado actual
         set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
         return
+    
+    print(f"Procesando número de teléfono: '{message_text}' para cédula: {cedula}")
     
     # Extraer el número de teléfono
     telefono = extract_phone_number(message_text)
@@ -402,7 +410,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             "referido_id": 1  # Valor por defecto para registros desde el bot
         }
         
-        print(f"Enviando solicitud a la API: {payload}")
+        print(f"Enviando solicitud a la API para generar ticket: {payload}")
         
         try:
             # Usar URL interna para la comunicación entre servicios
@@ -410,7 +418,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 f"{INTERNAL_API_URL}/api/generate_tickets",
                 json=payload
             )
-            print(f"Respuesta de la API: Status: {response.status_code}, Texto: {response.text}")
+            print(f"Respuesta de la API: Status: {response.status_code}, Texto: {response.text[:200]}")
             
             # Verificar si hay errores en la respuesta
             if response.status_code != 200:
@@ -432,6 +440,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             # Continuar solo si la respuesta es exitosa
             response.raise_for_status()
             data = response.json()
+            print(f"Registro exitoso: {data}")
             
             # Si el registro fue exitoso
             notification.answer(f"¡Felicidades! Tu registro ha sido completado exitosamente.")
@@ -439,6 +448,9 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             if data.get("qr_code"):
                 qr_buf = BytesIO(base64.b64decode(data["qr_code"]))
                 send_qr_code(sender, qr_buf)
+                print(f"QR Code enviado al usuario")
+            else:
+                print(f"No se encontró QR code en la respuesta")
             
             message = f"¡Bienvenido a Lotto Bueno! Tu ticket ha sido generado.\n\n" \
                     f"Es importante que guardes nuestro contacto, así podremos anunciarte si eres el afortunado ganador.\n" \
@@ -452,6 +464,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             db = next(get_db())
             phone_contact = obtener_numero_contacto(db)
             if phone_contact:
+                print(f"Enviando contacto: {phone_contact}")
                 enviar_contacto(sender, phone_contact.split('@')[0], "Lotto", "Bueno", "Lotto Bueno Inc")
             
             # Mostrar el menú después del registro
@@ -459,6 +472,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             
             # Actualizar el estado del usuario
             set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
+            print(f"Estado actualizado a menu_post_registro después del registro exitoso")
             
         except requests.exceptions.RequestException as req_err:
             print(f"Error en la solicitud HTTP: {req_err}")
@@ -659,16 +673,39 @@ def check_inactive_users():
             inactive_users.append(sender)
     
     for sender in inactive_users:
-        # Eliminar el estado del usuario
-        bot.router.state_manager.delete_state(sender)
-        # Eliminar el registro de tiempo de interacción
-        del user_last_interaction[sender]
-        
-        # Opcional: enviar un mensaje de cierre de sesión
+        print(f"Usuario inactivo detectado: {sender}")
         try:
-            send_message(sender, "Tu sesión ha finalizado debido a inactividad. Envía cualquier mensaje para comenzar de nuevo.")
+            # Eliminar el estado del usuario si existe
+            try:
+                if hasattr(bot, 'state_manager'):
+                    bot.state_manager.delete_state(sender)
+                elif hasattr(bot.router, 'state_manager'):
+                    bot.router.state_manager.delete_state(sender)
+                else:
+                    print("No se encontró state_manager para eliminar el estado")
+            except Exception as e:
+                print(f"Error al eliminar estado para usuario inactivo {sender}: {e}")
+                
+            # Eliminar el registro de tiempo de interacción
+            del user_last_interaction[sender]
+            
+            # Opcional: enviar un mensaje de cierre de sesión
+            try:
+                send_message(sender, "Tu sesión ha finalizado debido a inactividad. Envía cualquier mensaje para comenzar de nuevo.")
+                print(f"Mensaje de inactividad enviado a {sender}")
+            except Exception as e:
+                print(f"Error enviando mensaje de inactividad a {sender}: {e}")
         except Exception as e:
-            print(f"Error enviando mensaje de inactividad a {sender}: {e}")
+            print(f"Error general manejando usuario inactivo {sender}: {e}")
+
+def inactivity_checker():
+    """Función para verificar usuarios inactivos periódicamente"""
+    while True:
+        try:
+            check_inactive_users()
+        except Exception as e:
+            print(f"Error en verificador de inactividad: {e}")
+        time.sleep(60)  # Verificar cada minuto
 
 # Agregar una función para serializar y deserializar el estado
 def set_user_state(notification, sender, state_dict):
@@ -709,6 +746,14 @@ def get_user_state(notification, sender):
         if state is None:
             print("No se encontró estado para el usuario")
             return {}
+        
+        print(f"Estado raw recibido: {state}")
+            
+        # Si es un objeto con atributo name (caso detectado en logs)
+        if hasattr(state, "name") and isinstance(state.name, dict):
+            result = state.name
+            print(f"Estado obtenido con estructura name: {result}")
+            return result
             
         # Si es un objeto, intentar convertirlo a diccionario
         if hasattr(state, "__dict__"):
@@ -745,11 +790,6 @@ def get_user_state(notification, sender):
 if __name__ == "__main__":
     # Iniciar un hilo que verifique los usuarios inactivos cada minuto
     import threading
-    
-    def inactivity_checker():
-        while True:
-            check_inactive_users()
-            time.sleep(60)  # Verificar cada minuto
     
     threading.Thread(target=inactivity_checker, daemon=True).start()
     
