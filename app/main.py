@@ -112,6 +112,13 @@ Base = declarative_base()
 
 app = FastAPI()
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 origins = [
     "https://applottobueno.com",
     #"http://applottobueno.com",
@@ -1296,6 +1303,8 @@ def to_dict(obj):
     if not obj:
         return None
     return {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+
+
 
 def custom_serializer(obj):
     if isinstance(obj, (datetime, date)):
