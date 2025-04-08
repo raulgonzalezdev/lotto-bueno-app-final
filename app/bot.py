@@ -26,6 +26,8 @@ WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
 # Definir la URL interna para la comunicación entre servicios Docker
 INTERNAL_API_URL = "http://app:8000"
+# Definir la URL base de la API de Green
+API_URL_BASE = os.getenv("API_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}")
 
 # Constante para el tiempo máximo de inactividad (5 minutos)
 MAX_INACTIVITY_TIME_SECONDS = 300
@@ -157,6 +159,38 @@ def extract_phone_number(text):
     print(f"Número demasiado corto: '{digits_only}', longitud: {len(digits_only)} (se requieren al menos 10 dígitos)")
     return None
 
+# Nueva función para crear URLs acortadas (simulada)
+def shorten_url(long_url):
+    """
+    Crea una URL acortada a partir de una URL larga.
+    En un entorno de producción, esto llamaría a una API real como TinyURL o Bitly.
+    """
+    try:
+        # En una implementación real, esto llamaría a una API de acortamiento de URLs
+        # Por ejemplo, usando TinyURL API o Bitly API
+        # Aquí simulamos la respuesta con un prefijo corto + hash de la URL original
+        # En producción, reemplazar con llamada real a API
+        
+        print(f"Acortando URL: {long_url[:50]}...")
+        
+        # Podemos usar una API gratuita como tinyurl para acortar enlaces
+        # Este es un ejemplo de cómo se podría implementar:
+        response = requests.get(
+            f"https://tinyurl.com/api-create.php?url={requests.utils.quote(long_url)}"
+        )
+        
+        if response.status_code == 200:
+            short_url = response.text
+            print(f"URL acortada generada: {short_url}")
+            return short_url
+        else:
+            print(f"Error al acortar URL: {response.status_code}")
+            return long_url  # Devolver la URL original si hay error
+            
+    except Exception as e:
+        print(f"Error al acortar URL: {e}")
+        return long_url  # En caso de error, devolver la URL original
+
 @bot.router.message()
 def obtener_cedula(notification: Notification) -> None:
     sender = notification.sender
@@ -177,6 +211,20 @@ def obtener_cedula(notification: Notification) -> None:
     user_state = get_user_state(notification, sender)
     print(f"Estado actual al recibir mensaje: {user_state}")
     
+    # Si no hay estado previo, enviar mensaje de bienvenida
+    if not user_state or not user_state.get("state"):
+        # Enviar mensaje de bienvenida con información sobre Lotto Bueno
+        welcome_message = f"👋 *¡Hola {sender_name}! Bienvenido a Lotto Bueno*\n\n" \
+                         f"Somos la mejor plataforma de sorteos en Venezuela, creada para premiar a nuestros participantes con increíbles premios.\n\n" \
+                         f"Con Lotto Bueno tienes la oportunidad de ganar grandes premios con tan solo registrarte. Nuestro compromiso es transparencia y confiabilidad en cada sorteo.\n\n" \
+                         f"🎯 Para validar tu registro, por favor envíame tu número de cédula."
+        
+        notification.answer(welcome_message)
+        
+        # Guardar estado como nuevo usuario
+        set_user_state(notification, sender, {"state": "inicio", "nombre": sender_name})
+        return
+    
     # Verificar el estado del usuario y dirigir a la función correspondiente
     if user_state:
         state_value = user_state.get("state")
@@ -194,9 +242,9 @@ def obtener_cedula(notification: Notification) -> None:
             print("Procesando selección del menú principal...")
             handle_menu_principal(notification, sender, message_data)
             return
-    
-    # Si no hay estado o no coincide con ninguno de los anteriores, 
-    # procesar como entrada de cédula (comportamiento predeterminado)
+        elif state_value == "inicio":
+            # El usuario ya vio el mensaje de bienvenida, proceder a procesar cédula
+            pass
     
     # Obtener el texto del mensaje
     message_text = None
@@ -488,11 +536,12 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                     if whatsapp_number.startswith('58'):
                         whatsapp_number = whatsapp_number.lstrip('58')
                     
-                    # Crear el enlace de WhatsApp
-                    whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
+                    # Crear el enlace de WhatsApp y acortarlo
+                    long_whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
+                    whatsapp_link = shorten_url(long_whatsapp_link)
                     print(f"Enlace de WhatsApp generado: {whatsapp_link}")
                     
-                    # Generar código QR con el enlace
+                    # Generar código QR con el enlace acortado
                     try:
                         # Crear código QR
                         qr = qrcode.QRCode(
@@ -511,38 +560,41 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                         img.save(qr_buffer, format="PNG")
                         qr_buffer.seek(0)
                         
-                        # Convertir imagen a base64 para enviar a la API
-                        qr_base64 = base64.b64encode(qr_buffer.getvalue()).decode('utf-8')
-                        
-                        print(f"Enviando QR como imagen base64 al número {sender}...")
-                        caption = "📱 *CÓDIGO QR PARA CONTACTO*\n\nAquí tienes un código QR que puedes mostrar a la persona registrada para que nos contacte directamente escaneándolo. Ideal para registros asistidos."
+                        # Enviar directamente usando el endpoint sendFileByUpload de Green API
+                        url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
                         
                         # Verificar si el sender tiene sufijo @c.us
                         chat_id = sender
                         if "@c.us" not in chat_id:
                             chat_id = f"{sender}@c.us"
+                            
+                        payload = {
+                            'chatId': chat_id,
+                            'caption': "📱 *CÓDIGO QR PARA CONTACTO*\n\nAquí tienes un código QR que puedes mostrar a la persona registrada para que nos contacte directamente escaneándolo. Ideal para registros asistidos."
+                        }
                         
-                        # Enviar QR como imagen usando directamente la API de WhatsApp
+                        files = [
+                            ('file', ('qr_code.png', qr_buffer, 'image/png'))
+                        ]
+                        
+                        print(f"Enviando QR directamente a {chat_id} usando sendFileByUpload...")
+                        
                         response = requests.post(
-                            f"{INTERNAL_API_URL}/api/send_image",
-                            json={
-                                "chatId": chat_id,
-                                "body": qr_base64,
-                                "filename": "qr_whatsapp.png",
-                                "caption": caption
-                            }
+                            url,
+                            data=payload,
+                            files=files
                         )
                         
                         if response.status_code == 200:
-                            print(f"QR de WhatsApp enviado exitosamente como imagen: {response.text}")
+                            print(f"QR enviado exitosamente: {response.text}")
                         else:
-                            print(f"Error al enviar QR como imagen: {response.status_code} - {response.text}")
-                            # Intentar enviar mensaje de texto con el enlace como alternativa
-                            notification.answer(f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link}")
-                        
+                            print(f"Error al enviar QR: {response.status_code} - {response.text}")
+                            # Como fallback, enviamos el enlace como texto
+                            notification.answer(f"Si no puedes ver la imagen QR, usa este enlace: {whatsapp_link}")
+                            
                     except Exception as qr_error:
                         print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
-                        # Si falla, enviar el enlace como texto
+                        # Si falla, enviar solo el enlace
                         notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link}")
                     
                     # Mensaje especial para invitar a compartir
@@ -569,10 +621,12 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 enviar_contacto(sender, phone_contact.split('@')[0], "Lotto", "Bueno", "Lotto Bueno Inc")
             
             # Información sobre el sitio web y app próxima
-            notification.answer(f"🌐 Visita nuestra página web para más información: {WEBSITE_URL}\n\nPróximamente tendremos una aplicación móvil donde podrás revisar tus tickets y recibir notificaciones al instante.")
+            website_url_short = shorten_url(WEBSITE_URL)
+            notification.answer(f"🌐 Visita nuestra página web para más información: {website_url_short}\n\nPróximamente tendremos una aplicación móvil donde podrás revisar tus tickets y recibir notificaciones al instante.")
             
-            # Invitación al canal de Telegram
-            notification.answer(f"📣 También puedes unirte a nuestro canal de Telegram para más noticias: {TELEGRAM_CHANNEL}")
+            # Invitación al canal de Telegram (link acortado)
+            telegram_url_short = shorten_url(TELEGRAM_CHANNEL)
+            notification.answer(f"📣 También puedes unirte a nuestro canal de Telegram para más noticias: {telegram_url_short}")
             
             # Mostrar el menú después del registro
             show_post_registro_menu(notification, nombre)
