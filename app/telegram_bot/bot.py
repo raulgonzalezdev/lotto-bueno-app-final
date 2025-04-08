@@ -604,14 +604,18 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
                 img.save(qr_buffer, format="PNG")
                 qr_buffer.seek(0)
                 
-                # Enviar QR como imagen
+                # Enviar QR como imagen usando directamente la API de Telegram
                 update.message.reply_photo(
-                    qr_buffer, 
-                    caption=f"📱 *CÓDIGO QR PARA CONTACTO VÍA WHATSAPP*\n\nEscanea este código QR para contactarnos directamente vía WhatsApp. Si estás ayudando a alguien a registrarse, puedes mostrarle este código para que lo escanee."
+                    photo=qr_buffer, 
+                    caption="📱 *CÓDIGO QR PARA CONTACTO VÍA WHATSAPP*\n\nEscanea este código QR para contactarnos directamente vía WhatsApp. Si estás ayudando a alguien a registrarse, puedes mostrarle este código para que lo escanee."
                 )
                 logger.info("QR de WhatsApp enviado al usuario")
             except Exception as qr_error:
                 logger.error(f"Error al generar QR de WhatsApp: {qr_error}")
+                # Si falla, asegurarse de enviar el enlace como texto
+                update.message.reply_text(
+                    f"No se pudo generar el código QR. Puedes hacer clic en este enlace para contactarnos por WhatsApp: {whatsapp_link}"
+                )
                 # No interrumpir el flujo si falla la generación del QR
             
             # Enviar también el enlace textual

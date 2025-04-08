@@ -511,15 +511,39 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                         img.save(qr_buffer, format="PNG")
                         qr_buffer.seek(0)
                         
-                        # Enviar QR como imagen
-                        send_qr_code(sender, qr_buffer)
+                        # Convertir imagen a base64 para enviar a la API
+                        qr_base64 = base64.b64encode(qr_buffer.getvalue()).decode('utf-8')
                         
-                        # Enviar mensaje explicativo después del QR
-                        notification.answer("📱 *CÓDIGO QR PARA CONTACTO*\n\nAquí tienes un código QR que puedes mostrar a la persona registrada para que nos contacte directamente escaneándolo. Ideal para registros asistidos.")
-                        print("QR de WhatsApp enviado al usuario")
+                        print(f"Enviando QR como imagen base64 al número {sender}...")
+                        caption = "📱 *CÓDIGO QR PARA CONTACTO*\n\nAquí tienes un código QR que puedes mostrar a la persona registrada para que nos contacte directamente escaneándolo. Ideal para registros asistidos."
+                        
+                        # Verificar si el sender tiene sufijo @c.us
+                        chat_id = sender
+                        if "@c.us" not in chat_id:
+                            chat_id = f"{sender}@c.us"
+                        
+                        # Enviar QR como imagen usando directamente la API de WhatsApp
+                        response = requests.post(
+                            f"{INTERNAL_API_URL}/api/send_image",
+                            json={
+                                "chatId": chat_id,
+                                "body": qr_base64,
+                                "filename": "qr_whatsapp.png",
+                                "caption": caption
+                            }
+                        )
+                        
+                        if response.status_code == 200:
+                            print(f"QR de WhatsApp enviado exitosamente como imagen: {response.text}")
+                        else:
+                            print(f"Error al enviar QR como imagen: {response.status_code} - {response.text}")
+                            # Intentar enviar mensaje de texto con el enlace como alternativa
+                            notification.answer(f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link}")
+                        
                     except Exception as qr_error:
-                        print(f"Error al generar QR de WhatsApp: {qr_error}")
-                        # No interrumpir el flujo si falla la generación del QR
+                        print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
+                        # Si falla, enviar el enlace como texto
+                        notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link}")
                     
                     # Mensaje especial para invitar a compartir
                     share_message = f"📲 *Comparte este enlace con el número que registraste*\n\n" \

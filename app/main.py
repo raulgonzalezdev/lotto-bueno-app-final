@@ -2958,6 +2958,68 @@ def verificar_numero_whatsapp(phone_number):
         return {"status": "Error", "detail": str(err)}
 
 
+# Nuevo: Función para enviar imágenes desde base64 a través de WhatsApp
+def send_image(chat_id: str, base64_image: str, filename: str = "image.png", caption: str = ""):
+    url = f"{API_URL_BASE}/sendFileByBase64/{API_TOKEN}"
+    payload = {
+        "chatId": f"{chat_id}@c.us",
+        "body": base64_image,
+        "filename": filename,
+        "caption": caption
+    }
+    headers = {'Content-Type': 'application/json'}
+    
+    try:
+        print(f"Enviando imagen a {chat_id} con caption: {caption[:30]}...")
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        response_data = response.json()
+        print(f"Respuesta al enviar imagen: {response_data}")
+        
+        # Revisar si la respuesta contiene el idMessage
+        if "idMessage" in response_data:
+            return {"status": "success", "data": response_data}
+        else:
+            return {
+                "status": "error",
+                "message": "La API respondió pero no indicó éxito",
+                "data": response_data
+            }
+    except requests.exceptions.HTTPError as http_err:
+        print(f"Error HTTP al enviar imagen: {http_err}")
+        return {
+            "status": "error",
+            "message": f"Error de HTTP al enviar la imagen: {http_err}"
+        }
+    except Exception as err:
+        print(f"Error general al enviar imagen: {err}")
+        return {
+            "status": "error",
+            "message": f"No se pudo conectar a la API de envío de imágenes: {err}"
+        }
+
+
+# Esquema para la solicitud de envío de imágenes
+class ImageRequest(BaseModel):
+    chatId: str
+    body: str
+    filename: str = "image.png"
+    caption: str = ""
+
+
+# Endpoint para enviar imágenes
+@app.post("/api/send_image")
+def api_send_image(request: ImageRequest):
+    # Eliminar el sufijo @c.us si está presente, ya que la función lo agrega automáticamente
+    chat_id = request.chatId.replace("@c.us", "")
+    
+    result = send_image(chat_id, request.body, request.filename, request.caption)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=500, detail=result["message"])
+    
+    return {"status": "Imagen enviada", "data": result.get("data")}
+
+
 if __name__ == "__main__":
     import platform
     import uvicorn
