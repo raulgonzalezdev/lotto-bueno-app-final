@@ -23,6 +23,8 @@ API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d6
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
+# Definir la URL interna para la comunicación entre servicios Docker
+INTERNAL_API_URL = "http://app:8000"
 
 # Constante para el tiempo máximo de inactividad (5 minutos)
 MAX_INACTIVITY_TIME_SECONDS = 300
@@ -232,8 +234,9 @@ def obtener_cedula(notification: Notification) -> None:
             
             # 2. Luego verificamos si la cédula ya tiene un ticket registrado
             try:
-                ticket_url = f"{NEXT_PUBLIC_API_URL}/api/tickets/cedula/{cedula}"
-                print(f"Verificando ticket para cédula {cedula} en URL: {ticket_url}")
+                # Usar URL interna para la comunicación entre servicios
+                ticket_url = f"{INTERNAL_API_URL}/api/tickets/cedula/{cedula}"
+                print(f"Verificando ticket para cédula {cedula} en URL interna: {ticket_url}")
                 response = requests.get(ticket_url)
                 print(f"Respuesta al verificar ticket: Status {response.status_code}, Contenido: {response.text[:200]}...")
                 
@@ -420,8 +423,9 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
         print(f"Enviando solicitud a la API: {payload}")
         
         try:
+            # Usar URL interna para la comunicación entre servicios
             response = requests.post(
-                f"{NEXT_PUBLIC_API_URL}/api/generate_tickets", 
+                f"{INTERNAL_API_URL}/api/generate_tickets",
                 json=payload
             )
             print(f"Respuesta de la API: Status: {response.status_code}, Texto: {response.text}")
