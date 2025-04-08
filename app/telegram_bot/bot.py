@@ -4,6 +4,8 @@ import logging
 import asyncio
 import base64
 import re
+import time
+import qrcode
 from io import BytesIO
 import requests
 from pathlib import Path
@@ -35,6 +37,16 @@ NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.co
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
 WHATSAPP_URL = os.getenv("WHATSAPP_URL", "https://wa.me/17867234220")
+
+# Tiempo de inactividad en segundos (1 minuto)
+INACTIVITY_TIMEOUT = 60
+# Tiempo adicional para esperar respuesta después del mensaje de verificación (30 segundos)
+RESPONSE_WAIT_TIME = 30
+
+# Diccionario para almacenar la última actividad de cada usuario
+user_last_activity = {}
+# Diccionario para saber a qué usuarios ya se les envió advertencia
+verification_sent = {}
 
 # Opciones del menú post-registro
 VISITAR_WEB = 'web'
@@ -164,8 +176,84 @@ def extract_phone_number(text):
     logger.warning(f"Número demasiado corto: '{digits_only}', longitud: {len(digits_only)} (se requieren al menos 10 dígitos)")
     return None
 
+def check_inactive_users(context: CallbackContext):
+    """Verificar usuarios inactivos y enviar advertencia o cerrar sesión"""
+    current_time = time.time()
+    
+    # Lista para usuarios que necesitan mensaje de verificación
+    users_to_verify = []
+    # Lista para usuarios cuyas sesiones deben cerrarse
+    users_to_close = []
+    
+    # Verificar todos los usuarios activos
+    for user_id, last_activity in user_last_activity.items():
+        inactive_time = current_time - last_activity
+        
+        # Si ha pasado el tiempo de inactividad pero no se ha enviado verificación
+        if inactive_time > INACTIVITY_TIMEOUT and not verification_sent.get(user_id, False):
+            users_to_verify.append(user_id)
+        
+        # Si ya se envió verificación y también pasó el tiempo de espera para respuesta
+        # o si ha estado inactivo por más del doble del tiempo de inactividad
+        elif (verification_sent.get(user_id, False) and inactive_time > INACTIVITY_TIMEOUT + RESPONSE_WAIT_TIME) or (inactive_time > 2 * INACTIVITY_TIMEOUT):
+            users_to_close.append(user_id)
+    
+    # Enviar mensajes de verificación
+    for user_id in users_to_verify:
+        try:
+            logger.info(f"Enviando mensaje de verificación a usuario inactivo: {user_id}")
+            context.bot.send_message(
+                chat_id=user_id,
+                text="¿Sigues ahí? Esta sesión se cerrará automáticamente por inactividad en 30 segundos si no hay respuesta."
+            )
+            verification_sent[user_id] = True
+        except Exception as e:
+            logger.error(f"Error al enviar mensaje de verificación a {user_id}: {e}")
+    
+    # Cerrar sesiones inactivas
+    for user_id in users_to_close:
+        try:
+            logger.info(f"Cerrando sesión por inactividad para usuario: {user_id}")
+            context.bot.send_message(
+                chat_id=user_id,
+                text="Tu sesión ha sido cerrada por inactividad. Envía cualquier mensaje para comenzar una nueva conversación."
+            )
+            
+            # Eliminar usuario de los diccionarios de seguimiento
+            if user_id in user_last_activity:
+                del user_last_activity[user_id]
+            if user_id in verification_sent:
+                del verification_sent[user_id]
+            
+            # Limpiar cualquier dato de contexto que pueda existir
+            try:
+                if user_id in context.user_data:
+                    context.user_data[user_id].clear()
+            except Exception as e:
+                logger.error(f"Error al limpiar datos de contexto para {user_id}: {e}")
+                
+        except Exception as e:
+            logger.error(f"Error al cerrar sesión para usuario inactivo {user_id}: {e}")
+
+def update_user_activity(update: Update, context: CallbackContext):
+    """Actualizar el tiempo de actividad del usuario"""
+    user_id = update.effective_user.id
+    user_last_activity[user_id] = time.time()
+    
+    # Si ya tenía una verificación enviada, resetearla
+    if user_id in verification_sent:
+        verification_sent[user_id] = False
+    
+    logger.debug(f"Actividad actualizada para usuario {user_id}")
+    
+    # Continuar con el flujo normal del mensaje
+    return None
+
 def start(update: Update, context: CallbackContext) -> int:
     """Iniciar conversación y solicitar cédula"""
+    # Registrar actividad del usuario
+    update_user_activity(update, context)
+    
     user = update.effective_user
     logger.info(f"Comando /start recibido de {user.first_name}")
     
@@ -363,6 +451,9 @@ async def procesar_cedula(update: Update, context: CallbackContext) -> int:
 
 def registrar_usuario(update: Update, context: CallbackContext) -> int:
     """Procesar el teléfono y registrar al usuario"""
+    # Registrar actividad del usuario
+    update_user_activity(update, context)
+    
     user_name = update.effective_user.first_name
     chat_id = update.effective_chat.id
     logger.info(f"Procesando registro para usuario: {user_name}")
@@ -473,35 +564,95 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
         
         update.message.reply_text(message)
         
-        # MODIFICADO: Crear enlaces para WhatsApp y Telegram en lugar de enviar mensajes directos
+        # MODIFICADO: Enfatizar primero la invitación a WhatsApp y generar QR
         try:
-            # Preparar el mensaje para el enlace de WhatsApp
+            # Preparar el mensaje para la invitación a WhatsApp
             welcome_message = f"¡Hola! Has sido registrado en Lotto Bueno con el número de cédula {cedula}. " \
                             f"Tu ticket ha sido generado exitosamente. " \
                             f"Para más información, guarda este contacto y comunícate con nosotros. " \
                             f"Puedes unirte a nuestro canal de Telegram: {TELEGRAM_CHANNEL}"
             
             # Formatear el número para el enlace de WhatsApp
-            whatsapp_number = telefono
-            if whatsapp_number.startswith('58'):
-                whatsapp_number = whatsapp_number.lstrip('58')
+            company_whatsapp_number = WHATSAPP_URL.replace("https://wa.me/", "")
             
-            # Crear el enlace de WhatsApp
-            whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
-            logger.info(f"Enlace de WhatsApp generado: {whatsapp_link}")
+            # Destacar la invitación a WhatsApp
+            update.message.reply_text(
+                f"🔴 *IMPORTANTE* 🔴\n\n"
+                f"Para evitar perder comunicación, por favor únete a nuestro WhatsApp haciendo clic en el siguiente enlace:"
+            )
             
-            # Crear el enlace de Telegram con la cédula como parámetro de inicio
+            # Crear el enlace de WhatsApp con el número de la empresa
+            whatsapp_link = f"https://wa.me/{company_whatsapp_number}?text={requests.utils.quote('Hola! Me acabo de registrar en Lotto Bueno a través de Telegram con la cédula ' + cedula)}"
+            
+            # Generar código QR con el enlace de WhatsApp
+            logger.info(f"Generando QR para enlace de WhatsApp: {whatsapp_link}")
+            try:
+                # Crear código QR
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=4,
+                )
+                qr.add_data(whatsapp_link)
+                qr.make(fit=True)
+                
+                img = qr.make_image(fill_color="black", back_color="white")
+                
+                # Guardar la imagen en un buffer
+                qr_buffer = BytesIO()
+                img.save(qr_buffer, format="PNG")
+                qr_buffer.seek(0)
+                
+                # Enviar QR como imagen
+                update.message.reply_photo(
+                    qr_buffer, 
+                    caption=f"📱 *CÓDIGO QR PARA CONTACTO VÍA WHATSAPP*\n\nEscanea este código QR para contactarnos directamente vía WhatsApp. Si estás ayudando a alguien a registrarse, puedes mostrarle este código para que lo escanee."
+                )
+                logger.info("QR de WhatsApp enviado al usuario")
+            except Exception as qr_error:
+                logger.error(f"Error al generar QR de WhatsApp: {qr_error}")
+                # No interrumpir el flujo si falla la generación del QR
+            
+            # Enviar también el enlace textual
+            update.message.reply_text(
+                f"👉 También puedes hacer clic aquí para contactarnos por WhatsApp: {whatsapp_link}\n\n"
+                f"Es muy importante que guardes nuestro contacto para evitar perder comunicación."
+            )
+            
+            # Ahora los enlaces secundarios
+            logger.info(f"Enlace de WhatsApp generado con el número de la compañía: {whatsapp_link}")
+            
+            # Si el usuario también registró un número, ofrecer enlace para ese número
+            if telefono:
+                # Formatear el número para el enlace de WhatsApp
+                whatsapp_number = telefono
+                if whatsapp_number.startswith('58'):
+                    whatsapp_number = whatsapp_number.lstrip('58')
+                
+                # Crear el enlace para el número registrado
+                user_whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
+                logger.info(f"Enlace de WhatsApp generado para el número registrado: {user_whatsapp_link}")
+                
+                update.message.reply_text(
+                    f"También puedes compartir esta invitación con el número que acabas de registrar: {user_whatsapp_link}"
+                )
+            
+            # Información sobre el sitio web
+            update.message.reply_text(
+                f"🌐 Visita nuestra página web para más información: {WEBSITE_URL}\n\n"
+                f"Próximamente tendremos una aplicación móvil donde podrás revisar tus tickets y recibir notificaciones al instante."
+            )
+            
+            # Crear el enlace de Telegram (secundario)
             telegram_bot_username = TELEGRAM_TOKEN.split(':')[0]
             telegram_link = f"https://t.me/{telegram_bot_username}?start={cedula}"
             logger.info(f"Enlace de Telegram generado: {telegram_link}")
             
-            # Enviar los enlaces al usuario
             update.message.reply_text(
-                f"Puedes enviar un mensaje de bienvenida al número registrado a través de WhatsApp: {whatsapp_link}"
+                f"📣 Enlace para Telegram: {telegram_link}"
             )
-            update.message.reply_text(
-                f"O puedes iniciar una conversación en Telegram con la cédula registrada: {telegram_link}"
-            )
+            
         except Exception as e:
             logger.error(f"Error al generar enlaces: {e}")
             # No interrumpimos el flujo si falla la generación de enlaces
@@ -533,6 +684,9 @@ def registrar_usuario(update: Update, context: CallbackContext) -> int:
 
 def handle_menu_principal_callback(update: Update, context: CallbackContext) -> int:
     """Manejar los callbacks del menú principal"""
+    # Registrar actividad del usuario
+    update_user_activity(update, context)
+    
     query = update.callback_query
     query.answer()
     user_name = update.effective_user.first_name
@@ -602,6 +756,9 @@ def handle_menu_principal_callback(update: Update, context: CallbackContext) -> 
 
 def button_callback(update: Update, context: CallbackContext) -> int:
     """Manejar los callbacks de los botones del menú post-registro"""
+    # Registrar actividad del usuario
+    update_user_activity(update, context)
+    
     query = update.callback_query
     query.answer()
     user_name = update.effective_user.first_name
@@ -665,6 +822,9 @@ def button_callback(update: Update, context: CallbackContext) -> int:
 
 def mensaje_cedula(update: Update, context: CallbackContext) -> int:
     """Procesa mensajes de texto recibidos cuando se espera una cédula"""
+    # Registrar actividad del usuario
+    update_user_activity(update, context)
+    
     user_name = update.effective_user.first_name
     text = update.message.text
     logger.info(f"Mensaje recibido en estado ESPERANDO_CEDULA: {text} de usuario: {user_name}")
@@ -888,6 +1048,10 @@ def main():
         # Ya no necesitamos este manejador ya que lo incluimos en entry_points
         # dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, mensaje_inicial))
         logger.info("Manejadores adicionales registrados correctamente")
+        
+        # Añadir verificador de usuarios inactivos
+        updater.job_queue.run_repeating(check_inactive_users, interval=15, first=15)
+        logger.info("Verificador de inactividad programado")
         
         # Iniciar el bot con polling más agresivo para mayor responsividad
         logger.info("Iniciando polling...")

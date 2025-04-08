@@ -7,6 +7,7 @@ import json
 import asyncio
 import time
 import re
+import qrcode
 from io import BytesIO
 import requests
 
@@ -29,8 +30,17 @@ INTERNAL_API_URL = "http://app:8000"
 # Constante para el tiempo máximo de inactividad (5 minutos)
 MAX_INACTIVITY_TIME_SECONDS = 300
 
+# Nuevo: Tiempo de inactividad antes de enviar mensaje de verificación (1 minuto)
+VERIFICATION_TIME_SECONDS = 60
+
+# Nuevo: Tiempo adicional de espera para respuesta después del mensaje de verificación (30 segundos)
+RESPONSE_WAIT_TIME_SECONDS = 30
+
 # Diccionario para almacenar el último tiempo de interacción de cada usuario
 user_last_interaction = {}
+
+# Nuevo: Diccionario para almacenar si ya se envió mensaje de verificación
+verification_message_sent = {}
 
 bot = GreenAPIBot(API_INSTANCE, API_TOKEN)
 
@@ -154,6 +164,10 @@ def obtener_cedula(notification: Notification) -> None:
     
     # Actualizar tiempo de la última interacción
     user_last_interaction[sender] = time.time()
+    
+    # Resetear estado de verificación si existía
+    if sender in verification_message_sent:
+        verification_message_sent[sender] = False
     
     # Obtener el nombre del remitente
     sender_data = notification.event["senderData"]
@@ -442,13 +456,34 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             data = response.json()
             print(f"Registro exitoso: {data}")
             
-            # MODIFICADO: Crear un enlace para WhatsApp en lugar de enviar mensaje directo
-            if telefono:
+            # Si el registro fue exitoso
+            notification.answer(f"🎉 ¡Felicidades! Tu registro ha sido completado exitosamente.")
+            
+            if data.get("qr_code"):
+                qr_buf = BytesIO(base64.b64decode(data["qr_code"]))
+                send_qr_code(sender, qr_buf)
+                print(f"QR Code del ticket enviado al usuario")
+            else:
+                print(f"No se encontró QR code en la respuesta")
+            
+            # MODIFICADO: Mensaje principal destacando la importancia de guardar el contacto
+            message = f"🔴 *IMPORTANTE* 🔴\n\n" \
+                    f"¡Bienvenido a Lotto Bueno! Tu ticket ha sido generado.\n\n" \
+                    f"Para evitar perder comunicación, es *INDISPENSABLE* que guardes nuestro contacto, " \
+                    f"así podremos anunciarte si eres el afortunado ganador.\n\n" \
+                    f"Si no guardas el contacto, es posible que no puedas recibir información importante sobre tu participación.\n\n" \
+                    f"¡Mucha suerte!\n" \
+                    f"Lotto Bueno: ¡Tu mejor oportunidad de ganar!"
+                    
+            notification.answer(message)
+            
+            # MODIFICADO: Generar QR y mejorar la invitación a WhatsApp para números registrados
+            if telefono and telefono != sender.split('@')[0]:
                 try:
                     # Preparar el mensaje para el enlace
                     welcome_message = f"¡Hola! Has sido registrado en Lotto Bueno con el número de cédula {cedula}. Tu ticket ha sido generado exitosamente. Para más información, guarda este contacto y comunícate con nosotros. Puedes unirte a nuestro canal de Telegram: {TELEGRAM_CHANNEL}"
                     
-                    # Formatear el número para el enlace de WhatsApp (sin el prefijo de país en el enlace)
+                    # Formatear el número para el enlace de WhatsApp
                     whatsapp_number = telefono
                     if whatsapp_number.startswith('58'):
                         whatsapp_number = whatsapp_number.lstrip('58')
@@ -457,37 +492,63 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                     whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
                     print(f"Enlace de WhatsApp generado: {whatsapp_link}")
                     
-                    # Enviar el enlace al usuario
-                    notification.answer(f"Se ha generado un enlace para enviar mensaje al número registrado. Haz clic aquí para enviarlo:\n{whatsapp_link}")
+                    # Generar código QR con el enlace
+                    try:
+                        # Crear código QR
+                        qr = qrcode.QRCode(
+                            version=1,
+                            error_correction=qrcode.constants.ERROR_CORRECT_L,
+                            box_size=10,
+                            border=4,
+                        )
+                        qr.add_data(whatsapp_link)
+                        qr.make(fit=True)
+                        
+                        img = qr.make_image(fill_color="black", back_color="white")
+                        
+                        # Guardar la imagen en un buffer
+                        qr_buffer = BytesIO()
+                        img.save(qr_buffer, format="PNG")
+                        qr_buffer.seek(0)
+                        
+                        # Enviar QR como imagen
+                        send_qr_code(sender, qr_buffer)
+                        
+                        # Enviar mensaje explicativo después del QR
+                        notification.answer("📱 *CÓDIGO QR PARA CONTACTO*\n\nAquí tienes un código QR que puedes mostrar a la persona registrada para que nos contacte directamente escaneándolo. Ideal para registros asistidos.")
+                        print("QR de WhatsApp enviado al usuario")
+                    except Exception as qr_error:
+                        print(f"Error al generar QR de WhatsApp: {qr_error}")
+                        # No interrumpir el flujo si falla la generación del QR
+                    
+                    # Mensaje especial para invitar a compartir
+                    share_message = f"📲 *Comparte este enlace con el número que registraste*\n\n" \
+                                  f"Es importante que el número {telefono} también nos agregue como contacto " \
+                                  f"para poder comunicarnos con el ganador. Comparte este enlace para que pueda " \
+                                  f"iniciar una conversación con nosotros:\n\n" \
+                                  f"{whatsapp_link}\n\n" \
+                                  f"👆 Al compartir este enlace, la persona podrá iniciar una conversación con nosotros fácilmente."
+                    
+                    # Enviar el mensaje de invitación
+                    notification.answer(share_message)
                     
                 except Exception as e:
                     print(f"Error al generar enlace de WhatsApp: {e}")
                     # No interrumpimos el flujo si falla la generación del enlace
-            
-            # Si el registro fue exitoso
-            notification.answer(f"¡Felicidades! Tu registro ha sido completado exitosamente.")
-            
-            if data.get("qr_code"):
-                qr_buf = BytesIO(base64.b64decode(data["qr_code"]))
-                send_qr_code(sender, qr_buf)
-                print(f"QR Code enviado al usuario")
-            else:
-                print(f"No se encontró QR code en la respuesta")
-            
-            message = f"¡Bienvenido a Lotto Bueno! Tu ticket ha sido generado.\n\n" \
-                    f"Es importante que guardes nuestro contacto, así podremos anunciarte si eres el afortunado ganador.\n" \
-                    f"No pierdas tu ticket y guarda nuestro contacto, ¡prepárate para celebrar!\n\n" \
-                    f"¡Mucha suerte!\n" \
-                    f"Lotto Bueno: ¡Tu mejor oportunidad de ganar!"
-                    
-            notification.answer(message)
             
             # Obtener un contacto aleatorio para compartir
             db = next(get_db())
             phone_contact = obtener_numero_contacto(db)
             if phone_contact:
                 print(f"Enviando contacto: {phone_contact}")
+                notification.answer("👇 Aquí tienes nuestro contacto oficial. ¡Asegúrate de guardarlo!")
                 enviar_contacto(sender, phone_contact.split('@')[0], "Lotto", "Bueno", "Lotto Bueno Inc")
+            
+            # Información sobre el sitio web y app próxima
+            notification.answer(f"🌐 Visita nuestra página web para más información: {WEBSITE_URL}\n\nPróximamente tendremos una aplicación móvil donde podrás revisar tus tickets y recibir notificaciones al instante.")
+            
+            # Invitación al canal de Telegram
+            notification.answer(f"📣 También puedes unirte a nuestro canal de Telegram para más noticias: {TELEGRAM_CHANNEL}")
             
             # Mostrar el menú después del registro
             show_post_registro_menu(notification, nombre)
@@ -689,11 +750,30 @@ def check_inactive_users():
     """Verifica y cierra las sesiones inactivas"""
     current_time = time.time()
     inactive_users = []
+    verification_needed = []
     
     for sender, last_time in user_last_interaction.items():
-        if current_time - last_time > MAX_INACTIVITY_TIME_SECONDS:
+        inactive_duration = current_time - last_time
+        
+        # Si ha pasado el tiempo de verificación pero no el de inactividad completa
+        # y no se ha enviado mensaje de verificación aún
+        if inactive_duration > VERIFICATION_TIME_SECONDS and inactive_duration < MAX_INACTIVITY_TIME_SECONDS and not verification_message_sent.get(sender, False):
+            verification_needed.append(sender)
+        
+        # Si ha pasado el tiempo máximo de inactividad o ya pasó el tiempo de respuesta después de la verificación
+        elif (inactive_duration > MAX_INACTIVITY_TIME_SECONDS) or (verification_message_sent.get(sender, False) and inactive_duration > VERIFICATION_TIME_SECONDS + RESPONSE_WAIT_TIME_SECONDS):
             inactive_users.append(sender)
     
+    # Enviar mensajes de verificación
+    for sender in verification_needed:
+        try:
+            print(f"Enviando mensaje de verificación a usuario inactivo: {sender}")
+            send_message(sender, "¿Sigues ahí? Esta sesión se cerrará automáticamente por inactividad en 30 segundos si no hay respuesta.")
+            verification_message_sent[sender] = True
+        except Exception as e:
+            print(f"Error enviando mensaje de verificación a {sender}: {e}")
+    
+    # Cerrar sesiones inactivas
     for sender in inactive_users:
         print(f"Usuario inactivo detectado: {sender}")
         try:
@@ -711,7 +791,11 @@ def check_inactive_users():
             # Eliminar el registro de tiempo de interacción
             del user_last_interaction[sender]
             
-            # Opcional: enviar un mensaje de cierre de sesión
+            # Eliminar registro de verificación
+            if sender in verification_message_sent:
+                del verification_message_sent[sender]
+            
+            # Enviar un mensaje de cierre de sesión
             try:
                 send_message(sender, "Tu sesión ha finalizado debido a inactividad. Envía cualquier mensaje para comenzar de nuevo.")
                 print(f"Mensaje de inactividad enviado a {sender}")
@@ -727,7 +811,7 @@ def inactivity_checker():
             check_inactive_users()
         except Exception as e:
             print(f"Error en verificador de inactividad: {e}")
-        time.sleep(60)  # Verificar cada minuto
+        time.sleep(15)  # Verificar cada 15 segundos en lugar de cada minuto
 
 # Agregar una función para serializar y deserializar el estado
 def set_user_state(notification, sender, state_dict):
