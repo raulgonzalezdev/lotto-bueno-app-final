@@ -37,6 +37,5 @@ data/cva20240416.txt
 .env
 
 # Excluir archivos que puedan contener tokens
-**/*.pem
-**/*.key
+
 **/*.p12
