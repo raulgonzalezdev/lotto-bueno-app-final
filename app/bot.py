@@ -528,89 +528,146 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             # MODIFICADO: Generar QR y mejorar la invitación a WhatsApp para números registrados
             if telefono and telefono != sender.split('@')[0]:
                 try:
-                    # Preparar el mensaje para el enlace
-                    welcome_message = f"¡Hola! Has sido registrado en Lotto Bueno con el número de cédula {cedula}. Tu ticket ha sido generado exitosamente. Para más información, guarda este contacto y comunícate con nosotros. Puedes unirte a nuestro canal de Telegram: {TELEGRAM_CHANNEL}"
+                    # Preparar un mensaje más completo para el enlace de WhatsApp 
+                    # que incluya la información del ticket y del usuario
+                    ticket_info_message = f"¡Hola! Mi número de cédula es {cedula} y acabo de registrarme en Lotto Bueno. " \
+                                       f"Mi ticket ha sido generado exitosamente. " \
+                                       f"Para más información, guarda este contacto y comunícate con Lotto Bueno."
                     
-                    # Formatear el número para el enlace de WhatsApp
-                    whatsapp_number = telefono
-                    if whatsapp_number.startswith('58'):
-                        whatsapp_number = whatsapp_number.lstrip('58')
+                    # Formatear el número para el enlace de WhatsApp (del número oficial de Lotto Bueno)
+                    # Extraer el número del WHATSAPP_URL si existe, o usar un número predeterminado
+                    company_whatsapp = WHATSAPP_URL.replace("https://wa.me/", "") if WHATSAPP_URL and "wa.me" in WHATSAPP_URL else "17867234220"
                     
-                    # Crear el enlace de WhatsApp y acortarlo
-                    long_whatsapp_link = f"https://wa.me/58{whatsapp_number}?text={requests.utils.quote(welcome_message)}"
-                    whatsapp_link = shorten_url(long_whatsapp_link)
-                    print(f"Enlace de WhatsApp generado: {whatsapp_link}")
+                    # Crear el enlace de WhatsApp que abrirá una conversación con el bot oficial
+                    whatsapp_link = f"https://wa.me/{company_whatsapp}?text={requests.utils.quote(ticket_info_message)}"
+                    whatsapp_link_short = shorten_url(whatsapp_link)
+                    print(f"Enlace de WhatsApp para QR generado: {whatsapp_link_short}")
                     
-                    # Generar código QR con el enlace acortado
-                    try:
-                        # Crear código QR
-                        qr = qrcode.QRCode(
-                            version=1,
-                            error_correction=qrcode.constants.ERROR_CORRECT_L,
-                            box_size=10,
-                            border=4,
-                        )
-                        qr.add_data(whatsapp_link)
-                        qr.make(fit=True)
+                    # Crear un QR que contenga información relevante y el enlace
+                    qr_data = {
+                        "tipo": "ticket_lotto_bueno",
+                        "cedula": cedula,
+                        "telefono": telefono,
+                        "whatsapp_link": whatsapp_link_short,
+                        "website": WEBSITE_URL
+                    }
+                    
+                    # Convertir a JSON para incluirlo en el QR
+                    qr_data_json = json.dumps(qr_data)
+                    
+                    # Crear código QR
+                    qr = qrcode.QRCode(
+                        version=1,
+                        error_correction=qrcode.constants.ERROR_CORRECT_L,
+                        box_size=10,
+                        border=4,
+                    )
+                    # Usar directamente el enlace de WhatsApp como dato principal del QR
+                    # para que al escanear vaya directamente a WhatsApp
+                    qr.add_data(whatsapp_link_short)
+                    qr.make(fit=True)
+                    
+                    img = qr.make_image(fill_color="black", back_color="white")
+                    
+                    # Guardar la imagen en un buffer
+                    qr_buffer = BytesIO()
+                    img.save(qr_buffer, format="PNG")
+                    qr_buffer.seek(0)
+                    
+                    # Enviar directamente usando el endpoint sendFileByUpload de Green API
+                    url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
+                    
+                    # Verificar si el sender tiene sufijo @c.us
+                    chat_id = sender
+                    if "@c.us" not in chat_id:
+                        chat_id = f"{sender}@c.us"
                         
-                        img = qr.make_image(fill_color="black", back_color="white")
-                        
-                        # Guardar la imagen en un buffer
-                        qr_buffer = BytesIO()
-                        img.save(qr_buffer, format="PNG")
-                        qr_buffer.seek(0)
-                        
-                        # Enviar directamente usando el endpoint sendFileByUpload de Green API
-                        url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
-                        
-                        # Verificar si el sender tiene sufijo @c.us
-                        chat_id = sender
-                        if "@c.us" not in chat_id:
-                            chat_id = f"{sender}@c.us"
+                    caption = f"📱 *CÓDIGO QR PARA CONTACTO*\n\n" \
+                            f"Este código QR contiene tu información de registro:\n" \
+                            f"- Cédula: {cedula}\n" \
+                            f"- Teléfono: {telefono}\n\n" \
+                            f"Al escanearlo, se abrirá una conversación en WhatsApp con Lotto Bueno.\n\n" \
+                            f"Ideal para registros asistidos o para compartir con amigos."
                             
-                        payload = {
-                            'chatId': chat_id,
-                            'caption': "📱 *CÓDIGO QR PARA CONTACTO*\n\nAquí tienes un código QR que puedes mostrar a la persona registrada para que nos contacte directamente escaneándolo. Ideal para registros asistidos."
-                        }
+                    payload = {
+                        'chatId': chat_id,
+                        'caption': caption
+                    }
+                    
+                    files = [
+                        ('file', ('qr_code.png', qr_buffer, 'image/png'))
+                    ]
+                    
+                    print(f"Enviando QR directamente a {chat_id} usando sendFileByUpload...")
+                    
+                    response = requests.post(
+                        url,
+                        data=payload,
+                        files=files
+                    )
+                    
+                    if response.status_code == 200:
+                        print(f"QR enviado exitosamente: {response.text}")
                         
-                        files = [
-                            ('file', ('qr_code.png', qr_buffer, 'image/png'))
-                        ]
-                        
-                        print(f"Enviando QR directamente a {chat_id} usando sendFileByUpload...")
-                        
-                        response = requests.post(
-                            url,
-                            data=payload,
-                            files=files
-                        )
-                        
-                        if response.status_code == 200:
-                            print(f"QR enviado exitosamente: {response.text}")
-                        else:
-                            print(f"Error al enviar QR: {response.status_code} - {response.text}")
-                            # Como fallback, enviamos el enlace como texto
-                            notification.answer(f"Si no puedes ver la imagen QR, usa este enlace: {whatsapp_link}")
+                        # Enviar también una tarjeta de contacto de Lotto Bueno
+                        try:
+                            print("Enviando tarjeta de contacto oficial de Lotto Bueno...")
+                            contact_url = f"{API_URL_BASE}/sendContact/{API_TOKEN}"
                             
-                    except Exception as qr_error:
-                        print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
-                        # Si falla, enviar solo el enlace
-                        notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link}")
-                    
-                    # Mensaje especial para invitar a compartir
-                    share_message = f"📲 *Comparte este enlace con el número que registraste*\n\n" \
-                                  f"Es importante que el número {telefono} también nos agregue como contacto " \
-                                  f"para poder comunicarnos con el ganador. Comparte este enlace para que pueda " \
-                                  f"iniciar una conversación con nosotros:\n\n" \
-                                  f"{whatsapp_link}\n\n" \
-                                  f"👆 Al compartir este enlace, la persona podrá iniciar una conversación con nosotros fácilmente."
-                    
-                    # Enviar el mensaje de invitación
-                    notification.answer(share_message)
-                    
-                except Exception as e:
-                    print(f"Error al generar enlace de WhatsApp: {e}")
-                    # No interrumpimos el flujo si falla la generación del enlace
+                            # Obtener el número de contacto oficial sin @c.us
+                            contact_phone = company_whatsapp
+                            
+                            contact_payload = {
+                                "chatId": chat_id,
+                                "contact": {
+                                    "phoneContact": contact_phone,
+                                    "firstName": "Lotto",
+                                    "lastName": "Bueno",
+                                    "company": "Lotto Bueno Inc."
+                                }
+                            }
+                            
+                            headers = {
+                                'Content-Type': 'application/json'
+                            }
+                            
+                            contact_response = requests.post(
+                                contact_url,
+                                json=contact_payload,
+                                headers=headers
+                            )
+                            
+                            if contact_response.status_code == 200:
+                                print(f"Contacto enviado exitosamente: {contact_response.text}")
+                                notification.answer("👆 *Aquí tienes nuestra tarjeta de contacto oficial.* ¡Asegúrate de guardarlo!")
+                            else:
+                                print(f"Error al enviar contacto: {contact_response.status_code} - {contact_response.text}")
+                        except Exception as contact_error:
+                            print(f"Error al enviar tarjeta de contacto: {contact_error}")
+                    else:
+                        print(f"Error al enviar QR: {response.status_code} - {response.text}")
+                        # Como fallback, enviamos el enlace como texto
+                        notification.answer(f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link}")
+                        
+                except Exception as qr_error:
+                    print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
+                    # Si falla, enviar solo el enlace
+                    notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link}")
+                
+                # Mensaje especial para invitar a compartir
+                share_message = f"📲 *Comparte este enlace con el número que registraste*\n\n" \
+                              f"Es importante que el número {telefono} también nos agregue como contacto " \
+                              f"para poder comunicarnos con el ganador. Comparte este código QR o este enlace para que pueda " \
+                              f"iniciar una conversación con nosotros:\n\n" \
+                              f"{whatsapp_link_short}\n\n" \
+                              f"👆 Al compartir este enlace o el código QR, la persona podrá iniciar una conversación con nosotros fácilmente."
+                
+                # Enviar el mensaje de invitación
+                notification.answer(share_message)
+                
+            except Exception as e:
+                print(f"Error al generar enlace de WhatsApp: {e}")
+                # No interrumpimos el flujo si falla la generación del enlace
             
             # Obtener un contacto aleatorio para compartir
             db = next(get_db())
