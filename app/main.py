@@ -1171,9 +1171,15 @@ async def download_excel_tickets(
         
         filename = f"tickets_{nombre_estado}_{nombre_municipio}_{nombre_parroquia}_{nombre_centro}{referido_info}{search_info}.xlsx"
 
+        # Convertir fechas con zona horaria a sin zona horaria
+        df = pd.DataFrame(data)
+        if 'created_at' in df.columns:
+            df['created_at'] = df['created_at'].apply(lambda x: pd.Timestamp(x).tz_localize(None) if pd.notna(x) else x)
+        if 'updated_at' in df.columns:
+            df['updated_at'] = df['updated_at'].apply(lambda x: pd.Timestamp(x).tz_localize(None) if pd.notna(x) else x)
+        
         excel_buffer = BytesIO()
         workbook = pd.ExcelWriter(excel_buffer, engine='xlsxwriter')
-        df = pd.DataFrame(data)
         df.to_excel(workbook, sheet_name='Tickets', index=False)
 
         worksheet = workbook.sheets['Tickets']
@@ -1255,6 +1261,13 @@ async def download_txt_tickets(
         filename = f"tickets_{nombre_estado}_{nombre_municipio}_{nombre_parroquia}_{nombre_centro}"
 
         df = pd.DataFrame(data)
+        
+        # Convertir fechas con zona horaria a sin zona horaria
+        if 'created_at' in df.columns:
+            df['created_at'] = df['created_at'].apply(lambda x: pd.Timestamp(x).tz_localize(None) if pd.notna(x) else x)
+        if 'updated_at' in df.columns:
+            df['updated_at'] = df['updated_at'].apply(lambda x: pd.Timestamp(x).tz_localize(None) if pd.notna(x) else x)
+        
         output = StringIO()
         df.to_csv(output, sep='\t', index=False, encoding='utf-8')
         output.seek(0)
