@@ -147,6 +147,13 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
     createTicketMutate(ticketPayload, {
       onSuccess: (data: CreateTicketResponse) => {
         setTicketMessage(data.message);
+        if (data.status === "error") {
+          // Manejar errores específicos desde la API
+          setToastMessage(data.message);
+          setToastType('error');
+          return;
+        }
+        
         if (data.qr_code) {
           handleOpenQRModal(data.qr_code, data.id?.toString() || '');
         }

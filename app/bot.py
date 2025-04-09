@@ -478,6 +478,16 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
 
             response.raise_for_status()
             data = response.json()
+            
+            # Verificar si hay un error específico en la respuesta (como teléfono duplicado)
+            if data.get("status") == "error":
+                error_message = data.get("message", "Error desconocido")
+                print(f"Error en respuesta de API: {error_message}")
+                notification.answer(f"❌ {error_message}")
+                notification.answer("Por favor, intenta con otro número de teléfono.")
+                set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
+                return
+                
             print(f"Registro exitoso: {data}")
             notification.answer("🎉 ¡Felicidades! Tu registro ha sido completado exitosamente.")
 
@@ -519,7 +529,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                         )
 
                         # El enlace de WhatsApp usa el número de Lotto Bueno (company_whatsapp) para contacto
-                        whatsapp_link = f"https://api.whatsapp.com/send/?phone={company_whatsapp}&text={requests.utils.quote(ticket_info_message)}&type=phone_number&app_absent=0"
+                        whatsapp_link = f"https://api.whatsapp.com/send/?phone={telefono}&text={requests.utils.quote(ticket_info_message)}&type=phone_number&app_absent=0"
                         whatsapp_link_short = shorten_url(whatsapp_link)
                         print(f"Enlace de WhatsApp para QR generado: {whatsapp_link_short}")
                         

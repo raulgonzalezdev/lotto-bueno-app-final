@@ -31,6 +31,8 @@ interface FetchTicketsParams {
   ticketsPerPage: number;
   searchTerm?: string;
   estadoFiltro?: string;
+  municipioFiltro?: string;
+  parroquiaFiltro?: string;
   recolectorFiltro?: string;
 }
 
@@ -43,7 +45,7 @@ interface TicketUpdatePayload {
 
 // Hook para obtener tickets paginados y filtrados
 export const useTickets = (params: FetchTicketsParams) => {
-  const { currentPage, ticketsPerPage, searchTerm, estadoFiltro, recolectorFiltro } = params;
+  const { currentPage, ticketsPerPage, searchTerm, estadoFiltro, municipioFiltro, parroquiaFiltro, recolectorFiltro } = params;
   
   return useQuery<TicketsResponse, Error>({
     // La clave de la query incluye todos los parámetros para re-fetch automático
@@ -56,6 +58,8 @@ export const useTickets = (params: FetchTicketsParams) => {
 
       if (searchTerm) queryParams.search = searchTerm;
       if (estadoFiltro) queryParams.codigo_estado = estadoFiltro;
+      if (municipioFiltro) queryParams.codigo_municipio = municipioFiltro;
+      if (parroquiaFiltro) queryParams.codigo_parroquia = parroquiaFiltro;
       if (recolectorFiltro) queryParams.referido_id = recolectorFiltro;
 
       return apiClient.get<TicketsResponse>('api/tickets/', queryParams);

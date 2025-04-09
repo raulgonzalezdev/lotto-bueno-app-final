@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx'; // Importar xlsx
 import { detectHost } from "../../api";
 import { useTickets, useUpdateTicket } from "../../hooks/useTickets";
 import { useEstados } from "../../hooks/useEstados";
+import { useMunicipios } from "../../hooks/useMunicipios";
+import { useParroquias } from "../../hooks/useParroquias";
 import { useRecolectores } from "../../hooks/useRecolectores";
 import ConfirmationModal from '../confirmation/ConfirmationModal';
 import MessagingModal from '../messaging/MessagingModal';
@@ -117,6 +119,8 @@ const TicketControl: React.FC = () => {
   const [APIHost, setAPIHost] = useState<string>('https://applottobueno.com');
   const [updatedTicket, setUpdatedTicket] = useState({ validado: false, ganador: false });
   const [estadoFiltro, setEstadoFiltro] = useState<string>("");
+  const [municipioFiltro, setMunicipioFiltro] = useState<string>("");
+  const [parroquiaFiltro, setParroquiaFiltro] = useState<string>("");
   const [recolectorFiltro, setRecolectorFiltro] = useState<string>("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -138,9 +142,13 @@ const TicketControl: React.FC = () => {
     ticketsPerPage,
     searchTerm,
     estadoFiltro,
+    municipioFiltro,
+    parroquiaFiltro,
     recolectorFiltro
   });
   const { data: estados = [], isLoading: estadosLoading } = useEstados();
+  const { data: municipios = [], isLoading: municipiosLoading } = useMunicipios(estadoFiltro);
+  const { data: parroquias = [], isLoading: parroquiasLoading } = useParroquias(estadoFiltro, municipioFiltro);
   const { data: recolectoresData, isLoading: recolectoresLoading } = useRecolectores();
   const updateTicketMutation = useUpdateTicket();
 
@@ -278,7 +286,7 @@ const TicketControl: React.FC = () => {
     });
   };
 
-  const handleDownload = async (type: string, format: string) => {
+  const handleDownload = async () => {
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
@@ -288,19 +296,12 @@ const TicketControl: React.FC = () => {
       const queryParams = new URLSearchParams();
       if (searchTerm) queryParams.append('search', searchTerm);
       if (estadoFiltro) queryParams.append('codigo_estado', estadoFiltro);
+      if (municipioFiltro) queryParams.append('codigo_municipio', municipioFiltro);
+      if (parroquiaFiltro) queryParams.append('codigo_parroquia', parroquiaFiltro);
       if (recolectorFiltro) queryParams.append('referido_id', recolectorFiltro); 
       
       const query = queryParams.toString();
-
-      let urlEndpoint = '';
-      if (type === 'tickets') {
-        urlEndpoint = format === 'excel' ? `/api/download/excel/tickets` : `/api/download/txt/tickets`;
-      } else {
-         showMessage('Tipo de descarga no soportado', 'error');
-         setIsDownloading(false);
-         return;
-      }
-
+      const urlEndpoint = `/api/download/excel/tickets`;
       const url = `${APIHost}${urlEndpoint}${query ? '?' + query : ''}`;
 
       console.log(`Iniciando descarga desde: ${url}`);
@@ -320,7 +321,7 @@ const TicketControl: React.FC = () => {
 
       const blob = await response.blob();
       const filename = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/["']/g, '') || 
-                      `${type}_${format === 'excel' ? 'excel' : 'txt'}.${format}.zip`;
+                      `tickets_excel.xlsx.zip`;
 
       await downloadBlobAsFile(blob, filename);
 
@@ -393,10 +394,31 @@ const TicketControl: React.FC = () => {
     "Importante: {nombre}, verifica tu ticket #{numero_ticket} en nuestra página web."
   ];
 
+  const handleEstadoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setEstadoFiltro(value);
+    setMunicipioFiltro("");
+    setParroquiaFiltro("");
+    setCurrentPage(1);
+  };
+
+  const handleMunicipioChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setMunicipioFiltro(value);
+    setParroquiaFiltro("");
+    setCurrentPage(1);
+  };
+
+  const handleParroquiaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setParroquiaFiltro(value);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="p-4">
       <h2>Control de Tickets</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <input
           type="text"
           placeholder="Buscar..."
@@ -406,7 +428,7 @@ const TicketControl: React.FC = () => {
         />
         <select
           value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value)}
+          onChange={handleEstadoChange}
           className="select select-bordered"
           disabled={estadosLoading}
         >
@@ -418,8 +440,34 @@ const TicketControl: React.FC = () => {
           ))}
         </select>
         <select
+          value={municipioFiltro}
+          onChange={handleMunicipioChange}
+          className="select select-bordered"
+          disabled={!estadoFiltro || municipiosLoading}
+        >
+          <option value="">Todos los municipios</option>
+          {municipios.map(municipio => (
+            <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
+              {municipio.municipio}
+            </option>
+          ))}
+        </select>
+        <select
+          value={parroquiaFiltro}
+          onChange={handleParroquiaChange}
+          className="select select-bordered"
+          disabled={!municipioFiltro || parroquiasLoading}
+        >
+          <option value="">Todas las parroquias</option>
+          {parroquias.map(parroquia => (
+            <option key={parroquia.codigo_parroquia} value={parroquia.codigo_parroquia}>
+              {parroquia.parroquia}
+            </option>
+          ))}
+        </select>
+        <select
           value={recolectorFiltro}
-          onChange={(e) => setRecolectorFiltro(e.target.value)}
+          onChange={(e) => {setRecolectorFiltro(e.target.value); setCurrentPage(1);}}
           className="select select-bordered"
           disabled={recolectoresLoading}
         >
@@ -433,40 +481,18 @@ const TicketControl: React.FC = () => {
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         <button 
-          onClick={() => handleDownload('tickets', 'excel')} 
-          className="btn btn-secondary mr-2"
+          onClick={handleDownload} 
+          className="btn btn-secondary"
           disabled={isDownloading}
         >
           {isDownloading ? (
             <span className="flex items-center">
               <span className="loading loading-spinner loading-xs mr-2"></span>
-              Descargando...
+              Descargando... {downloadProgress.toFixed(1)}%
             </span>
           ) : (
             'Descargar Excel'
           )}
-        </button>
-        <button 
-          onClick={() => handleDownload('tickets', 'txt')} 
-          className="btn btn-secondary mr-2"
-          disabled={isDownloading}
-        >
-           {isDownloading ? (
-            <span className="flex items-center">
-              <span className="loading loading-spinner loading-xs mr-2"></span>
-              Descargando...
-            </span>
-          ) : (
-            'Descargar TXT'
-          )}
-        </button>
-        <button 
-          onClick={openMessagingModal} 
-          className="btn btn-info text-white mr-2"
-          disabled={tickets.length === 0}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-          Enviar Mensajes
         </button>
       </div>
       
@@ -484,35 +510,10 @@ const TicketControl: React.FC = () => {
         </div>
       ) : (
         <>
-          {tickets.length > 0 && (
-             <div className="mb-4 flex items-center">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="select-all"
-                  className="checkbox checkbox-sm mr-2"
-                  checked={selectedTicketsForMessaging.length === tickets.length && tickets.length > 0}
-                  onChange={handleSelectAllTickets}
-                />
-                <label htmlFor="select-all" className="text-sm">Seleccionar todos para mensajería</label>
-              </div>
-              {selectedTicketsForMessaging.length > 0 && (
-                <span className="ml-4 text-sm text-gray-600">
-                  ({selectedTicketsForMessaging.length} seleccionado(s))
-                </span>
-              )}
-            </div>
-          )}
-          
           <div className="overflow-x-auto">
              <table className="table table-zebra w-full mb-4">
               <thead>
                 <tr>
-                  {tickets.length > 0 && (
-                    <th className="w-10">
-                      <input type="checkbox" className="checkbox checkbox-xs" onChange={handleSelectAllTickets} checked={selectedTicketsForMessaging.length === tickets.length && tickets.length > 0} />
-                    </th>
-                  )}
                   <th>ID</th>
                   <th>Número Ticket</th>
                   <th>Cédula</th>
@@ -531,14 +532,6 @@ const TicketControl: React.FC = () => {
               <tbody>
                 {tickets.length > 0 ? tickets.map((ticket) => (
                   <tr key={ticket.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-xs"
-                        checked={selectedTicketsForMessaging.includes(ticket.id.toString())}
-                        onChange={() => handleTicketSelection(ticket.id.toString())}
-                      />
-                    </td>
                     <td>{ticket.id}</td>
                     <td>{ticket.numero_ticket}</td>
                     <td>{ticket.cedula}</td>
@@ -564,7 +557,7 @@ const TicketControl: React.FC = () => {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={14} className="text-center p-4">No hay tickets disponibles que coincidan con los filtros.</td>
+                    <td colSpan={13} className="text-center p-4">No hay tickets disponibles que coincidan con los filtros.</td>
                   </tr>
                 )}
               </tbody>
@@ -653,20 +646,11 @@ const TicketControl: React.FC = () => {
 
       {isDownloading && (
          <div className="fixed bottom-4 right-4 bg-base-100 p-4 rounded-lg shadow-lg border">
-          <h4 className="font-bold mb-2">Descargando archivos</h4>
-          {totalParts > 0 ? (
-            <>
-             <div className="mb-2 text-sm">
-               Parte actual: {currentPart} de {totalParts}
-             </div>
-             <progress className="progress progress-primary w-56" value={downloadProgress} max="100"></progress>
-             <div className="text-xs text-gray-600 mt-1">
-               {Math.round(downloadProgress)}% completado
-             </div>
-            </>
-          ) : (
-             <progress className="progress progress-primary w-56" value={isDownloading ? undefined : 0}></progress>
-          )}
+          <h4 className="font-bold mb-2">Descargando archivo</h4>
+          <progress className="progress progress-primary w-56" value={downloadProgress} max="100"></progress>
+          <div className="text-xs text-gray-600 mt-1">
+            {Math.round(downloadProgress)}% completado
+          </div>
         </div>
       )}
       

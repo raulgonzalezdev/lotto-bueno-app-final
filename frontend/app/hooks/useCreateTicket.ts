@@ -13,6 +13,7 @@ export interface CreateTicketPayload {
 // Interfaz para la respuesta de la API
 export interface CreateTicketResponse {
   success?: boolean;
+  status?: string;  // Añadir la propiedad status para manejar éxito o error
   message: string;
   ticket_number?: string;
   qr_code?: string;

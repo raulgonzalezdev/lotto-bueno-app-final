@@ -34,7 +34,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from sqlalchemy import distinct, case, Integer
+from sqlalchemy import distinct, case, Integer, or_
 from redis.asyncio import Redis
 
 from sqlalchemy import create_engine
@@ -453,16 +453,34 @@ def api_generate_tickets(request: TicketRequest, db: Session = Depends(get_db)):
     parroquia = elector_geografico['parroquia']
 
     # Verificar si ya existe un ticket con la cédula o el teléfono proporcionados
-    existing_ticket = db.query(Ticket).filter(
-        (Ticket.cedula == request.cedula) | (Ticket.telefono == request.telefono)
-    ).first()
-    if existing_ticket:
-        qr_code_base64 = existing_ticket.qr_ticket
+    existing_ticket_by_cedula = db.query(Ticket).filter(Ticket.cedula == request.cedula).first()
+    existing_ticket_by_phone = db.query(Ticket).filter(Ticket.telefono == request.telefono).first()
+    
+    if existing_ticket_by_cedula and existing_ticket_by_phone:
+        # Si coinciden ambos, es el mismo ticket
+        qr_code_base64 = existing_ticket_by_cedula.qr_ticket
         return {
             "status": "success",
-            "message": f"{existing_ticket.nombre}, hoy es tu día de suerte! Desde este momento estás participando en el Lotto Bueno y este es tu número de ticket {existing_ticket.id} ¡El número ganador!",
-            "ticket_number": existing_ticket.numero_ticket,
-            "qr_code": qr_code_base64
+            "message": f"{existing_ticket_by_cedula.nombre}, hoy es tu día de suerte! Desde este momento estás participando en el Lotto Bueno y este es tu número de ticket {existing_ticket_by_cedula.id} ¡El número ganador!",
+            "ticket_number": existing_ticket_by_cedula.numero_ticket,
+            "qr_code": qr_code_base64,
+            "id": existing_ticket_by_cedula.id
+        }
+    elif existing_ticket_by_phone:
+        # Si solo el teléfono ya está registrado con otra cédula
+        return {
+            "status": "error",
+            "message": f"El número de teléfono {request.telefono} ya está registrado con otra cédula ({existing_ticket_by_phone.cedula}). Por favor, utiliza un número de teléfono diferente o contacta con soporte."
+        }
+    elif existing_ticket_by_cedula:
+        # Si solo la cédula ya está registrada con otro teléfono
+        qr_code_base64 = existing_ticket_by_cedula.qr_ticket
+        return {
+            "status": "success",
+            "message": f"{existing_ticket_by_cedula.nombre}, tu cédula ya está registrada con otro número telefónico. Estás participando en el Lotto Bueno con el número de ticket {existing_ticket_by_cedula.id}.",
+            "ticket_number": existing_ticket_by_cedula.numero_ticket,
+            "qr_code": qr_code_base64,
+            "id": existing_ticket_by_cedula.id
         }
 
     ticket_number = generate_ticket_number()
@@ -545,7 +563,8 @@ def api_generate_tickets(request: TicketRequest, db: Session = Depends(get_db)):
         "status": "success",
         "message": f"{db_ticket.nombre}, hoy es tu día de suerte! Desde este momento estás participando en el Lotto Bueno y este es tu número de ticket {db_ticket.id} ¡El número ganador!",
         "ticket_number": ticket_number,
-        "qr_code": qr_code_base64
+        "qr_code": qr_code_base64,
+        "id": db_ticket.id
     }
 
 
@@ -584,30 +603,34 @@ def api_generate_ticket(request: TicketRequest, db: Session = Depends(get_db)):
     parroquia = elector_geografico['parroquia']
 
     # Verificar si ya existe un ticket con la cédula o el teléfono proporcionados
-    existing_ticket = db.query(Ticket).filter((Ticket.cedula == request.cedula) | (Ticket.telefono == request.telefono)).first()
-    if existing_ticket:
-        # Enviar mensaje de texto por WhatsApp con el ID del ticket existente
-        message = f"{existing_ticket.nombre}, hoy es tu día de suerte!\n\n" \
-          f"Desde este momento estás participando en el Lotto Bueno y este es tu número de ticket {existing_ticket.id} ¡El número ganador!\n\n" \
-          f"Es importante que guardes nuestro contacto, así podremos anunciarte que tú eres el afortunado ganador.\n" \
-          f"No pierdas tu número de ticket y guarda nuestro contacto, ¡prepárate para celebrar!\n\n" \
-          f"¡Mucha suerte!\n" \
-          f"Lotto Bueno: ¡Tu mejor oportunidad de ganar!"
-
-        send_message(request.telefono, message)
-        
-        # Enviar contacto de la empresa
-        send_contact(request.telefono)
-        
-        qr_code_base64 = existing_ticket.qr_ticket
-        qr_buf = BytesIO(base64.b64decode(qr_code_base64))
-        send_qr_code(request.telefono, qr_buf)
-
+    existing_ticket_by_cedula = db.query(Ticket).filter(Ticket.cedula == request.cedula).first()
+    existing_ticket_by_phone = db.query(Ticket).filter(Ticket.telefono == request.telefono).first()
+    
+    if existing_ticket_by_cedula and existing_ticket_by_phone:
+        # Si coinciden ambos, es el mismo ticket
+        qr_code_base64 = existing_ticket_by_cedula.qr_ticket
         return {
             "status": "success",
-            "message": message,
-            "ticket_number": existing_ticket.numero_ticket,
-            "qr_code": qr_code_base64
+            "message": f"{existing_ticket_by_cedula.nombre}, hoy es tu día de suerte! Desde este momento estás participando en el Lotto Bueno y este es tu número de ticket {existing_ticket_by_cedula.id} ¡El número ganador!",
+            "ticket_number": existing_ticket_by_cedula.numero_ticket,
+            "qr_code": qr_code_base64,
+            "id": existing_ticket_by_cedula.id
+        }
+    elif existing_ticket_by_phone:
+        # Si solo el teléfono ya está registrado con otra cédula
+        return {
+            "status": "error",
+            "message": f"El número de teléfono {request.telefono} ya está registrado con otra cédula ({existing_ticket_by_phone.cedula}). Por favor, utiliza un número de teléfono diferente o contacta con soporte."
+        }
+    elif existing_ticket_by_cedula:
+        # Si solo la cédula ya está registrada con otro teléfono
+        qr_code_base64 = existing_ticket_by_cedula.qr_ticket
+        return {
+            "status": "success",
+            "message": f"{existing_ticket_by_cedula.nombre}, tu cédula ya está registrada con otro número telefónico. Estás participando en el Lotto Bueno con el número de ticket {existing_ticket_by_cedula.id}.",
+            "ticket_number": existing_ticket_by_cedula.numero_ticket,
+            "qr_code": qr_code_base64,
+            "id": existing_ticket_by_cedula.id
         }
 
     ticket_number = generate_ticket_number()
@@ -704,7 +727,8 @@ def api_generate_ticket(request: TicketRequest, db: Session = Depends(get_db)):
         "status": "success",
         "message": message,
         "ticket_number": ticket_number,
-        "qr_code": qr_code_base64
+        "qr_code": qr_code_base64,
+        "id": db_ticket.id
     }
 
 
@@ -836,7 +860,10 @@ async def download_excel_electores(
                 worksheet = writer.sheets['Electores']
                 
                 for idx, col in enumerate(df.columns):
-                    max_length = max(df[col].astype(str).apply(len).max(), len(str(col)))
+                    max_length = max(
+                        df[col].astype(str).apply(len).max(),
+                        len(str(col))
+                    )
                     worksheet.set_column(idx, idx, max_length + 2)
 
             excel_buffer.seek(0)
@@ -1063,10 +1090,12 @@ async def download_txt_electores(
 
 @app.get("/api/download/excel/tickets")
 async def download_excel_tickets(
+    search: Optional[str] = Query(None),
     codigo_estado: Optional[str] = Query(None),
     codigo_municipio: Optional[str] = Query(None),
     codigo_parroquia: Optional[str] = Query(None),
     codigo_centro_votacion: Optional[str] = Query(None),
+    referido_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
@@ -1075,6 +1104,18 @@ async def download_excel_tickets(
         nombre_municipio = "todos"
         nombre_parroquia = "todos"
         nombre_centro = "todos"
+        nombre_referido = "todos"
+
+        # Aplicar filtro de búsqueda
+        if search:
+            query = query.filter(
+                or_(
+                    Ticket.cedula.contains(search),
+                    Ticket.nombre.contains(search),
+                    Ticket.telefono.contains(search),
+                    Ticket.numero_ticket.contains(search)
+                )
+            )
 
         if codigo_estado:
             query = query.filter(Ticket.estado == codigo_estado)
@@ -1108,11 +1149,21 @@ async def download_excel_tickets(
             ).first()
             if centro:
                 nombre_centro = centro[0]
+                
+        if referido_id:
+            query = query.filter(Ticket.referido_id == referido_id)
+            recolector = db.query(Recolector.nombre).filter(Recolector.id == referido_id).first()
+            if recolector:
+                nombre_referido = recolector[0]
 
         tickets = query.all()
         data = [to_dict(ticket) for ticket in tickets]
         
-        filename = f"tickets_{nombre_estado}_{nombre_municipio}_{nombre_parroquia}_{nombre_centro}.xlsx"
+        # Incluir información de búsqueda en el nombre del archivo si existe
+        search_info = f"_busqueda_{search}" if search else ""
+        referido_info = f"_recolector_{nombre_referido}" if referido_id else ""
+        
+        filename = f"tickets_{nombre_estado}_{nombre_municipio}_{nombre_parroquia}_{nombre_centro}{referido_info}{search_info}.xlsx"
 
         excel_buffer = BytesIO()
         workbook = pd.ExcelWriter(excel_buffer, engine='xlsxwriter')
@@ -1568,9 +1619,47 @@ class TicketResponse(BaseModel):
 
 
 @app.get("/api/tickets/", response_model=TicketResponse)
-async def read_tickets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    total = db.query(Ticket).count()
-    tickets = db.query(Ticket).offset(skip).limit(limit).all()
+async def read_tickets(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: Optional[str] = None,
+    codigo_estado: Optional[str] = None,
+    codigo_municipio: Optional[str] = None,
+    codigo_parroquia: Optional[str] = None,
+    referido_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Ticket)
+    
+    # Aplicar filtros
+    if search:
+        query = query.filter(
+            or_(
+                Ticket.cedula.contains(search),
+                Ticket.nombre.contains(search),
+                Ticket.telefono.contains(search),
+                Ticket.numero_ticket.contains(search)
+            )
+        )
+    
+    if codigo_estado:
+        query = query.filter(Ticket.estado == codigo_estado)
+    
+    if codigo_municipio:
+        query = query.filter(Ticket.municipio == codigo_municipio)
+    
+    if codigo_parroquia:
+        query = query.filter(Ticket.parroquia == codigo_parroquia)
+    
+    if referido_id:
+        query = query.filter(Ticket.referido_id == referido_id)
+    
+    # Obtener total de registros con los filtros aplicados
+    total = query.count()
+    
+    # Aplicar paginación
+    tickets = query.offset(skip).limit(limit).all()
+    
     return {"total": total, "items": [to_dict(ticket) for ticket in tickets]}
 
 
