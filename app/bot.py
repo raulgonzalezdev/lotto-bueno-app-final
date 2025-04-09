@@ -449,6 +449,17 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             )
             print(f"Respuesta de la API: Status: {response.status_code}, Texto: {response.text[:200]}")
 
+            # Añadir más debug para identificar problemas
+            try:
+                response_json = response.json()
+                print(f"Respuesta API completa (formato JSON): {json.dumps(response_json, indent=2)}")
+                
+                # Verificar si hay mensajes de error específicos
+                if response_json.get("status") == "error":
+                    print(f"ERROR DETECTADO: {response_json.get('message')}")
+            except Exception as json_err:
+                print(f"No se pudo parsear la respuesta como JSON: {json_err}")
+
             if response.status_code != 200:
                 error_message = f"Error durante el registro (HTTP {response.status_code})."
                 try:
@@ -495,112 +506,129 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 WHATSAPP_URL = os.getenv("WHATSAPP_URL", "")
                 if telefono and telefono != sender.split('@')[0]:
                     try:
-                        ticket_info_message = (
-                            f"¡Hola! Mi número de cédula es {cedula} y acabo de registrarme en Lotto Bueno. "
-                            f"Mi ticket ha sido generado exitosamente. Guarda este contacto para más información."
-                        )
-
                         # Extraer el número del WHATSAPP_URL si viene con https://wa.me/<numero>
                         if WHATSAPP_URL and "wa.me" in WHATSAPP_URL:
                             company_whatsapp = WHATSAPP_URL.replace("https://wa.me/", "")
                         else:
                             company_whatsapp = "17867234220"
 
-                        whatsapp_link = f"https://wa.me/{company_whatsapp}?text={requests.utils.quote(ticket_info_message)}"
+                        # CORREGIDO: El mensaje debe contener la información del usuario registrado
+                        ticket_info_message = (
+                            f"¡Hola! Mi número de cédula es {cedula} y acabo de registrarme en Lotto Bueno. "
+                            f"Mi ticket ha sido generado exitosamente. Guarda este contacto para más información."
+                        )
+
+                        # El enlace de WhatsApp usa el número de Lotto Bueno (company_whatsapp) para contacto
+                        whatsapp_link = f"https://api.whatsapp.com/send/?phone={company_whatsapp}&text={requests.utils.quote(ticket_info_message)}&type=phone_number&app_absent=0"
                         whatsapp_link_short = shorten_url(whatsapp_link)
                         print(f"Enlace de WhatsApp para QR generado: {whatsapp_link_short}")
+                        
+                        # Generar código QR con el enlace acortado
+                        try:
+                            # Crear un QR que contenga información relevante y el enlace
+                            qr_data = {
+                                "tipo": "ticket_lotto_bueno",
+                                "cedula": cedula,
+                                "telefono": telefono,  # Número registrado por el usuario
+                                "contacto_lotto": company_whatsapp,  # Número de contacto de Lotto Bueno
+                                "whatsapp_link": whatsapp_link,  # Enlace completo para contactar a Lotto Bueno
+                                "website": WEBSITE_URL
+                            }
+                            
+                            # Convertir a JSON para incluirlo en el QR
+                            qr_data_json = json.dumps(qr_data)
+                            
+                            # Crear código QR
+                            qr = qrcode.QRCode(
+                                version=1,
+                                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                                box_size=10,
+                                border=4,
+                            )
+                            # CORREGIDO: Usar qr_data_json para que contenga TODA la información
+                            # incluido el teléfono del usuario registrado
+                            qr.add_data(qr_data_json)
+                            qr.make(fit=True)
+                            
+                            img = qr.make_image(fill_color="black", back_color="white")
+                            
+                            # Guardar la imagen en un buffer
+                            qr_buffer = BytesIO()
+                            img.save(qr_buffer, format="PNG")
+                            qr_buffer.seek(0)
+                            
+                            # Enviar directamente usando el endpoint sendFileByUpload de Green API
+                            url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
+                            
+                            # Verificar si el sender tiene sufijo @c.us
+                            chat_id = sender
+                            if "@c.us" not in chat_id:
+                                chat_id = f"{sender}@c.us"
+                                
+                            caption = f"📱 *CÓDIGO QR PARA CONTACTO*\n\n" \
+                                    f"Este código QR contiene tu información de registro:\n" \
+                                    f"- Cédula: {cedula}\n" \
+                                    f"- Teléfono: {telefono}\n\n" \
+                                    f"Al escanearlo, se abrirá una conversación en WhatsApp con Lotto Bueno.\n\n" \
+                                    f"Ideal para registros asistidos o para compartir con amigos."
 
-                        # Generar QR
-                        qr_data = {
-                            "tipo": "ticket_lotto_bueno",
-                            "cedula": cedula,
-                            "telefono": telefono,
-                            "whatsapp_link": whatsapp_link_short,
-                            "website": WEBSITE_URL
-                        }
-                        qr_data_json = json.dumps(qr_data)
+                            payload_file = {
+                                'chatId': chat_id,
+                                'caption': caption
+                            }
 
-                        qr = qrcode.QRCode(
-                            version=1,
-                            error_correction=qrcode.constants.ERROR_CORRECT_L,
-                            box_size=10,
-                            border=4,
-                        )
-                        qr.add_data(whatsapp_link_short)
-                        qr.make(fit=True)
+                            files = [
+                                ('file', ('qr_code.png', qr_buffer, 'image/png'))
+                            ]
 
-                        img = qr.make_image(fill_color="black", back_color="white")
-                        qr_buffer = BytesIO()
-                        img.save(qr_buffer, format="PNG")
-                        qr_buffer.seek(0)
+                            print(f"Enviando QR directamente a {chat_id} usando sendFileByUpload...")
+                            resp_qr = requests.post(url, data=payload_file, files=files)
 
-                        url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
-                        chat_id = sender
-                        if "@c.us" not in chat_id:
-                            chat_id = f"{sender}@c.us"
+                            if resp_qr.status_code == 200:
+                                print(f"QR enviado exitosamente: {resp_qr.text}")
+                                try:
+                                    print("Enviando tarjeta de contacto oficial de Lotto Bueno...")
+                                    contact_url = f"{API_URL_BASE}/sendContact/{API_TOKEN}"
+                                    contact_phone = company_whatsapp
 
-                        caption = (
-                            "📱 *CÓDIGO QR PARA CONTACTO*\n\n"
-                            "Este código QR contiene tu información de registro:\n"
-                            f"- Cédula: {cedula}\n"
-                            f"- Teléfono: {telefono}\n\n"
-                            "Al escanearlo, se abrirá una conversación con Lotto Bueno.\n\n"
-                            "Ideal para compartir con amigos."
-                        )
-
-                        payload_file = {
-                            'chatId': chat_id,
-                            'caption': caption
-                        }
-
-                        files = [
-                            ('file', ('qr_code.png', qr_buffer, 'image/png'))
-                        ]
-
-                        print(f"Enviando QR directamente a {chat_id} usando sendFileByUpload...")
-                        resp_qr = requests.post(url, data=payload_file, files=files)
-
-                        if resp_qr.status_code == 200:
-                            print(f"QR enviado exitosamente: {resp_qr.text}")
-                            try:
-                                print("Enviando tarjeta de contacto oficial de Lotto Bueno...")
-                                contact_url = f"{API_URL_BASE}/sendContact/{API_TOKEN}"
-                                contact_phone = company_whatsapp
-
-                                contact_payload = {
-                                    "chatId": chat_id,
-                                    "contact": {
-                                        "phoneContact": contact_phone,
-                                        "firstName": "Lotto",
-                                        "lastName": "Bueno",
-                                        "company": "Lotto Bueno Inc."
+                                    contact_payload = {
+                                        "chatId": chat_id,
+                                        "contact": {
+                                            "phoneContact": contact_phone,
+                                            "firstName": "Lotto",
+                                            "lastName": "Bueno",
+                                            "company": "Lotto Bueno Inc."
+                                        }
                                     }
-                                }
 
-                                headers = {
-                                    'Content-Type': 'application/json'
-                                }
+                                    headers = {
+                                        'Content-Type': 'application/json'
+                                    }
 
-                                contact_response = requests.post(contact_url, json=contact_payload, headers=headers)
-                                if contact_response.status_code == 200:
-                                    print(f"Contacto enviado exitosamente: {contact_response.text}")
-                                    notification.answer("👆 *Aquí tienes nuestra tarjeta de contacto oficial.* ¡Asegúrate de guardarlo!")
-                                else:
-                                    print(f"Error al enviar contacto: {contact_response.status_code} - {contact_response.text}")
-                            except Exception as contact_error:
-                                print(f"Error al enviar tarjeta de contacto: {contact_error}")
-                        else:
-                            print(f"Error al enviar QR: {resp_qr.status_code} - {resp_qr.text}")
-                            notification.answer(f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link_short}")
+                                    contact_response = requests.post(contact_url, json=contact_payload, headers=headers)
+                                    if contact_response.status_code == 200:
+                                        print(f"Contacto enviado exitosamente: {contact_response.text}")
+                                        notification.answer("👆 *Aquí tienes nuestra tarjeta de contacto oficial.* ¡Asegúrate de guardarlo!")
+                                    else:
+                                        print(f"Error al enviar contacto: {contact_response.status_code} - {contact_response.text}")
+                                except Exception as contact_error:
+                                    print(f"Error al enviar tarjeta de contacto: {contact_error}")
+                            else:
+                                print(f"Error al enviar QR: {resp_qr.status_code} - {resp_qr.text}")
+                                notification.answer(f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link_short}")
 
-                        share_message = (
-                            f"📲 *Comparte este enlace con el número que registraste*\n\n"
-                            f"Es importante que el número {telefono} también nos agregue como contacto "
-                            "para poder comunicarnos con el ganador. "
-                            f"Comparte este código QR o este enlace:\n\n{whatsapp_link_short}\n\n"
-                            "👆 Así podrá iniciar una conversación con nosotros fácilmente."
-                        )
-                        notification.answer(share_message)
+                            share_message = (
+                                f"📲 *Comparte este enlace con el número que registraste*\n\n"
+                                f"Es importante que el número {telefono} también nos agregue como contacto "
+                                "para poder comunicarnos con el ganador. "
+                                f"Comparte este código QR o este enlace:\n\n{whatsapp_link_short}\n\n"
+                                "👆 Así podrá iniciar una conversación con nosotros fácilmente."
+                            )
+                            notification.answer(share_message)
+
+                        except Exception as qr_error:
+                            print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
+                            notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link_short}")
 
                     except Exception as qr_error:
                         print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")

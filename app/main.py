@@ -521,11 +521,24 @@ def api_generate_tickets(request: TicketRequest, db: Session = Depends(get_db)):
         db.add(db_ticket)
         db.commit()
         db.refresh(db_ticket)
+        print(f"Ticket guardado exitosamente en la base de datos con ID: {db_ticket.id}")
     except Exception as e:
         print(f"Error al guardar en la base de datos: {e}")
+        # Intentar obtener más detalles sobre el error
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"Traceback completo: {error_traceback}")
+        
+        # Intentar realizar un rollback en caso de error de transacción
+        try:
+            db.rollback()
+            print("Rollback de transacción realizado")
+        except Exception as rollback_err:
+            print(f"Error al realizar rollback: {rollback_err}")
+            
         return {
             "status": "error",
-            "message": "Error interno del servidor no se guardo la tabla ticket"
+            "message": f"Error interno del servidor al guardar el ticket: {str(e)}"
         }
 
     return {
@@ -652,9 +665,25 @@ def api_generate_ticket(request: TicketRequest, db: Session = Depends(get_db)):
         db.add(db_ticket)
         db.commit()
         db.refresh(db_ticket)
+        print(f"Ticket guardado exitosamente en la base de datos con ID: {db_ticket.id}")
     except Exception as e:
         print(f"Error al guardar en la base de datos: {e}")
-        return {"status": "error", "message": "Error interno del servidor no se guardo la tabla ticket"}
+        # Intentar obtener más detalles sobre el error
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"Traceback completo: {error_traceback}")
+        
+        # Intentar realizar un rollback en caso de error de transacción
+        try:
+            db.rollback()
+            print("Rollback de transacción realizado")
+        except Exception as rollback_err:
+            print(f"Error al realizar rollback: {rollback_err}")
+            
+        return {
+            "status": "error",
+            "message": f"Error interno del servidor al guardar el ticket: {str(e)}"
+        }
 
     # Enviar mensaje de texto por WhatsApp con el ID del nuevo ticket
     #message = f"Hola. {db_ticket.nombre} Apartir de este momento.  Estás participando en Lotto Bueno con el ID de ticket: {db_ticket.id}"
