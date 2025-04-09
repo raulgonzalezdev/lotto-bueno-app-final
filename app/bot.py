@@ -529,7 +529,7 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                         )
 
                         # El enlace de WhatsApp usa el número de Lotto Bueno (company_whatsapp) para contacto
-                        whatsapp_link = f"https://api.whatsapp.com/send/?phone={telefono}&text={requests.utils.quote(ticket_info_message)}&type=phone_number&app_absent=0"
+                        whatsapp_link = f"https://api.whatsapp.com/send/?phone={company_whatsapp}&text={requests.utils.quote(ticket_info_message)}&type=phone_number&app_absent=0"
                         whatsapp_link_short = shorten_url(whatsapp_link)
                         print(f"Enlace de WhatsApp para QR generado: {whatsapp_link_short}")
                         
