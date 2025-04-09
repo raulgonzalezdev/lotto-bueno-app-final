@@ -1091,9 +1091,9 @@ async def download_txt_electores(
 @app.get("/api/download/excel/tickets")
 async def download_excel_tickets(
     search: Optional[str] = Query(None),
-    codigo_estado: Optional[str] = Query(None),
-    codigo_municipio: Optional[str] = Query(None),
-    codigo_parroquia: Optional[str] = Query(None),
+    codigo_estado: Optional[str] = None,
+    codigo_municipio: Optional[str] = None,
+    codigo_parroquia: Optional[str] = None,
     codigo_centro_votacion: Optional[str] = Query(None),
     referido_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
@@ -1117,23 +1117,27 @@ async def download_excel_tickets(
                 )
             )
 
+        # Filtrar por estado (buscar el nombre del estado por su código)
         if codigo_estado:
-            query = query.filter(Ticket.estado == codigo_estado)
             estado = db.query(Geografico.estado).filter(Geografico.codigo_estado == codigo_estado).first()
             if estado:
                 nombre_estado = estado[0]
+                # Buscar tickets que contengan el nombre del estado
+                query = query.filter(Ticket.estado.like(f"%{nombre_estado}%"))
 
+        # Filtrar por municipio (buscar el nombre del municipio por su código)
         if codigo_municipio:
-            query = query.filter(Ticket.municipio == codigo_municipio)
             municipio = db.query(Geografico.municipio).filter(
                 Geografico.codigo_estado == codigo_estado,
                 Geografico.codigo_municipio == codigo_municipio
             ).first()
             if municipio:
                 nombre_municipio = municipio[0]
+                # Buscar tickets que contengan el nombre del municipio
+                query = query.filter(Ticket.municipio.like(f"%{nombre_municipio}%"))
 
+        # Filtrar por parroquia (buscar el nombre de la parroquia por su código)
         if codigo_parroquia:
-            query = query.filter(Ticket.parroquia == codigo_parroquia)
             parroquia = db.query(Geografico.parroquia).filter(
                 Geografico.codigo_estado == codigo_estado,
                 Geografico.codigo_municipio == codigo_municipio,
@@ -1141,14 +1145,16 @@ async def download_excel_tickets(
             ).first()
             if parroquia:
                 nombre_parroquia = parroquia[0]
+                # Buscar tickets que contengan el nombre de la parroquia
+                query = query.filter(Ticket.parroquia.like(f"%{nombre_parroquia}%"))
 
         if codigo_centro_votacion:
-            query = query.filter(Ticket.centro_votacion == codigo_centro_votacion)
             centro = db.query(CentroVotacion.nombre_cv).filter(
                 CentroVotacion.codificacion_nueva_cv == codigo_centro_votacion
             ).first()
             if centro:
                 nombre_centro = centro[0]
+                query = query.filter(Ticket.centro_votacion == codigo_centro_votacion)
                 
         if referido_id:
             query = query.filter(Ticket.referido_id == referido_id)
@@ -1642,14 +1648,33 @@ async def read_tickets(
             )
         )
     
+    # Filtrar por estado (buscar el nombre del estado por su código)
     if codigo_estado:
-        query = query.filter(Ticket.estado == codigo_estado)
+        estado = db.query(Geografico.estado).filter(Geografico.codigo_estado == codigo_estado).first()
+        if estado:
+            # Buscar tickets que contengan el nombre del estado 
+            query = query.filter(Ticket.estado.like(f"%{estado[0]}%"))
     
+    # Filtrar por municipio (buscar el nombre del municipio por su código)
     if codigo_municipio:
-        query = query.filter(Ticket.municipio == codigo_municipio)
+        municipio = db.query(Geografico.municipio).filter(
+            Geografico.codigo_estado == codigo_estado,
+            Geografico.codigo_municipio == codigo_municipio
+        ).first()
+        if municipio:
+            # Buscar tickets que contengan el nombre del municipio
+            query = query.filter(Ticket.municipio.like(f"%{municipio[0]}%"))
     
+    # Filtrar por parroquia (buscar el nombre de la parroquia por su código)
     if codigo_parroquia:
-        query = query.filter(Ticket.parroquia == codigo_parroquia)
+        parroquia = db.query(Geografico.parroquia).filter(
+            Geografico.codigo_estado == codigo_estado,
+            Geografico.codigo_municipio == codigo_municipio,
+            Geografico.codigo_parroquia == codigo_parroquia
+        ).first()
+        if parroquia:
+            # Buscar tickets que contengan el nombre de la parroquia
+            query = query.filter(Ticket.parroquia.like(f"%{parroquia[0]}%"))
     
     if referido_id:
         query = query.filter(Ticket.referido_id == referido_id)

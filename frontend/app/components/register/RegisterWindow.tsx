@@ -351,7 +351,7 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
                 </p>
                 <div className="flex justify-end">
                   <a 
-                    href={`https://wa.me/${companyPhoneContact}?text=${encodeURIComponent(getWhatsAppMessage())}`}
+                    href={`https://wa.me/${formData.telefono}?text=${encodeURIComponent(getWhatsAppMessage())}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 mt-4 inline-block"
