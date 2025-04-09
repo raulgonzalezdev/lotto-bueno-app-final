@@ -87,16 +87,21 @@ export default function (tickets) {
   // --- Verificaciones (Opcional pero recomendado) ---
   check(res, {
     'status es 200': (r) => r.status === 200,
-    'respuesta contiene status': (r) => r.body && r.body.includes('"status":'), // Añadir chequeo de r.body
-    // Ajusta el check según los mensajes exactos y posibles de tu API
-    'respuesta es exitosa, ticket existe o sin WhatsApp': (r) =>
-        r.status === 200 &&
-        r.body && (
-            r.body.includes('"status": "success"') || // Mensaje de éxito o ticket existente
-            r.body.includes('"message": "El número no tiene WhatsApp"') // Mensaje específico de error esperado
-            // Podrías añadir aquí otros mensajes de error "aceptables" si los hubiera
-        ),
-  }, { responseBody: res.body }); // Añadir tag para ver el body en caso de fallo del check
+    'respuesta contiene status': (r) => r.body && r.body.includes('"status"'),
+    // Verificar la respuesta exacta según lo que retorna la API
+    'respuesta es exitosa, ticket existe o sin WhatsApp': (r) => {
+      if (r.status !== 200 || !r.body) return false;
+      
+      // Buscar exactamente los patrones de respuesta que retorna la API
+      return (
+        r.body.includes('"status":"success"') ||
+        r.body.includes('"status":"error","message":"El número no tiene WhatsApp"') ||
+        r.body.includes('"status": "error", "message": "El número no tiene WhatsApp"') ||
+        r.body.includes('"status":"error","message":"Ya existe un ticket registrado') ||
+        r.body.includes('"status": "error", "message": "Ya existe un ticket registrado')
+      );
+    }
+  }, { responseBody: res.body });
 
   // Pequeña pausa para simular comportamiento de usuario (1 segundo)
   sleep(1);

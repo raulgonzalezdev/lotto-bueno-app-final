@@ -103,6 +103,11 @@ docker exec -it 726d2ed68a62 bash
 docker system prune -a -f --volumes
 
 
+Este comando configura Git para que ignore los cambios en los permisos de archivos. Después podrás hacer git pull sin problemas mientras mantienes los permisos de ejecución en deploy.sh.
+
+git config core.fileMode false
+
+
 
 chmod -R 755 /apps
 chown -R soyrauldev:soyrauldev /apps
