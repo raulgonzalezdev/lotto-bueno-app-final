@@ -26,7 +26,7 @@ WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
 # Definir la URL interna para la comunicación entre servicios Docker
 INTERNAL_API_URL = "http://app:8000"
-# Definir la URL base de la API de Green
+# Definir la URL base de la API de Green para cambios
 API_URL_BASE = os.getenv("API_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}")
 
 # Constante para el tiempo máximo de inactividad (5 minutos)
