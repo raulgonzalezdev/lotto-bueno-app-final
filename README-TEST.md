@@ -54,17 +54,17 @@ Presta atención a la tasa de errores (`http_req_failed`) y a las latencias (`ht
 
 Puedes acceder a las interfaces web de las herramientas de monitoreo usando la IP de tu VM donde corre Docker (o `localhost` si corre localmente) y los puertos definidos en `docker-compose.yml`:
 
-*   **Prometheus:** `http://<IP_DE_TU_VM>:9090`
+*   **Prometheus:** `http://34.134.166.180:9090`
     *   Aquí puedes ver los *targets* (servicios que está monitoreando: node-exporter, cadvisor, prometheus mismo) y ejecutar consultas PromQL.
-*   **Grafana:** `http://<IP_DE_TU_VM>:3001`
+*   **Grafana:** `http://34.134.166.180:3001`
     *   Credenciales por defecto: Usuario `admin`, Contraseña `admin` (puedes cambiarlas).
     *   Aquí visualizarás las métricas en dashboards gráficos.
-*   **cAdvisor:** `http://<IP_DE_TU_VM>:8082`
+*   **cAdvisor:** `http://34.134.166.180:8082`
     *   Ofrece una vista detallada y en tiempo real del consumo de recursos (CPU, memoria, red, disco) de cada contenedor Docker.
 
 ## 4. Configurar Grafana (Primera vez)
 
-Al acceder a Grafana por primera vez (`http://<IP_DE_TU_VM>:3001`), necesitarás configurar Prometheus como fuente de datos y luego importar dashboards.
+Al acceder a Grafana por primera vez (`http://34.134.166.180:3001`), necesitarás configurar Prometheus como fuente de datos y luego importar dashboards.
 
 **a) Añadir Fuente de Datos Prometheus:**
 

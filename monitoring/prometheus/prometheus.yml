@@ -13,3 +13,8 @@ scrape_configs:
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080'] # Usar nombre de servicio 
+
+  - job_name: 'api-backend'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['app:8000'] # Usar nombre de servicio de la API 

@@ -80,6 +80,10 @@ import math
 import tempfile
 import uuid
 
+# Importar instrumentador de Prometheus
+from prometheus_fastapi_instrumentator import Instrumentator, metrics
+from prometheus_fastapi_instrumentator.metrics import Info
+
 load_dotenv()
 
 # Definir las posibles URLs de conexión
@@ -112,6 +116,34 @@ else:
 Base = declarative_base()
 
 app = FastAPI()
+
+# Configurar instrumentación de Prometheus para FastAPI
+def setup_prometheus_metrics():
+    instrumentator = Instrumentator()
+    
+    # Añadir métricas por defecto
+    instrumentator.add(metrics.latency())
+    instrumentator.add(metrics.requests())
+    
+    # Añadir métrica personalizada para contar peticiones por ruta y código de estado
+    def requests_by_path_and_status(metric_name: str = "http_requests_by_path_status"):
+        def instrumentation(info: Info):
+            if info.response is not None:
+                info.instrumentation.counter(
+                    metric_name,
+                    "Number of requests by path and status",
+                    labels={"path": info.request.url.path, "status": str(info.response.status_code), "method": info.request.method}
+                ).inc()
+        
+        return instrumentation
+    
+    instrumentator.add(requests_by_path_and_status())
+    
+    # Inicializar instrumentación
+    return instrumentator.instrument(app).expose(app, tags=["metrics"], prefix="metrics")
+
+# Configurar e iniciar instrumentación
+setup_prometheus_metrics()
 
 def get_db():
     db = SessionLocal()
