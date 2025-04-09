@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Toast from '../toast/Toast';
 import ConfirmationModal from '../confirmation/ConfirmationModal';
 import { detectHost } from "../../api";
 import { useEstados } from "../../hooks/useEstados";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useImportarRecolectores } from "../../hooks/useRecolectores";
 
 interface Recolector {
   id: number;
@@ -69,6 +70,10 @@ const RecolectorControl: React.FC = () => {
     message: '',
     type: 'info', // 'info', 'error', 'success'
   });
+  const [importModalIsOpen, setImportModalIsOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // React Query client
   const queryClient = useQueryClient();
@@ -232,6 +237,9 @@ const RecolectorControl: React.FC = () => {
     },
     enabled: false, // No ejecutar automáticamente
   });
+
+  // Mutation para importar recolectores
+  const importarRecolectoresMutation = useImportarRecolectores();
 
   useEffect(() => {
     fetchHost();
@@ -425,11 +433,54 @@ const RecolectorControl: React.FC = () => {
     setEstadisticas([]);
   };
 
+  const openImportModal = () => {
+    setImportModalIsOpen(true);
+  };
+
+  const closeImportModal = () => {
+    setImportModalIsOpen(false);
+    setSelectedFile(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setToastMessage("Por favor seleccione un archivo para importar");
+      setToastType("error");
+      return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const result = await importarRecolectoresMutation.mutateAsync(formData);
+      setToastMessage(`Importación completada: ${result.insertados} recolectores insertados, ${result.errores} errores. ${result.mensaje}`);
+      setToastType("success");
+      closeImportModal();
+    } catch (error) {
+      setToastMessage(`Error durante la importación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      setToastType("error");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="p-4">
       <h2>Control de Recolectores</h2>
-      <button onClick={() => openModal()} className="btn btn-primary mb-4">Crear Nuevo Recolector</button>
-      <button onClick={() => fetchEstadisticas()} className="btn btn-secondary mb-4 ml-2">Ver Estadísticas Generales</button>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button onClick={() => openModal()} className="btn btn-primary mb-4">Crear Nuevo Recolector</button>
+        <button onClick={() => fetchEstadisticas()} className="btn btn-secondary mb-4 ml-2">Ver Estadísticas Generales</button>
+        <button onClick={openImportModal} className="btn btn-info mb-4 ml-2">Importar Recolectores</button>
+      </div>
       <input
         type="text"
         placeholder="Buscar..."
@@ -801,6 +852,63 @@ const RecolectorControl: React.FC = () => {
           </div>
           <div className="text-sm text-gray-600 mt-1">
             {Math.round(downloadProgress)}% completado
+          </div>
+        </div>
+      )}
+      {/* Modal de importación de recolectores */}
+      {importModalIsOpen && (
+        <div className="modal-overlay" onClick={closeImportModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-button" onClick={closeImportModal}>×</button>
+            <h2>Importar Recolectores</h2>
+            <form onSubmit={handleImportSubmit}>
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Seleccione un archivo Excel (.xlsx) o CSV (.csv) que contenga los recolectores a importar.
+                  <br />
+                  El archivo debe tener las columnas: <strong>nombre</strong>, <strong>cedula</strong>, <strong>telefono</strong> 
+                  y opcionalmente <strong>es_referido</strong>.
+                </p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleFileChange}
+                  className="w-full p-2 border rounded"
+                />
+                {selectedFile && (
+                  <p className="mt-1 text-sm text-green-600">
+                    Archivo seleccionado: {selectedFile.name}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button 
+                  type="button" 
+                  onClick={closeImportModal}
+                  className="btn btn-outline"
+                  disabled={isUploading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={isUploading || !selectedFile}
+                >
+                  {isUploading ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Importando...
+                    </span>
+                  ) : "Importar"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

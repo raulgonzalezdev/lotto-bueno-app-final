@@ -39,6 +39,8 @@ interface FetchTicketsParams {
 interface TicketUpdatePayload {
   validado?: boolean;
   ganador?: boolean;
+  telefono?: string;
+  referido_id?: number | null;
 }
 
 // --- Hooks --- //

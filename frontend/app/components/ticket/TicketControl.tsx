@@ -117,7 +117,12 @@ const TicketControl: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [APIHost, setAPIHost] = useState<string>('https://applottobueno.com');
-  const [updatedTicket, setUpdatedTicket] = useState({ validado: false, ganador: false });
+  const [updatedTicket, setUpdatedTicket] = useState({ 
+    validado: false, 
+    ganador: false,
+    telefono: '',
+    referido_id: null as number | null
+  });
   const [estadoFiltro, setEstadoFiltro] = useState<string>("");
   const [municipioFiltro, setMunicipioFiltro] = useState<string>("");
   const [parroquiaFiltro, setParroquiaFiltro] = useState<string>("");
@@ -181,7 +186,12 @@ const TicketControl: React.FC = () => {
 
   const openEditModal = (ticket: Ticket) => {
     setSelectedTicket(ticket);
-    setUpdatedTicket({ validado: ticket.validado, ganador: ticket.ganador });
+    setUpdatedTicket({ 
+      validado: ticket.validado, 
+      ganador: ticket.ganador, 
+      telefono: ticket.telefono,
+      referido_id: ticket.referido_id
+    });
     setEditModalIsOpen(true);
   };
 
@@ -210,9 +220,18 @@ const TicketControl: React.FC = () => {
     }
   };
 
-  const handleUpdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setUpdatedTicket((prevState) => ({ ...prevState, [name]: checked }));
+  const handleUpdateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
+    if (type === 'checkbox') {
+      setUpdatedTicket((prevState) => ({ ...prevState, [name]: checked }));
+    } else if (name === 'referido_id') {
+      const referidoId = value === '' ? null : parseInt(value, 10);
+      setUpdatedTicket((prevState) => ({ ...prevState, [name]: referidoId }));
+    } else {
+      setUpdatedTicket((prevState) => ({ ...prevState, [name]: value }));
+    }
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent) => {
@@ -609,6 +628,38 @@ const TicketControl: React.FC = () => {
             <label onClick={closeEditModal} className="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
             <h3 className="text-lg font-bold mb-4">Editar Ticket #{selectedTicket.id}</h3>
             <form onSubmit={handleUpdateSubmit}>
+                <div className="form-control mb-4">
+                    <label className="label">
+                        <span className="label-text">Teléfono</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="telefono"
+                        className="input input-bordered"
+                        value={updatedTicket.telefono} 
+                        onChange={handleUpdateChange} 
+                    />
+                </div>
+
+                <div className="form-control mb-4">
+                    <label className="label">
+                        <span className="label-text">Referido</span>
+                    </label>
+                    <select
+                        name="referido_id"
+                        className="select select-bordered w-full"
+                        value={updatedTicket.referido_id === null ? '' : updatedTicket.referido_id.toString()}
+                        onChange={handleUpdateChange}
+                    >
+                        <option value="">Sin referido</option>
+                        {recolectores.map(recolector => (
+                            <option key={recolector.id} value={recolector.id.toString()}>
+                                {recolector.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="form-control">
                     <label className="cursor-pointer label">
                         <span className="label-text">Validado</span>

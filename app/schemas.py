@@ -96,6 +96,8 @@ class TicketList(TicketBase):
 class TicketUpdate(BaseModel):
     validado: Optional[bool]
     ganador: Optional[bool]
+    telefono: Optional[str]
+    referido_id: Optional[int]
 
 class RecolectorBase(BaseModel):
     nombre: Optional[str]
@@ -139,9 +141,11 @@ class UserList(UserBase):
     isAdmin: bool
     created_at: datetime
     updated_at: datetime
+    telegram_id: Optional[int] = None
 
     class Config:
         orm_mode = True
+
 class LineaTelefonicaBase(BaseModel):
     numero: str
     operador: str

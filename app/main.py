@@ -78,6 +78,7 @@ from whatsapp_chatbot_python import GreenAPIBot, Notification
 import zipfile
 import math
 import tempfile
+import uuid
 
 load_dotenv()
 
@@ -1731,10 +1732,9 @@ async def update_ticket(ticket_id: int, ticket: TicketUpdate, db: Session = Depe
     db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not db_ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    if "validado" in ticket.dict(exclude_unset=True):
-        db_ticket.validado = ticket.validado
-    if "ganador" in ticket.dict(exclude_unset=True):
-        db_ticket.ganador = ticket.ganador
+    ticket_data = ticket.dict(exclude_unset=True)
+    for field, value in ticket_data.items():
+        setattr(db_ticket, field, value)
     db.commit()
     db.refresh(db_ticket)
     return to_dict(db_ticket)
@@ -2150,8 +2150,31 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/users", response_model=list[UserList])
 async def get_users(db: Session = Depends(get_db)):
-    users = db.query(Users).all()
-    return users
+    # Especificar solo las columnas que existen en la tabla
+    users = db.query(
+        Users.id,
+        Users.username,
+        Users.email,
+        Users.hashed_password,
+        Users.created_at,
+        Users.updated_at,
+        Users.isAdmin
+    ).all()
+    
+    # Convertir los resultados a un formato compatible con UserList
+    return [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "hashed_password": user.hashed_password,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at,
+            "isAdmin": user.isAdmin,
+            "telegram_id": None  # Campo opcional que añadimos a UserList
+        }
+        for user in users
+    ]
 
 
 @app.put("/api/users/{user_id}", response_model=UserList)
@@ -3174,6 +3197,104 @@ def api_send_image(request: ImageRequest):
         raise HTTPException(status_code=500, detail=result["message"])
     
     return {"status": "Imagen enviada", "data": result.get("data")}
+
+
+@app.post("/api/recolectores/importar")
+async def importar_recolectores(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Guardar el archivo temporalmente
+        temp_file = f"temp_recolectores_{uuid.uuid4()}.xlsx"
+        with open(temp_file, "wb") as buffer:
+            buffer.write(await file.read())
+        
+        # Leer el Excel con pandas
+        try:
+            df = pd.read_excel(temp_file)
+        except Exception:
+            # Intentar leer como CSV si Excel falla
+            df = pd.read_csv(temp_file)
+        
+        # Validar que existan las columnas requeridas
+        required_columns = ["nombre", "cedula", "telefono"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Faltan columnas requeridas: {', '.join(missing_columns)}"
+            )
+        
+        # Estadísticas de la importación
+        total = len(df)
+        insertados = 0
+        errores = 0
+        
+        for _, row in df.iterrows():
+            try:
+                # Extraer valores, con validación
+                nombre = str(row['nombre']) if not pd.isna(row['nombre']) else ""
+                cedula = str(row['cedula']) if not pd.isna(row['cedula']) else ""
+                telefono = str(row['telefono']) if not pd.isna(row['telefono']) else ""
+                es_referido = bool(row.get('es_referido', False)) if 'es_referido' in row and not pd.isna(row['es_referido']) else False
+                
+                # Verificar si ya existe un recolector con ese número de cédula o teléfono
+                existing = db.query(Recolector).filter(
+                    or_(
+                        Recolector.cedula == cedula,
+                        Recolector.telefono == telefono
+                    )
+                ).first()
+                
+                if existing:
+                    # Actualizar el existente
+                    existing.nombre = nombre
+                    existing.cedula = cedula
+                    existing.telefono = telefono
+                    existing.es_referido = es_referido
+                    db.commit()
+                else:
+                    # Crear nuevo recolector
+                    new_recolector = Recolector(
+                        nombre=nombre,
+                        cedula=cedula,
+                        telefono=telefono,
+                        es_referido=es_referido
+                    )
+                    db.add(new_recolector)
+                    db.commit()
+                
+                insertados += 1
+            except Exception as e:
+                print(f"Error al importar fila: {str(e)}")
+                errores += 1
+                db.rollback()
+                continue
+        
+        # Limpiar archivo temporal
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        
+        return {
+            "mensaje": "Proceso de importación completado",
+            "total": total,
+            "insertados": insertados,
+            "errores": errores
+        }
+    
+    except HTTPException:
+        # Re-lanzar excepciones HTTP
+        raise
+    except Exception as e:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error durante la importación: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
