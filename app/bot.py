@@ -17,7 +17,14 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from whatsapp_chatbot_python import GreenAPIBot, Notification
 from fastapi import HTTPException
 from app.schemas import CedulaRequest
-from app.main import get_db, send_message, send_qr_code, obtener_numero_contacto, enviar_contacto, verificar_cedula
+from app.main import (
+    get_db,
+    send_message,
+    send_qr_code,
+    obtener_numero_contacto,
+    enviar_contacto,
+    verificar_cedula,
+)
 
 API_INSTANCE = os.getenv("API_INSTANCE", "7103942544")
 API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0")
@@ -27,7 +34,9 @@ TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
 # Definir la URL interna para la comunicación entre servicios Docker
 INTERNAL_API_URL = "http://app:8000"
 # Definir la URL base de la API de Green para cambios
-API_URL_BASE = os.getenv("API_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}")
+API_URL_BASE = os.getenv(
+    "API_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}"
+)
 
 # Constante para el tiempo máximo de inactividad (5 minutos)
 MAX_INACTIVITY_TIME_SECONDS = 300
@@ -61,7 +70,7 @@ def extract_cedula(text):
     print(f"Texto a procesar para cédula: '{text}'")
 
     # Buscar patrones de cédula (números de 6-10 dígitos)
-    cedula_matches = re.findall(r'\b\d{6,10}\b', text)
+    cedula_matches = re.findall(r"\b\d{6,10}\b", text)
 
     if cedula_matches:
         # Tomar el primer número que parece una cédula
@@ -71,7 +80,7 @@ def extract_cedula(text):
 
     print(f"No se encontró cédula con regex, intentando extraer solo dígitos")
     # Si no encuentra números que parezcan cédula, intentar limpiar y extraer solo dígitos
-    digits_only = ''.join(filter(str.isdigit, text))
+    digits_only = "".join(filter(str.isdigit, text))
     print(f"Dígitos extraídos: '{digits_only}', longitud: {len(digits_only)}")
 
     if len(digits_only) >= 6:
@@ -95,56 +104,66 @@ def extract_phone_number(text):
     print(f"Procesando número de teléfono: '{text}'")
 
     # Eliminar espacios, guiones y paréntesis
-    text = re.sub(r'[\s\-\(\)]', '', text)
+    text = re.sub(r"[\s\-\(\)]", "", text)
     print(f"Texto limpio sin espacios/guiones: '{text}'")
 
     # Extraer solo los dígitos
-    digits_only = ''.join(filter(str.isdigit, text))
+    digits_only = "".join(filter(str.isdigit, text))
     print(f"Solo dígitos: '{digits_only}', longitud: {len(digits_only)}")
 
     # Manejar diferentes formatos comunes en Venezuela
     if len(digits_only) >= 10:
         # Si comienza con 58, verificar que tenga un código de operadora válido
-        if digits_only.startswith('58'):
+        if digits_only.startswith("58"):
             print(f"Detectado número que comienza con 58: '{digits_only}'")
             # Verificar que después del 58 tenga un código de operadora válido
-            if re.match(r'^58(412|414|416|424|426)', digits_only):
+            if re.match(r"^58(412|414|416|424|426)", digits_only):
                 result = digits_only[:12]  # Tomar solo los primeros 12 dígitos
                 print(f"Número con prefijo internacional 58 válido: '{result}'")
                 return result
             else:
-                print(f"Prefijo de operadora inválido después del 58: '{digits_only[2:5] if len(digits_only) > 4 else digits_only[2:]}'")
+                print(
+                    f"Prefijo de operadora inválido después del 58: '{digits_only[2:5] if len(digits_only) > 4 else digits_only[2:]}'"
+                )
                 return None
 
         # Si comienza con 0, quitar el 0 y agregar 58
-        elif digits_only.startswith('0'):
+        elif digits_only.startswith("0"):
             print(f"Detectado número que comienza con 0: '{digits_only}'")
             # Verificar que sea una operadora venezolana válida
-            if re.match(r'^0(412|414|416|424|426)', digits_only):
-                result = '58' + digits_only[1:11]  # Formato: 58 + 10 dígitos sin el 0
+            if re.match(r"^0(412|414|416|424|426)", digits_only):
+                result = "58" + digits_only[1:11]  # Formato: 58 + 10 dígitos sin el 0
                 print(f"Número con prefijo 0 convertido a: '{result}'")
                 return result
             else:
-                print(f"Prefijo de operadora inválido después del 0: '{digits_only[1:4] if len(digits_only) > 3 else digits_only[1:]}'")
+                print(
+                    f"Prefijo de operadora inválido después del 0: '{digits_only[1:4] if len(digits_only) > 3 else digits_only[1:]}'"
+                )
                 return None
 
         # Si comienza directamente con el código de operadora (sin 0)
-        elif re.match(r'^(412|414|416|424|426)', digits_only):
-            print(f"Detectado número que comienza con código de operadora: '{digits_only}'")
+        elif re.match(r"^(412|414|416|424|426)", digits_only):
+            print(
+                f"Detectado número que comienza con código de operadora: '{digits_only}'"
+            )
             if len(digits_only) >= 10:
-                result = '58' + digits_only[:10]  # Formato: 58 + 10 dígitos
+                result = "58" + digits_only[:10]  # Formato: 58 + 10 dígitos
                 print(f"Número sin prefijo convertido a: '{result}'")
                 return result
             else:
-                print(f"Número de operadora sin prefijo demasiado corto: '{digits_only}', longitud: {len(digits_only)}")
+                print(
+                    f"Número de operadora sin prefijo demasiado corto: '{digits_only}', longitud: {len(digits_only)}"
+                )
                 return None
 
         # Intento adicional: si tiene 10 dígitos y no coincide con los patrones anteriores
         elif len(digits_only) == 10:
             operator_code = digits_only[:3]
-            print(f"Intentando procesar número de 10 dígitos con código de operadora: '{operator_code}'")
-            if operator_code in ['412', '414', '416', '424', '426']:
-                result = '58' + digits_only
+            print(
+                f"Intentando procesar número de 10 dígitos con código de operadora: '{operator_code}'"
+            )
+            if operator_code in ["412", "414", "416", "424", "426"]:
+                result = "58" + digits_only
                 print(f"Número de 10 dígitos convertido a: '{result}'")
                 return result
             else:
@@ -152,11 +171,17 @@ def extract_phone_number(text):
                 return None
 
         else:
-            print(f"Formato no reconocido: '{digits_only}', longitud: {len(digits_only)}")
-            print("El número debe comenzar con: 58, 0 o directamente el código de operadora (412, 414, 416, 424, 426)")
+            print(
+                f"Formato no reconocido: '{digits_only}', longitud: {len(digits_only)}"
+            )
+            print(
+                "El número debe comenzar con: 58, 0 o directamente el código de operadora (412, 414, 416, 424, 426)"
+            )
             return None
 
-    print(f"Número demasiado corto: '{digits_only}', longitud: {len(digits_only)} (se requieren al menos 10 dígitos)")
+    print(
+        f"Número demasiado corto: '{digits_only}', longitud: {len(digits_only)} (se requieren al menos 10 dígitos)"
+    )
     return None
 
 
@@ -228,6 +253,10 @@ def obtener_cedula(notification: Notification) -> None:
             print("Procesando número de teléfono...")
             handle_registro_telefono(notification, sender, message_data)
             return
+        elif state_value == "esperando_promotor":
+            print("Procesando ID de promotor...")
+            handle_registro_promotor(notification, sender, message_data)
+            return
         elif state_value == "menu_post_registro":
             print("Procesando selección del menú post-registro...")
             handle_post_registro_menu(notification, sender, message_data)
@@ -244,7 +273,9 @@ def obtener_cedula(notification: Notification) -> None:
     message_text = None
     extended_text_message_data = message_data.get("extendedTextMessageData", {})
     if extended_text_message_data:
-        message_text = extended_text_message_data.get("textMessage") or extended_text_message_data.get("text")
+        message_text = extended_text_message_data.get(
+            "textMessage"
+        ) or extended_text_message_data.get("text")
 
     if not message_text:
         text_message_data = message_data.get("textMessageData", {})
@@ -271,7 +302,9 @@ def obtener_cedula(notification: Notification) -> None:
         )
         notification.answer("Ejemplo de formato correcto: 12345678")
         show_menu_principal(notification, sender_name)
-        notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": sender_name})
+        notification.state_manager.set_state(
+            sender, {"state": "menu_principal", "nombre": sender_name}
+        )
         return
 
     print(f"Procesando cédula: {cedula}")
@@ -280,7 +313,9 @@ def obtener_cedula(notification: Notification) -> None:
     try:
         # 1. Primero verificamos si la cédula existe en la base de datos de electores
         print(f"Enviando cédula {cedula} para verificación")
-        elector_response = asyncio.run(verificar_cedula(CedulaRequest(numero_cedula=cedula), db))
+        elector_response = asyncio.run(
+            verificar_cedula(CedulaRequest(numero_cedula=cedula), db)
+        )
         print(f"Respuesta de verificación de elector: {elector_response}")
 
         if elector_response.get("elector"):
@@ -291,9 +326,13 @@ def obtener_cedula(notification: Notification) -> None:
             # 2. Luego verificamos si la cédula ya tiene un ticket registrado
             try:
                 ticket_url = f"{INTERNAL_API_URL}/api/tickets/cedula/{cedula}"
-                print(f"Verificando ticket para cédula {cedula} en URL interna: {ticket_url}")
+                print(
+                    f"Verificando ticket para cédula {cedula} en URL interna: {ticket_url}"
+                )
                 response = requests.get(ticket_url)
-                print(f"Respuesta al verificar ticket: Status {response.status_code}, Contenido: {response.text[:200]}...")
+                print(
+                    f"Respuesta al verificar ticket: Status {response.status_code}, Contenido: {response.text[:200]}..."
+                )
 
                 if response.status_code == 200:
                     existing_ticket = response.json()
@@ -318,20 +357,35 @@ def obtener_cedula(notification: Notification) -> None:
                     phone_contact = obtener_numero_contacto(db)
                     print(f"phone_contact obtenido: {phone_contact}")
                     if phone_contact:
-                        enviar_contacto(sender, phone_contact.split('@')[0], "Lotto", "Bueno", "Lotto Bueno Inc")
+                        enviar_contacto(
+                            sender,
+                            phone_contact.split("@")[0],
+                            "Lotto",
+                            "Bueno",
+                            "Lotto Bueno Inc",
+                        )
 
                     show_post_registro_menu(notification, nombre_completo)
-                    notification.state_manager.set_state(sender, {"state": "menu_post_registro", "nombre": nombre_completo})
+                    notification.state_manager.set_state(
+                        sender,
+                        {"state": "menu_post_registro", "nombre": nombre_completo},
+                    )
 
                 elif response.status_code == 404:
-                    print(f"Cédula {cedula} está registrada en el sistema pero no tiene ticket")
-                    notification.answer(f"La cédula {cedula} está registrada en el sistema pero aún no tiene un ticket de Lotto Bueno.")
-                    notification.answer("Para completar tu registro, por favor envíame tu número de teléfono (con formato 04XX-XXXXXXX):")
+                    print(
+                        f"Cédula {cedula} está registrada en el sistema pero no tiene ticket"
+                    )
+                    notification.answer(
+                        f"La cédula {cedula} está registrada en el sistema pero aún no tiene un ticket de Lotto Bueno."
+                    )
+                    notification.answer(
+                        "Para completar tu registro, por favor envíame tu número de teléfono (con formato 04XX-XXXXXXX):"
+                    )
 
                     user_state_data = {
                         "state": "esperando_telefono",
                         "nombre": nombre_completo,
-                        "cedula": cedula
+                        "cedula": cedula,
                     }
                     notification.state_manager.set_state(sender, user_state_data)
 
@@ -339,7 +393,9 @@ def obtener_cedula(notification: Notification) -> None:
                     error_message = f"Error al verificar ticket: {response.status_code}"
                     try:
                         error_response = response.json()
-                        error_message += f" - Detalle: {error_response.get('detail', response.text)}"
+                        error_message += (
+                            f" - Detalle: {error_response.get('detail', response.text)}"
+                        )
                     except Exception:
                         error_message += f" - Respuesta: {response.text}"
 
@@ -356,7 +412,7 @@ def obtener_cedula(notification: Notification) -> None:
                 user_state_data = {
                     "state": "esperando_telefono",
                     "nombre": nombre_completo,
-                    "cedula": cedula
+                    "cedula": cedula,
                 }
                 notification.state_manager.set_state(sender, user_state_data)
 
@@ -365,35 +421,51 @@ def obtener_cedula(notification: Notification) -> None:
                 notification.answer(f"Ha ocurrido un error inesperado: {str(err)}")
                 notification.answer("Por favor, intenta nuevamente más tarde.")
                 show_menu_principal(notification, sender_name)
-                notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": sender_name})
+                notification.state_manager.set_state(
+                    sender, {"state": "menu_principal", "nombre": sender_name}
+                )
 
         else:
             print(f"Cédula {cedula} no registrada en el sistema electoral.")
-            notification.answer(f"El número de cédula {cedula} no está registrado en nuestra base de datos.")
-            notification.answer("¿Te gustaría registrarte con esta cédula para participar en Lotto Bueno?")
+            notification.answer(
+                f"El número de cédula {cedula} no está registrado en nuestra base de datos."
+            )
+            notification.answer(
+                "¿Te gustaría registrarte con esta cédula para participar en Lotto Bueno?"
+            )
 
             user_state_data = {
                 "state": "esperando_telefono",
                 "nombre": sender_name,
-                "cedula": cedula
+                "cedula": cedula,
             }
             notification.state_manager.set_state(sender, user_state_data)
-            notification.answer("Por favor, envíame tu número de teléfono (con formato 04XX-XXXXXXX):")
+            notification.answer(
+                "Por favor, envíame tu número de teléfono (con formato 04XX-XXXXXXX):"
+            )
 
     except Exception as e:
         print(f"Error al verificar cédula: {e}")
         notification.answer(f"Ha ocurrido un error al procesar tu solicitud: {str(e)}")
-        notification.answer("Por favor intenta nuevamente con solo tu número de cédula.")
+        notification.answer(
+            "Por favor intenta nuevamente con solo tu número de cédula."
+        )
         show_menu_principal(notification, sender_name)
-        notification.state_manager.set_state(sender, {"state": "menu_principal", "nombre": sender_name})
+        notification.state_manager.set_state(
+            sender, {"state": "menu_principal", "nombre": sender_name}
+        )
 
 
-def handle_registro_telefono(notification: Notification, sender: str, message_data: dict):
+def handle_registro_telefono(
+    notification: Notification, sender: str, message_data: dict
+):
     """Maneja la entrada del teléfono durante el proceso de registro"""
     message_text = None
     extended_text_message_data = message_data.get("extendedTextMessageData", {})
     if extended_text_message_data:
-        message_text = extended_text_message_data.get("textMessage") or extended_text_message_data.get("text")
+        message_text = extended_text_message_data.get(
+            "textMessage"
+        ) or extended_text_message_data.get("text")
 
     if not message_text:
         text_message_data = message_data.get("textMessageData", {})
@@ -409,14 +481,24 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
 
     if not cedula:
         print(f"No se encontró cédula en el estado: {user_state}")
-        notification.answer("No he podido recuperar tus datos de registro. Por favor intenta nuevamente.")
+        notification.answer(
+            "No he podido recuperar tus datos de registro. Por favor intenta nuevamente."
+        )
         show_menu_principal(notification, nombre)
-        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+        set_user_state(
+            notification, sender, {"state": "menu_principal", "nombre": nombre}
+        )
         return
 
     if not message_text:
-        notification.answer("No he podido obtener tu mensaje. Por favor, envía tu número de teléfono (ejemplo: 0414-1234567):")
-        set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
+        notification.answer(
+            "No he podido obtener tu mensaje. Por favor, envía tu número de teléfono (ejemplo: 0414-1234567):"
+        )
+        set_user_state(
+            notification,
+            sender,
+            {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula},
+        )
         return
 
     print(f"Procesando número de teléfono: '{message_text}' para cédula: {cedula}")
@@ -424,36 +506,187 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
     print(f"Número extraído: {telefono} del texto original: {message_text}")
 
     if not telefono:
-        digits_only = ''.join(filter(str.isdigit, message_text))
+        digits_only = "".join(filter(str.isdigit, message_text))
         print(f"Texto después de filtrar solo dígitos: {digits_only}")
-        notification.answer("No he podido identificar un número de teléfono válido. Por favor, envía tu número con formato 04XX-XXXXXXX:")
-        set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
+        notification.answer(
+            "No he podido identificar un número de teléfono válido. Por favor, envía tu número con formato 04XX-XXXXXXX:"
+        )
+        set_user_state(
+            notification,
+            sender,
+            {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula},
+        )
         return
 
-    # Llamar a la API para registrar al usuario
-    try:
-        notification.answer(f"Estoy procesando tu registro con la cédula {cedula} y el teléfono {telefono}...")
+    # Guardar el teléfono en el estado y solicitar el ID del promotor
+    notification.answer(f"Teléfono {telefono} registrado correctamente.")
+    notification.answer(
+        "Por favor, ingresa el ID del promotor (número) que te está registrando:"
+    )
 
-        payload = {
+    # Actualizar el estado para incluir el teléfono y cambiar a esperando_promotor
+    set_user_state(
+        notification,
+        sender,
+        {
+            "state": "esperando_promotor",
+            "nombre": nombre,
             "cedula": cedula,
             "telefono": telefono,
-            "referido_id": 1
-        }
+        },
+    )
+
+
+def handle_registro_promotor(
+    notification: Notification, sender: str, message_data: dict
+):
+    """Maneja la entrada del ID del promotor y verifica su validez antes de generar el ticket"""
+    message_text = None
+    extended_text_message_data = message_data.get("extendedTextMessageData", {})
+    if extended_text_message_data:
+        message_text = extended_text_message_data.get(
+            "textMessage"
+        ) or extended_text_message_data.get("text")
+
+    if not message_text:
+        text_message_data = message_data.get("textMessageData", {})
+        if text_message_data:
+            message_text = text_message_data.get("textMessage")
+
+    print(f"Mensaje de ID de promotor recibido: {message_text}")
+    user_state = get_user_state(notification, sender)
+    print(f"Estado del usuario recuperado en handle_registro_promotor: {user_state}")
+
+    cedula = user_state.get("cedula")
+    telefono = user_state.get("telefono")
+    nombre = user_state.get("nombre", "Usuario")
+
+    if not cedula or not telefono:
+        print(f"No se encontraron datos completos en el estado: {user_state}")
+        notification.answer(
+            "No he podido recuperar tus datos de registro. Por favor intenta nuevamente."
+        )
+        show_menu_principal(notification, nombre)
+        set_user_state(
+            notification, sender, {"state": "menu_principal", "nombre": nombre}
+        )
+        return
+
+    if not message_text:
+        notification.answer(
+            "No he podido obtener tu mensaje. Por favor, ingresa el ID del promotor (número):"
+        )
+        set_user_state(
+            notification,
+            sender,
+            {
+                "state": "esperando_promotor",
+                "nombre": nombre,
+                "cedula": cedula,
+                "telefono": telefono,
+            },
+        )
+        return
+
+    # Extraer el ID del promotor (solo números)
+    promotor_id = None
+    try:
+        # Extraer solo dígitos del mensaje
+        digits_only = "".join(filter(str.isdigit, message_text))
+        if digits_only:
+            promotor_id = int(digits_only)
+        print(f"ID del promotor extraído: {promotor_id}")
+    except ValueError:
+        print(f"No se pudo convertir a número: {message_text}")
+        notification.answer(
+            "El ID del promotor debe ser un número. Por favor, intenta nuevamente:"
+        )
+        set_user_state(
+            notification,
+            sender,
+            {
+                "state": "esperando_promotor",
+                "nombre": nombre,
+                "cedula": cedula,
+                "telefono": telefono,
+            },
+        )
+        return
+
+    if not promotor_id:
+        notification.answer(
+            "No he podido identificar un ID de promotor válido. Por favor, ingresa solo el número del promotor:"
+        )
+        set_user_state(
+            notification,
+            sender,
+            {
+                "state": "esperando_promotor",
+                "nombre": nombre,
+                "cedula": cedula,
+                "telefono": telefono,
+            },
+        )
+        return
+
+    # Verificar si el promotor existe usando el endpoint interno
+    try:
+        notification.answer(f"Verificando el ID del promotor {promotor_id}...")
+
+        # Llamar al endpoint para verificar si el promotor existe
+        recolector_url = f"{INTERNAL_API_URL}/api/recolectores/{promotor_id}"
+        print(f"Verificando recolector con URL: {recolector_url}")
+
+        response = requests.get(recolector_url)
+        print(
+            f"Respuesta de verificación de promotor: Status {response.status_code}, Contenido: {response.text[:200]}..."
+        )
+
+        if response.status_code != 200:
+            notification.answer(
+                f"❌ El ID de promotor {promotor_id} no es válido. Por favor, verifica e ingresa el ID correcto:"
+            )
+            set_user_state(
+                notification,
+                sender,
+                {
+                    "state": "esperando_promotor",
+                    "nombre": nombre,
+                    "cedula": cedula,
+                    "telefono": telefono,
+                },
+            )
+            return
+
+        # El promotor existe, procedemos con el registro
+        recolector_data = response.json()
+        promotor_nombre = recolector_data.get("nombre", "desconocido")
+        notification.answer(f"✅ Promotor verificado: {promotor_nombre}")
+
+        # Continuar con la generación del ticket
+        notification.answer(
+            f"Estoy procesando tu registro con la cédula {cedula}, teléfono {telefono} y promotor ID {promotor_id}..."
+        )
+
+        payload = {"cedula": cedula, "telefono": telefono, "referido_id": promotor_id}
 
         print(f"Enviando solicitud a la API para generar ticket: {payload}")
 
         try:
             response = requests.post(
-                f"{INTERNAL_API_URL}/api/generate_tickets",
-                json=payload
+                f"{INTERNAL_API_URL}/api/generate_tickets", json=payload
             )
-            print(f"Respuesta de la API: Status: {response.status_code}, Texto: {response.text[:200]}")
+            print(
+                f"Respuesta de la API: Status: {response.status_code}, Texto: {response.text[:200]}"
+            )
 
             # Añadir más debug para identificar problemas
             try:
                 response_json = response.json()
-                print(f"Respuesta API completa (formato JSON): {json.dumps(response_json, indent=2)}")
-                
+                print(
+                    f"Respuesta API completa (formato JSON): {json.dumps(response_json, indent=2)}"
+                )
+
                 # Verificar si hay mensajes de error específicos
                 if response_json.get("status") == "error":
                     print(f"ERROR DETECTADO: {response_json.get('message')}")
@@ -461,7 +694,9 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 print(f"No se pudo parsear la respuesta como JSON: {json_err}")
 
             if response.status_code != 200:
-                error_message = f"Error durante el registro (HTTP {response.status_code})."
+                error_message = (
+                    f"Error durante el registro (HTTP {response.status_code})."
+                )
                 try:
                     error_details = response.json()
                     error_detail = error_details.get("detail", "")
@@ -470,26 +705,36 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                     error_message += f" Respuesta de la API: {response.text}"
 
                 print(f"Error detallado: {error_message}")
-                notification.answer(f"Ha ocurrido un error durante el registro. ❌\n\n{error_message}")
-                notification.answer("Por favor, intenta nuevamente o contacta a soporte con este mensaje de error.")
+                notification.answer(
+                    f"Ha ocurrido un error durante el registro. ❌\n\n{error_message}"
+                )
+                notification.answer(
+                    "Por favor, intenta nuevamente o contacta a soporte con este mensaje de error."
+                )
                 show_menu_principal(notification, nombre)
-                set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+                set_user_state(
+                    notification, sender, {"state": "menu_principal", "nombre": nombre}
+                )
                 return
 
             response.raise_for_status()
             data = response.json()
-            
-            # Verificar si hay un error específico en la respuesta (como teléfono duplicado)
+
+            # Verificar si hay un error específico en la respuesta
             if data.get("status") == "error":
                 error_message = data.get("message", "Error desconocido")
                 print(f"Error en respuesta de API: {error_message}")
                 notification.answer(f"❌ {error_message}")
-                notification.answer("Por favor, intenta con otro número de teléfono.")
-                set_user_state(notification, sender, {"state": "esperando_telefono", "nombre": nombre, "cedula": cedula})
+                show_menu_principal(notification, nombre)
+                set_user_state(
+                    notification, sender, {"state": "menu_principal", "nombre": nombre}
+                )
                 return
-                
+
             print(f"Registro exitoso: {data}")
-            notification.answer("🎉 ¡Felicidades! Tu registro ha sido completado exitosamente.")
+            notification.answer(
+                "🎉 ¡Felicidades! Tu registro ha sido completado exitosamente."
+            )
 
             if data.get("qr_code"):
                 qr_buf = BytesIO(base64.b64decode(data["qr_code"]))
@@ -514,11 +759,13 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
             # Dejar el try para no romper si no existe la variable
             try:
                 WHATSAPP_URL = os.getenv("WHATSAPP_URL", "")
-                if telefono and telefono != sender.split('@')[0]:
+                if telefono and telefono != sender.split("@")[0]:
                     try:
                         # Extraer el número del WHATSAPP_URL si viene con https://wa.me/<numero>
                         if WHATSAPP_URL and "wa.me" in WHATSAPP_URL:
-                            company_whatsapp = WHATSAPP_URL.replace("https://wa.me/", "")
+                            company_whatsapp = WHATSAPP_URL.replace(
+                                "https://wa.me/", ""
+                            )
                         else:
                             company_whatsapp = "17867234220"
 
@@ -531,8 +778,10 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                         # El enlace de WhatsApp usa el número de Lotto Bueno (company_whatsapp) para contacto
                         whatsapp_link = f"https://api.whatsapp.com/send/?phone={company_whatsapp}&text={requests.utils.quote(ticket_info_message)}&type=phone_number&app_absent=0"
                         whatsapp_link_short = shorten_url(whatsapp_link)
-                        print(f"Enlace de WhatsApp para QR generado: {whatsapp_link_short}")
-                        
+                        print(
+                            f"Enlace de WhatsApp para QR generado: {whatsapp_link_short}"
+                        )
+
                         # Generar código QR con el enlace acortado
                         try:
                             # Crear un QR que contenga información relevante y el enlace
@@ -542,12 +791,12 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                                 "telefono": telefono,  # Número registrado por el usuario
                                 "contacto_lotto": company_whatsapp,  # Número de contacto de Lotto Bueno
                                 "whatsapp_link": whatsapp_link,  # Enlace completo para contactar a Lotto Bueno
-                                "website": WEBSITE_URL
+                                "website": WEBSITE_URL,
                             }
-                            
+
                             # Convertir a JSON para incluirlo en el QR
                             qr_data_json = json.dumps(qr_data)
-                            
+
                             # Crear código QR
                             qr = qrcode.QRCode(
                                 version=1,
@@ -559,46 +808,49 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                             # incluido el teléfono del usuario registrado
                             qr.add_data(qr_data_json)
                             qr.make(fit=True)
-                            
+
                             img = qr.make_image(fill_color="black", back_color="white")
-                            
+
                             # Guardar la imagen en un buffer
                             qr_buffer = BytesIO()
                             img.save(qr_buffer, format="PNG")
                             qr_buffer.seek(0)
-                            
+
                             # Enviar directamente usando el endpoint sendFileByUpload de Green API
                             url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
-                            
+
                             # Verificar si el sender tiene sufijo @c.us
                             chat_id = sender
                             if "@c.us" not in chat_id:
                                 chat_id = f"{sender}@c.us"
-                                
-                            caption = f"📱 *CÓDIGO QR PARA CONTACTO*\n\n" \
-                                    f"Este código QR contiene tu información de registro:\n" \
-                                    f"- Cédula: {cedula}\n" \
-                                    f"- Teléfono: {telefono}\n\n" \
-                                    f"Al escanearlo, se abrirá una conversación en WhatsApp con Lotto Bueno.\n\n" \
-                                    f"Ideal para registros asistidos o para compartir con amigos."
 
-                            payload_file = {
-                                'chatId': chat_id,
-                                'caption': caption
-                            }
+                            caption = (
+                                f"📱 *CÓDIGO QR PARA CONTACTO*\n\n"
+                                f"Este código QR contiene tu información de registro:\n"
+                                f"- Cédula: {cedula}\n"
+                                f"- Teléfono: {telefono}\n\n"
+                                f"Al escanearlo, se abrirá una conversación en WhatsApp con Lotto Bueno.\n\n"
+                                f"Ideal para registros asistidos o para compartir con amigos."
+                            )
 
-                            files = [
-                                ('file', ('qr_code.png', qr_buffer, 'image/png'))
-                            ]
+                            payload_file = {"chatId": chat_id, "caption": caption}
 
-                            print(f"Enviando QR directamente a {chat_id} usando sendFileByUpload...")
+                            files = [("file", ("qr_code.png", qr_buffer, "image/png"))]
+
+                            print(
+                                f"Enviando QR directamente a {chat_id} usando sendFileByUpload..."
+                            )
                             resp_qr = requests.post(url, data=payload_file, files=files)
 
                             if resp_qr.status_code == 200:
                                 print(f"QR enviado exitosamente: {resp_qr.text}")
                                 try:
-                                    print("Enviando tarjeta de contacto oficial de Lotto Bueno...")
-                                    contact_url = f"{API_URL_BASE}/sendContact/{API_TOKEN}"
+                                    print(
+                                        "Enviando tarjeta de contacto oficial de Lotto Bueno..."
+                                    )
+                                    contact_url = (
+                                        f"{API_URL_BASE}/sendContact/{API_TOKEN}"
+                                    )
                                     contact_phone = company_whatsapp
 
                                     contact_payload = {
@@ -607,25 +859,39 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                                             "phoneContact": contact_phone,
                                             "firstName": "Lotto",
                                             "lastName": "Bueno",
-                                            "company": "Lotto Bueno Inc."
-                                        }
+                                            "company": "Lotto Bueno Inc.",
+                                        },
                                     }
 
-                                    headers = {
-                                        'Content-Type': 'application/json'
-                                    }
+                                    headers = {"Content-Type": "application/json"}
 
-                                    contact_response = requests.post(contact_url, json=contact_payload, headers=headers)
+                                    contact_response = requests.post(
+                                        contact_url,
+                                        json=contact_payload,
+                                        headers=headers,
+                                    )
                                     if contact_response.status_code == 200:
-                                        print(f"Contacto enviado exitosamente: {contact_response.text}")
-                                        notification.answer("👆 *Aquí tienes nuestra tarjeta de contacto oficial.* ¡Asegúrate de guardarlo!")
+                                        print(
+                                            f"Contacto enviado exitosamente: {contact_response.text}"
+                                        )
+                                        notification.answer(
+                                            "👆 *Aquí tienes nuestra tarjeta de contacto oficial.* ¡Asegúrate de guardarlo!"
+                                        )
                                     else:
-                                        print(f"Error al enviar contacto: {contact_response.status_code} - {contact_response.text}")
+                                        print(
+                                            f"Error al enviar contacto: {contact_response.status_code} - {contact_response.text}"
+                                        )
                                 except Exception as contact_error:
-                                    print(f"Error al enviar tarjeta de contacto: {contact_error}")
+                                    print(
+                                        f"Error al enviar tarjeta de contacto: {contact_error}"
+                                    )
                             else:
-                                print(f"Error al enviar QR: {resp_qr.status_code} - {resp_qr.text}")
-                                notification.answer(f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link_short}")
+                                print(
+                                    f"Error al enviar QR: {resp_qr.status_code} - {resp_qr.text}"
+                                )
+                                notification.answer(
+                                    f"Si no puedes ver la imagen QR, usa este enlace para contactarnos: {whatsapp_link_short}"
+                                )
 
                             share_message = (
                                 f"📲 *Comparte este enlace con el número que registraste*\n\n"
@@ -637,19 +903,33 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                             notification.answer(share_message)
 
                         except Exception as qr_error:
-                            print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
-                            notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link_short}")
+                            print(
+                                f"Error al generar o enviar QR de WhatsApp: {qr_error}"
+                            )
+                            notification.answer(
+                                f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link_short}"
+                            )
 
                     except Exception as qr_error:
                         print(f"Error al generar o enviar QR de WhatsApp: {qr_error}")
-                        notification.answer(f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link_short}")
+                        notification.answer(
+                            f"No se pudo enviar la imagen QR. Usa este enlace para contactarnos: {whatsapp_link_short}"
+                        )
 
                 db_aux = next(get_db())
                 phone_contact = obtener_numero_contacto(db_aux)
                 if phone_contact:
                     print(f"Enviando contacto: {phone_contact}")
-                    notification.answer("👇 Aquí tienes nuestro contacto oficial. ¡Asegúrate de guardarlo!")
-                    enviar_contacto(sender, phone_contact.split('@')[0], "Lotto", "Bueno", "Lotto Bueno Inc")
+                    notification.answer(
+                        "👇 Aquí tienes nuestro contacto oficial. ¡Asegúrate de guardarlo!"
+                    )
+                    enviar_contacto(
+                        sender,
+                        phone_contact.split("@")[0],
+                        "Lotto",
+                        "Bueno",
+                        "Lotto Bueno Inc",
+                    )
 
                 website_url_short = shorten_url(WEBSITE_URL)
                 notification.answer(
@@ -658,19 +938,31 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 )
 
                 telegram_url_short = shorten_url(TELEGRAM_CHANNEL)
-                notification.answer(f"📣 También puedes unirte a nuestro canal de Telegram: {telegram_url_short}")
+                notification.answer(
+                    f"📣 También puedes unirte a nuestro canal de Telegram: {telegram_url_short}"
+                )
 
                 show_post_registro_menu(notification, nombre)
-                set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
-                print("Estado actualizado a menu_post_registro después del registro exitoso")
+                set_user_state(
+                    notification,
+                    sender,
+                    {"state": "menu_post_registro", "nombre": nombre},
+                )
+                print(
+                    "Estado actualizado a menu_post_registro después del registro exitoso"
+                )
 
             except requests.exceptions.RequestException as req_err:
                 print(f"Error en la solicitud HTTP: {req_err}")
                 error_message = f"❌ Error al contactar el servidor: {str(req_err)}"
                 notification.answer(error_message)
-                notification.answer("Por favor, verifica tu conexión e intenta nuevamente.")
+                notification.answer(
+                    "Por favor, verifica tu conexión e intenta nuevamente."
+                )
                 show_menu_principal(notification, nombre)
-                set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+                set_user_state(
+                    notification, sender, {"state": "menu_principal", "nombre": nombre}
+                )
 
         except requests.exceptions.HTTPError as e:
             print(f"Error HTTP al registrar: {e}")
@@ -682,21 +974,36 @@ def handle_registro_telefono(notification: Notification, sender: str, message_da
                 pass
             notification.answer(error_message)
             show_menu_principal(notification, nombre)
-            set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+            set_user_state(
+                notification, sender, {"state": "menu_principal", "nombre": nombre}
+            )
 
         except Exception as e:
             print(f"Error inesperado al registrar: {e}")
             error_message = f"❌ Error inesperado: {str(e)}"
             notification.answer(error_message)
-            notification.answer("Por favor, intenta nuevamente más tarde o contacta a soporte con este mensaje.")
+            notification.answer(
+                "Por favor, intenta nuevamente más tarde o contacta a soporte con este mensaje."
+            )
             show_menu_principal(notification, nombre)
-            set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+            set_user_state(
+                notification, sender, {"state": "menu_principal", "nombre": nombre}
+            )
 
     except Exception as e:
-        print(f"Error al procesar registro: {e}")
-        notification.answer(f"Se ha producido un error: {str(e)}")
-        show_menu_principal(notification, nombre)
-        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+        print(f"Error al verificar promotor: {e}")
+        notification.answer(f"Ha ocurrido un error al verificar el promotor: {str(e)}")
+        notification.answer("Por favor, intenta nuevamente con otro ID de promotor:")
+        set_user_state(
+            notification,
+            sender,
+            {
+                "state": "esperando_promotor",
+                "nombre": nombre,
+                "cedula": cedula,
+                "telefono": telefono,
+            },
+        )
 
 
 def show_menu_principal(notification: Notification, nombre: str):
@@ -719,7 +1026,9 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
     message_text = None
     extended_text_message_data = message_data.get("extendedTextMessageData", {})
     if extended_text_message_data:
-        message_text = extended_text_message_data.get("textMessage") or extended_text_message_data.get("text")
+        message_text = extended_text_message_data.get(
+            "textMessage"
+        ) or extended_text_message_data.get("text")
 
     if not message_text:
         text_message_data = message_data.get("textMessageData", {})
@@ -730,7 +1039,7 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
 
     option = None
     if message_text:
-        match = re.match(r'^[^\d]*(\d+)', message_text)
+        match = re.match(r"^[^\d]*(\d+)", message_text)
         if match:
             option = match.group(1)
         else:
@@ -745,25 +1054,43 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
     print(f"Opción seleccionada: {option}")
 
     if option == "1":
-        notification.answer("¡Excelente! Para registrarte en Lotto Bueno, por favor envíame tu número de cédula:")
+        notification.answer(
+            "¡Excelente! Para registrarte en Lotto Bueno, por favor envíame tu número de cédula:"
+        )
         notification.state_manager.delete_state(sender)
     elif option == "2":
-        notification.answer(f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}")
-        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+        notification.answer(
+            f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
+        )
+        set_user_state(
+            notification, sender, {"state": "menu_principal", "nombre": nombre}
+        )
         show_menu_principal(notification, nombre)
     elif option == "3":
-        notification.answer(f"¡Genial! Únete a nuestro canal de Telegram:\n{TELEGRAM_CHANNEL}")
-        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+        notification.answer(
+            f"¡Genial! Únete a nuestro canal de Telegram:\n{TELEGRAM_CHANNEL}"
+        )
+        set_user_state(
+            notification, sender, {"state": "menu_principal", "nombre": nombre}
+        )
         show_menu_principal(notification, nombre)
     elif option == "4":
-        notification.answer("Por favor, envíame el número de cédula que deseas verificar:")
+        notification.answer(
+            "Por favor, envíame el número de cédula que deseas verificar:"
+        )
         notification.state_manager.delete_state(sender)
     elif option == "5":
-        notification.answer(f"¡Gracias por contactarnos, {nombre}! Esperamos verte pronto en Lotto Bueno. ¡Que tengas un excelente día! 🍀")
+        notification.answer(
+            f"¡Gracias por contactarnos, {nombre}! Esperamos verte pronto en Lotto Bueno. ¡Que tengas un excelente día! 🍀"
+        )
         notification.state_manager.delete_state(sender)
     else:
-        notification.answer("No he podido entender tu selección. Responde con 1, 2, 3, 4 o 5:")
-        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+        notification.answer(
+            "No he podido entender tu selección. Responde con 1, 2, 3, 4 o 5:"
+        )
+        set_user_state(
+            notification, sender, {"state": "menu_principal", "nombre": nombre}
+        )
         show_menu_principal(notification, nombre)
 
 
@@ -781,12 +1108,16 @@ def show_post_registro_menu(notification: Notification, nombre: str):
     print(f"Menú post-registro enviado a {notification.sender}")
 
 
-def handle_post_registro_menu(notification: Notification, sender: str, message_data: dict):
+def handle_post_registro_menu(
+    notification: Notification, sender: str, message_data: dict
+):
     """Maneja las opciones del menú post-registro"""
     message_text = None
     extended_text_message_data = message_data.get("extendedTextMessageData", {})
     if extended_text_message_data:
-        message_text = extended_text_message_data.get("textMessage") or extended_text_message_data.get("text")
+        message_text = extended_text_message_data.get(
+            "textMessage"
+        ) or extended_text_message_data.get("text")
 
     if not message_text:
         text_message_data = message_data.get("textMessageData", {})
@@ -797,7 +1128,7 @@ def handle_post_registro_menu(notification: Notification, sender: str, message_d
 
     option = None
     if message_text:
-        match = re.match(r'^[^\d]*(\d+)', message_text)
+        match = re.match(r"^[^\d]*(\d+)", message_text)
         if match:
             option = match.group(1)
         else:
@@ -812,17 +1143,27 @@ def handle_post_registro_menu(notification: Notification, sender: str, message_d
     print(f"Opción seleccionada post-registro: {option}")
 
     if option == "1":
-        notification.answer(f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}")
-        set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
+        notification.answer(
+            f"¡Excelente! Puedes visitar nuestro sitio web en:\n{WEBSITE_URL}"
+        )
+        set_user_state(
+            notification, sender, {"state": "menu_post_registro", "nombre": nombre}
+        )
         show_post_registro_menu(notification, nombre)
     elif option == "2":
-        notification.answer(f"¡Genial! Únete a nuestro canal de Telegram:\n{TELEGRAM_CHANNEL}")
-        set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
+        notification.answer(
+            f"¡Genial! Únete a nuestro canal de Telegram:\n{TELEGRAM_CHANNEL}"
+        )
+        set_user_state(
+            notification, sender, {"state": "menu_post_registro", "nombre": nombre}
+        )
         show_post_registro_menu(notification, nombre)
     elif option == "3":
         notification.answer("Regresando al menú principal...")
         show_menu_principal(notification, nombre)
-        set_user_state(notification, sender, {"state": "menu_principal", "nombre": nombre})
+        set_user_state(
+            notification, sender, {"state": "menu_principal", "nombre": nombre}
+        )
     elif option == "4":
         notification.answer(
             f"¡Gracias por registrarte, {nombre}! Estamos emocionados de tenerte como participante en Lotto Bueno. "
@@ -830,8 +1171,12 @@ def handle_post_registro_menu(notification: Notification, sender: str, message_d
         )
         notification.state_manager.delete_state(sender)
     else:
-        notification.answer("No he podido entender tu selección. Responde con 1, 2, 3 o 4:")
-        set_user_state(notification, sender, {"state": "menu_post_registro", "nombre": nombre})
+        notification.answer(
+            "No he podido entender tu selección. Responde con 1, 2, 3 o 4:"
+        )
+        set_user_state(
+            notification, sender, {"state": "menu_post_registro", "nombre": nombre}
+        )
         show_post_registro_menu(notification, nombre)
 
 
@@ -844,21 +1189,27 @@ def check_inactive_users():
     for sender, last_time in user_last_interaction.items():
         inactive_duration = current_time - last_time
 
-        if (inactive_duration > VERIFICATION_TIME_SECONDS
-                and inactive_duration < MAX_INACTIVITY_TIME_SECONDS
-                and not verification_message_sent.get(sender, False)):
+        if (
+            inactive_duration > VERIFICATION_TIME_SECONDS
+            and inactive_duration < MAX_INACTIVITY_TIME_SECONDS
+            and not verification_message_sent.get(sender, False)
+        ):
             verification_needed.append(sender)
 
         elif (inactive_duration > MAX_INACTIVITY_TIME_SECONDS) or (
             verification_message_sent.get(sender, False)
-            and inactive_duration > VERIFICATION_TIME_SECONDS + RESPONSE_WAIT_TIME_SECONDS
+            and inactive_duration
+            > VERIFICATION_TIME_SECONDS + RESPONSE_WAIT_TIME_SECONDS
         ):
             inactive_users.append(sender)
 
     for sender in verification_needed:
         try:
             print(f"Enviando mensaje de verificación a usuario inactivo: {sender}")
-            send_message(sender, "¿Sigues ahí? Esta sesión se cerrará automáticamente por inactividad en 30 segundos si no hay respuesta.")
+            send_message(
+                sender,
+                "¿Sigues ahí? Esta sesión se cerrará automáticamente por inactividad en 30 segundos si no hay respuesta.",
+            )
             verification_message_sent[sender] = True
         except Exception as e:
             print(f"Error enviando mensaje de verificación a {sender}: {e}")
@@ -867,9 +1218,9 @@ def check_inactive_users():
         print(f"Usuario inactivo detectado: {sender}")
         try:
             try:
-                if hasattr(bot, 'state_manager'):
+                if hasattr(bot, "state_manager"):
                     bot.state_manager.delete_state(sender)
-                elif hasattr(bot.router, 'state_manager'):
+                elif hasattr(bot.router, "state_manager"):
                     bot.router.state_manager.delete_state(sender)
                 else:
                     print("No se encontró state_manager para eliminar el estado")
@@ -881,7 +1232,10 @@ def check_inactive_users():
                 del verification_message_sent[sender]
 
             try:
-                send_message(sender, "Tu sesión ha finalizado por inactividad. Envía cualquier mensaje para comenzar de nuevo.")
+                send_message(
+                    sender,
+                    "Tu sesión ha finalizado por inactividad. Envía cualquier mensaje para comenzar de nuevo.",
+                )
                 print(f"Mensaje de inactividad enviado a {sender}")
             except Exception as e:
                 print(f"Error enviando mensaje de inactividad a {sender}: {e}")
@@ -914,6 +1268,7 @@ def set_user_state(notification, sender, state_dict):
         except Exception as e2:
             print(f"Error al guardar estado serializado: {e2}")
             try:
+
                 class SimpleState:
                     pass
 
@@ -922,7 +1277,9 @@ def set_user_state(notification, sender, state_dict):
                     setattr(state_obj, key, value)
 
                 notification.state_manager.set_state(sender, state_obj)
-                print(f"Estado guardado como objeto con atributos: {state_obj.__dict__}")
+                print(
+                    f"Estado guardado como objeto con atributos: {state_obj.__dict__}"
+                )
             except Exception as e3:
                 print(f"Error al guardar estado como objeto: {e3}")
 
@@ -963,7 +1320,7 @@ def get_user_state(notification, sender):
         # Si es un objeto desconocido, convertirlo a dict
         result = {}
         for attr in dir(state):
-            if not attr.startswith('_') and not callable(getattr(state, attr)):
+            if not attr.startswith("_") and not callable(getattr(state, attr)):
                 result[attr] = getattr(state, attr)
         print(f"Estado obtenido como objeto desconocido y convertido a: {result}")
         return result
@@ -975,5 +1332,6 @@ def get_user_state(notification, sender):
 
 if __name__ == "__main__":
     import threading
+
     threading.Thread(target=inactivity_checker, daemon=True).start()
     bot.run_forever()
