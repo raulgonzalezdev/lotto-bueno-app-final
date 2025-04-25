@@ -86,12 +86,18 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   // Efecto para cargar datos del recolector existente
   useEffect(() => {
     if (recolectorExistente) {
+      // Extraer el operador y el número del teléfono completo
+      const telefono = recolectorExistente.telefono || "";
+      const operador = telefono.length >= 6 ? `0${telefono.slice(2, 5)}` : "0414";
+      const numeroTelefono = telefono.length >= 7 ? telefono.slice(5) : "";
+
       // Si existe el recolector, cargar sus datos
       setFormData(prevState => ({
         ...prevState,
+        cedula: recolectorExistente.cedula,
         nombre: recolectorExistente.nombre,
-        telefono: recolectorExistente.telefono.slice(-7),
-        operador: recolectorExistente.telefono.slice(2, 6),
+        telefono: numeroTelefono,
+        operador: operador,
         estado: recolectorExistente.estado || ANZOATEGUI_CODIGO,
         municipio: recolectorExistente.municipio || "",
         organizacion_politica: recolectorExistente.organizacion_politica || "",
@@ -233,7 +239,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     setIsSubmitting(true);
 
     const recolectorPayload = {
-      nombre: electorData?.nombre || recolectorExistente?.nombre || "",
+      nombre: recolectorExistente?.nombre || electorData?.nombre || "",
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
@@ -480,8 +486,10 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                     <span className="animate-spin mr-2">⟳</span>
                     {recolectorExistente ? "Actualizando..." : "Registrando..."}
                   </>
+                ) : recolectorExistente ? (
+                  "Actualizar datos de COPERO"
                 ) : (
-                  recolectorExistente ? "Actualizar datos de COPERO" : "Registrarme como COPERO"
+                  "Registrarme como COPERO"
                 )}
               </button>
             </div>

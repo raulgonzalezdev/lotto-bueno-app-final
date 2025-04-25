@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Toast from '../toast/Toast';
 import ConfirmationModal from '../confirmation/ConfirmationModal';
 import { detectHost } from "../../api";
@@ -12,6 +12,11 @@ import { useMunicipios } from "../../hooks/useMunicipios";
 interface Municipio {
   codigo_municipio: string;
   municipio: string;
+}
+
+interface OrganizacionPolitica {
+  codigo: string;
+  nombre: string;
 }
 
 interface Recolector {
@@ -60,12 +65,12 @@ const municipios = [
   "GUANIPA"
 ];
 
-const organizacionesPoliticas = [
-  "PV",
-  "AD",
-  "COPEI",
-  "VOL",
-  "BR"
+const organizacionesPoliticas: OrganizacionPolitica[] = [
+  { codigo: "PV", nombre: "Primero Venezuela" },
+  { codigo: "AD", nombre: "Acción Democrática" },
+  { codigo: "COPEI", nombre: "COPEI" },
+  { codigo: "VOL", nombre: "Voluntad Popular" },
+  { codigo: "BR", nombre: "Bandera Roja" }
 ];
 
 const RecolectorControl: React.FC = () => {
@@ -121,9 +126,18 @@ const RecolectorControl: React.FC = () => {
   // Fetch Municipios basado en el estado seleccionado para el filtro
   const { data: municipiosData = [], isLoading: municipiosLoading } = useMunicipios(estadoFiltro);
 
-  // Objeto para almacenar los hooks de municipios por estado
-  const municipiosQueries: { [key: string]: Municipio[] } = {};
-  
+  // Crear queries para cada estado de los recolectores
+  const municipiosQueries = useMemo(() => {
+    const queries: { [key: string]: Municipio[] } = {};
+    recolectores.forEach(recolector => {
+      if (recolector.estado && !queries[recolector.estado]) {
+        const { data: municipios = [] } = useMunicipios(recolector.estado);
+        queries[recolector.estado] = municipios;
+      }
+    });
+    return queries;
+  }, [recolectores]);
+
   // Crear un conjunto único de estados de los recolectores
   const estadosUnicos = [...new Set(recolectores.map(r => r.estado))];
   
@@ -619,7 +633,9 @@ const RecolectorControl: React.FC = () => {
           >
             <option value="">Todas las organizaciones</option>
             {organizacionesPoliticas.map(org => (
-              <option key={org} value={org}>{org}</option>
+              <option key={org.codigo} value={org.codigo}>
+                {org.nombre}
+              </option>
             ))}
           </select>
         </div>
@@ -669,11 +685,17 @@ const RecolectorControl: React.FC = () => {
                   const estadoObj = estados.find(e => e.codigo_estado.toString() === recolector.estado);
                   
                   // Obtener los municipios del estado del recolector
-                  const municipiosDelEstado = recolector.estado ? municipiosQueries[recolector.estado] || [] : [];
+                  const municipiosDelEstado = recolector.estado ? 
+                    (municipiosQueries[recolector.estado] || []) : [];
                   
                   // Encontrar el municipio correspondiente
                   const municipioObj = municipiosDelEstado.find(
                     m => m.codigo_municipio.toString() === recolector.municipio
+                  );
+
+                  // Encontrar la organización política
+                  const orgPolitica = organizacionesPoliticas.find(
+                    org => org.codigo === recolector.organizacion_politica
                   );
 
                   return (
@@ -685,7 +707,7 @@ const RecolectorControl: React.FC = () => {
                       <td>{recolector.email || '-'}</td>
                       <td>{estadoObj ? estadoObj.estado : recolector.estado || '-'}</td>
                       <td>{municipioObj ? municipioObj.municipio : recolector.municipio || '-'}</td>
-                      <td>{recolector.organizacion_politica || '-'}</td>
+                      <td>{orgPolitica ? orgPolitica.nombre : recolector.organizacion_politica || '-'}</td>
                       <td>{recolector.es_referido ? "Sí" : "No"}</td>
                       <td>
                         <button 
@@ -872,7 +894,9 @@ const RecolectorControl: React.FC = () => {
               >
                 <option value="">Seleccione una organización</option>
                 {organizacionesPoliticas.map(org => (
-                  <option key={org} value={org}>{org}</option>
+                  <option key={org.codigo} value={org.codigo}>
+                    {org.nombre}
+                  </option>
                 ))}
               </select>
             </div>
@@ -970,7 +994,7 @@ const RecolectorControl: React.FC = () => {
                 >
                   <option value="">Todas las organizaciones</option>
                   {organizacionesPoliticas.map(org => (
-                    <option key={org} value={org}>{org}</option>
+                    <option key={org.codigo} value={org.codigo}>{org.nombre}</option>
                   ))}
                 </select>
               </div>
