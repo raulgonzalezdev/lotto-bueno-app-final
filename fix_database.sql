@@ -42,7 +42,7 @@ $$;
 CREATE TABLE IF NOT EXISTS organizaciones_politicas (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(50) NOT NULL,
-    codigo VARCHAR(20),
+    codigo VARCHAR(100),
     descripcion VARCHAR(200),
     activo BOOLEAN DEFAULT TRUE
 );
@@ -73,7 +73,7 @@ BEGIN
         INSERT INTO organizaciones_politicas (nombre, codigo, activo) VALUES 
         ('PV', 'PRIMERO VENEZUELA', true),
         ('AD', 'ACCION DEMOCRATICA', true), 
-        ('COPEI', 'COMITE ORGANIZADO POLITICO ELECTORAL INDEPENDIENTE', true),
+        ('COPEI', 'COMITE POLITICO', true),
         ('VOL', 'VOLUNTAD POPULAR', true),
         ('BR', 'BANDERA ROJA', true);
     END IF;
