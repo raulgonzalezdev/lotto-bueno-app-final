@@ -46,6 +46,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cedulaNotFound, setCedulaNotFound] = useState(false);
   
   // Utilizar hooks para obtener datos
   const { data: estados = [], isLoading: isLoadingEstados } = useEstados();
@@ -82,11 +83,13 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         ...prevState,
         nombre: electorData.nombre
       }));
+      setCedulaNotFound(false);
       
-      if (electorData.codigoEstado && estados) {
+      // Verificar que codigoEstado existe y no es undefined
+      if (electorData.codigoEstado !== undefined && estados) {
         const estado = estados.find(e => 
           e.codigo_estado !== undefined && 
-          e.codigo_estado.toString() === electorData.codigoEstado.toString()
+          e.codigo_estado.toString() === electorData.codigoEstado?.toString()
         );
         if (estado) {
           setFormData(prevState => ({
@@ -95,15 +98,18 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
           }));
         }
       }
+    } else if (formData.cedula.length >= 6) {
+      setCedulaNotFound(true);
     }
-  }, [electorData, estados]);
+  }, [electorData, estados, formData.cedula]);
 
   // Efecto para actualizar municipio cuando se cargan los municipios
   useEffect(() => {
-    if (electorData?.codigoMunicipio && municipios) {
+    // Verificar que codigoMunicipio existe y no es undefined
+    if (electorData?.codigoMunicipio !== undefined && municipios) {
       const municipio = municipios.find(m => 
         m.codigo_municipio !== undefined && 
-        m.codigo_municipio.toString() === electorData.codigoMunicipio.toString()
+        m.codigo_municipio.toString() === electorData.codigoMunicipio?.toString()
       );
       if (municipio) {
         setFormData(prevState => ({
@@ -274,14 +280,16 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
             </div>
             
             <div className="form-group">
-              <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">Nombre</label>
+              <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
+                Nombre {cedulaNotFound && <span className="text-blue-600">(Ingrese el nombre manualmente)</span>}
+              </label>
               <input
                 type="text"
                 id="nombre"
                 name="nombre"
                 value={formData.nombre}
                 onChange={handleInputChange}
-                placeholder="Nombre del recolector"
+                placeholder={cedulaNotFound ? "Ingrese su nombre completo" : "Nombre del recolector"}
                 className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.nombre ? 'border-red-500' : ''}`}
               />
               {errors.nombre && <p className="mt-1 text-sm text-red-500">{errors.nombre}</p>}
