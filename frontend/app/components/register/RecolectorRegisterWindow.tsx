@@ -331,7 +331,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                 )}
                 {!electorData && formData.cedula.length >= 6 && !isLoadingElector && (
                   <p className="mt-1 text-sm text-red-500">
-                    Esta cédula no existe en el registro electoral
+                    Esta cédula esta invalidada para ser copero 
                   </p>
                 )}
                 {recolectorExists && (
@@ -359,13 +359,13 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
             
             <div className="form-group">
               <label htmlFor="telefono" className="block text-sm font-medium text-gray-700">Teléfono Celular*</label>
-              <div className="flex">
+              <div className="flex gap-2">
                 <select
                   name="operador"
                   id="operador"
                   value={formData.operador}
                   onChange={handleInputChange}
-                  className={`${selectClassName} w-28 mr-2`}
+                  className="w-28 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5"
                 >
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
@@ -380,7 +380,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   value={formData.telefono}
                   onChange={handleInputChange}
                   placeholder="Ej: 1234567"
-                  className={`${inputClassName} flex-1`}
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5"
                 />
               </div>
               {errors.telefono && <p className="mt-1 text-sm text-red-500">{errors.telefono}</p>}
