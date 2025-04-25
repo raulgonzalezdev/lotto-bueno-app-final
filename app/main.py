@@ -144,7 +144,7 @@ def setup_prometheus_metrics():
     instrumentator.add(requests_by_path_and_status())
     
     # Inicializar instrumentación
-    return instrumentator.instrument(app).expose(app, tags=["metrics"], prefix="metrics")
+    return instrumentator.instrument(app).expose(app, tags=["metrics"], endpoint="/metrics")
 
 # Configurar e iniciar instrumentación
 setup_prometheus_metrics()
