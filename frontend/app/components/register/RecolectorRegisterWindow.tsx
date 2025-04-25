@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Toast from '../toast/Toast';
-import { useCreateRecolector } from '../../hooks/useRecolectores';
+import { useCreateRecolector, useCheckRecolectorExistsByCedula, useUpdateRecolector } from '../../hooks/useRecolectores';
 import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
 import { useOrganizacionesPoliticas } from '../../hooks/useOrganizacionesPoliticas';
@@ -54,9 +54,13 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const { data: organizacionesPoliticas = [], isLoading: isLoadingOrganizaciones } = useOrganizacionesPoliticas();
   
   const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
+  const { mutate: updateRecolector } = useUpdateRecolector();
 
   // Hook para buscar elector por cédula
-  const { data: electorData, isLoading: isLoadingElector, error: electorError } = useElectorSimpleByCedula(formData.cedula);
+  const { data: electorData, isLoading: isLoadingElector } = useElectorSimpleByCedula(formData.cedula);
+
+  // Agregar después de los otros hooks
+  const { data: recolectorExists, isLoading: isCheckingRecolector } = useCheckRecolectorExistsByCedula(formData.cedula);
 
   // Efecto para cargar los municipios tan pronto como se carguen los estados
   useEffect(() => {
@@ -78,18 +82,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
 
   // Efecto para actualizar el formulario cuando se obtienen datos del elector
   useEffect(() => {
-    console.log('Elector data:', electorData); // Log para debugging
     if (electorData) {
-      console.log('Actualizando nombre con:', electorData.nombre); // Log para debugging
       setFormData(prevState => ({
         ...prevState,
         nombre: electorData.nombre
       }));
-      setCedulaNotFound(false);
       
       // Verificar que codigoEstado existe y no es undefined
       if (electorData.codigoEstado !== undefined && estados) {
-        console.log('Actualizando estado con:', electorData.codigoEstado); // Log para debugging
         const estado = estados.find(e => 
           e.codigo_estado !== undefined && 
           e.codigo_estado.toString() === electorData.codigoEstado?.toString()
@@ -101,11 +101,8 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
           }));
         }
       }
-    } else if (formData.cedula.length >= 6) {
-      console.log('Cédula no encontrada:', formData.cedula); // Log para debugging
-      setCedulaNotFound(true);
     }
-  }, [electorData, estados, formData.cedula]);
+  }, [electorData, estados]);
 
   // Agregar un efecto para limpiar el nombre cuando se cambia la cédula
   useEffect(() => {
@@ -162,6 +159,12 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       organizacion_politica: ""
     };
 
+    // Validar que la cédula existe en la base de electores
+    if (!electorData) {
+      newErrors.cedula = "La cédula debe existir en el registro ";
+      isValid = false;
+    }
+
     if (!formData.cedula) {
       newErrors.cedula = "La cédula es requerida";
       isValid = false;
@@ -169,11 +172,6 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
 
     if (!formData.telefono || formData.telefono.length < 7) {
       newErrors.telefono = "El teléfono debe tener al menos 7 dígitos";
-      isValid = false;
-    }
-
-    if (!formData.nombre) {
-      newErrors.nombre = "El nombre es requerido";
       isValid = false;
     }
 
@@ -201,7 +199,13 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     setToastMessage(null);
 
     if (!validateForm()) {
-      setToastMessage("Por favor completa todos los campos requeridos.");
+      setToastMessage("Por favor completa todos los campos requeridos correctamente.");
+      setToastType('error');
+      return;
+    }
+
+    if (!electorData) {
+      setToastMessage("Solo se pueden registrar personas que existan en el registro electoral.");
       setToastType('error');
       return;
     }
@@ -215,52 +219,87 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
 
     setIsSubmitting(true);
 
-    // Crear el recolector
     const recolectorPayload = {
-      nombre: formData.nombre,
+      nombre: electorData.nombre, // Usar siempre el nombre del registro electoral
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
-      email: formData.email, // Usar el valor por defecto
+      email: formData.email,
       estado: formData.estado,
       municipio: formData.municipio,
       organizacion_politica: formData.organizacion_politica
     };
 
-    createRecolector(recolectorPayload, {
-      onSuccess: (data) => {
-        setToastMessage(`Registro exitoso. Su código de recolector es: ${data.id}`);
-        setToastType('success');
-        setRegistrationComplete(true);
-        setIsSubmitting(false);
-        
-        // Reiniciar formulario después de 5 segundos
-        setTimeout(() => {
-          setFormData({ 
-            cedula: "", 
-            operador: "0414", 
-            telefono: "", 
-            email: "default@example.com", // Mantener el valor por defecto
-            estado: ANZOATEGUI_CODIGO, // Mantener Anzoátegui como selección
-            municipio: "",
-            organizacion_politica: "",
-            nombre: ""
-          });
-          setRegistrationComplete(false);
-        }, 5000);
-      },
-      onError: (error: any) => {
-        console.error("Error al registrar recolector:", error);
-        setToastMessage(error.message || "Ocurrió un error inesperado al registrar.");
-        setToastType('error');
-        setIsSubmitting(false);
-      },
-    });
+    if (recolectorExists) {
+      // Actualizar recolector existente
+      updateRecolector({ recolectorId: parseInt(formData.cedula), payload: recolectorPayload }, {
+        onSuccess: () => {
+          setToastMessage("Datos del copero actualizados exitosamente");
+          setToastType('success');
+          setRegistrationComplete(true);
+          setIsSubmitting(false);
+          
+          setTimeout(() => {
+            setFormData({ 
+              cedula: "", 
+              operador: "0414", 
+              telefono: "", 
+              email: "default@example.com",
+              estado: ANZOATEGUI_CODIGO,
+              municipio: "",
+              organizacion_politica: "",
+              nombre: ""
+            });
+            setRegistrationComplete(false);
+          }, 5000);
+        },
+        onError: (error: any) => {
+          console.error("Error al actualizar copero:", error);
+          setToastMessage(error.message || "Ocurrió un error inesperado al actualizar.");
+          setToastType('error');
+          setIsSubmitting(false);
+        },
+      });
+    } else {
+      // Crear nuevo recolector
+      createRecolector(recolectorPayload, {
+        onSuccess: (data) => {
+          setToastMessage(`Registro exitoso. Su código de recolector es: ${data.id}`);
+          setToastType('success');
+          setRegistrationComplete(true);
+          setIsSubmitting(false);
+          
+          setTimeout(() => {
+            setFormData({ 
+              cedula: "", 
+              operador: "0414", 
+              telefono: "", 
+              email: "default@example.com",
+              estado: ANZOATEGUI_CODIGO,
+              municipio: "",
+              organizacion_politica: "",
+              nombre: ""
+            });
+            setRegistrationComplete(false);
+          }, 5000);
+        },
+        onError: (error: any) => {
+          console.error("Error al registrar copero:", error);
+          setToastMessage(error.message || "Ocurrió un error inesperado al registrar.");
+          setToastType('error');
+          setIsSubmitting(false);
+        },
+      });
+    }
   };
 
   const handleVolverClick = () => {
     setCurrentPage('WELCOME');
   }
+
+  // Modificar los estilos de los inputs y selects
+  const inputClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 ${errors.cedula ? 'border-red-500' : ''}`;
+  const selectClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 ${errors.estado ? 'border-red-500' : ''}`;
 
   return (
     <div className="welcome-page">
@@ -283,12 +322,22 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   value={formData.cedula}
                   onChange={handleInputChange}
                   placeholder="V12345678"
-                  className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.cedula ? 'border-red-500' : ''}`}
+                  className={inputClassName}
                 />
                 {isLoadingElector && (
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                     <span className="animate-spin">⟳</span>
                   </div>
+                )}
+                {!electorData && formData.cedula.length >= 6 && !isLoadingElector && (
+                  <p className="mt-1 text-sm text-red-500">
+                    Esta cédula no existe en el registro electoral
+                  </p>
+                )}
+                {recolectorExists && (
+                  <p className="mt-1 text-sm text-blue-600">
+                    Este copero ya existe. Se actualizarán sus datos.
+                  </p>
                 )}
               </div>
               {errors.cedula && <p className="mt-1 text-sm text-red-500">{errors.cedula}</p>}
@@ -296,18 +345,16 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
             
             <div className="form-group">
               <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
-                Nombre {cedulaNotFound && <span className="text-blue-600">(Ingrese el nombre manualmente)</span>}
+                Nombre
               </label>
               <input
                 type="text"
                 id="nombre"
                 name="nombre"
                 value={formData.nombre}
-                onChange={handleInputChange}
-                placeholder={cedulaNotFound ? "Ingrese su nombre completo" : "Nombre del recolector"}
-                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.nombre ? 'border-red-500' : ''}`}
+                disabled={true}
+                className={`${inputClassName} bg-gray-100`}
               />
-              {errors.nombre && <p className="mt-1 text-sm text-red-500">{errors.nombre}</p>}
             </div>
             
             <div className="form-group">
@@ -318,7 +365,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   id="operador"
                   value={formData.operador}
                   onChange={handleInputChange}
-                  className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className={`${selectClassName} w-28 mr-2`}
                 >
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
@@ -333,7 +380,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   value={formData.telefono}
                   onChange={handleInputChange}
                   placeholder="Ej: 1234567"
-                  className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ml-2 ${errors.telefono ? 'border-red-500' : ''}`}
+                  className={`${inputClassName} flex-1`}
                 />
               </div>
               {errors.telefono && <p className="mt-1 text-sm text-red-500">{errors.telefono}</p>}
@@ -346,7 +393,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                 name="estado"
                 value={formData.estado}
                 onChange={handleInputChange}
-                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.estado ? 'border-red-500' : ''}`}
+                className={selectClassName}
               >
                 <option value="">Selecciona un estado</option>
                 {isLoadingEstados ? (
@@ -370,7 +417,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                 value={formData.municipio}
                 onChange={handleInputChange}
                 disabled={!formData.estado || isLoadingMunicipios}
-                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.municipio ? 'border-red-500' : ''}`}
+                className={selectClassName}
               >
                 <option value="">Selecciona un municipio</option>
                 {isLoadingMunicipios ? (
@@ -393,7 +440,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                 name="organizacion_politica"
                 value={formData.organizacion_politica}
                 onChange={handleInputChange}
-                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.organizacion_politica ? 'border-red-500' : ''}`}
+                className={selectClassName}
               >
                 <option value="">Selecciona una organización</option>
                 {isLoadingOrganizaciones ? (

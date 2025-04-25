@@ -167,4 +167,21 @@ export const useImportarRecolectores = () => {
       queryClient.invalidateQueries({ queryKey: ['recolectores'] });
     },
   });
+};
+
+// Hook para verificar si existe un recolector por cédula
+export const useCheckRecolectorExistsByCedula = (cedula: string) => {
+  return useQuery<boolean, Error>({
+    queryKey: ['recolectorExists', cedula],
+    queryFn: async () => {
+      if (!cedula || cedula.length < 6) return false;
+      try {
+        const response = await apiClient.get<{ exists: boolean }>(`api/recolectores/check_cedula/${cedula}`);
+        return response.exists;
+      } catch (error) {
+        return false;
+      }
+    },
+    enabled: !!cedula && cedula.length >= 6,
+  });
 }; 
