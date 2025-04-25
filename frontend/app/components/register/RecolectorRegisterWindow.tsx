@@ -56,7 +56,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
 
   // Hook para buscar elector por cédula
-  const { data: electorData, isLoading: isLoadingElector } = useElectorSimpleByCedula(formData.cedula);
+  const { data: electorData, isLoading: isLoadingElector, error: electorError } = useElectorSimpleByCedula(formData.cedula);
 
   // Efecto para cargar los municipios tan pronto como se carguen los estados
   useEffect(() => {
@@ -78,7 +78,9 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
 
   // Efecto para actualizar el formulario cuando se obtienen datos del elector
   useEffect(() => {
+    console.log('Elector data:', electorData); // Log para debugging
     if (electorData) {
+      console.log('Actualizando nombre con:', electorData.nombre); // Log para debugging
       setFormData(prevState => ({
         ...prevState,
         nombre: electorData.nombre
@@ -87,6 +89,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       
       // Verificar que codigoEstado existe y no es undefined
       if (electorData.codigoEstado !== undefined && estados) {
+        console.log('Actualizando estado con:', electorData.codigoEstado); // Log para debugging
         const estado = estados.find(e => 
           e.codigo_estado !== undefined && 
           e.codigo_estado.toString() === electorData.codigoEstado?.toString()
@@ -99,9 +102,21 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         }
       }
     } else if (formData.cedula.length >= 6) {
+      console.log('Cédula no encontrada:', formData.cedula); // Log para debugging
       setCedulaNotFound(true);
     }
   }, [electorData, estados, formData.cedula]);
+
+  // Agregar un efecto para limpiar el nombre cuando se cambia la cédula
+  useEffect(() => {
+    if (formData.cedula.length < 6) {
+      setFormData(prevState => ({
+        ...prevState,
+        nombre: ''
+      }));
+      setCedulaNotFound(false);
+    }
+  }, [formData.cedula]);
 
   // Efecto para actualizar municipio cuando se cargan los municipios
   useEffect(() => {
