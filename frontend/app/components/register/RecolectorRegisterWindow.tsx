@@ -14,6 +14,9 @@ interface RecolectorRegisterWindowProps {
   setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER" | "REGISTER_RECOLECTOR" | "ORGANIZACIONES") => void;
 }
 
+// Código DANE para Anzoátegui (esto debe coincidir con el valor correcto en su sistema)
+const ANZOATEGUI_CODIGO = "2"; // Ajusta este valor al código correcto para Anzoátegui
+
 const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({ 
   title, 
   subtitle, 
@@ -24,8 +27,8 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     cedula: "", 
     operador: "0414", 
     telefono: "", 
-    email: "",
-    estado: "",
+    email: "default@example.com", // Valor por defecto para el email
+    estado: ANZOATEGUI_CODIGO, // Inicializar con Anzoátegui
     municipio: "",
     organizacion_politica: ""
   });
@@ -39,6 +42,24 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const { data: organizacionesPoliticas = [], isLoading: isLoadingOrganizaciones } = useOrganizacionesPoliticas();
   
   const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
+
+  // Efecto para cargar los municipios tan pronto como se carguen los estados
+  useEffect(() => {
+    if (estados.length > 0 && !formData.estado) {
+      // Intentar encontrar Anzoátegui por nombre si el código no funciona
+      const anzoateguiEstado = estados.find(estado => 
+        estado.estado.toLowerCase().includes("anzoátegui") || 
+        estado.estado.toLowerCase().includes("anzoategui")
+      );
+      
+      if (anzoateguiEstado) {
+        setFormData(prevState => ({
+          ...prevState,
+          estado: anzoateguiEstado.codigo_estado.toString()
+        }));
+      }
+    }
+  }, [estados, formData.estado]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -80,7 +101,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
-      email: formData.email,
+      email: formData.email, // Usar el valor por defecto
       estado: formData.estado,
       municipio: formData.municipio,
       organizacion_politica: formData.organizacion_politica
@@ -92,14 +113,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         setToastType('success');
         setRegistrationComplete(true);
         
-        // Reiniciar formulario después de 3 segundos
+        // Reiniciar formulario después de 5 segundos
         setTimeout(() => {
           setFormData({ 
             cedula: "", 
             operador: "0414", 
             telefono: "", 
-            email: "",
-            estado: "",
+            email: "default@example.com", // Mantener el valor por defecto
+            estado: ANZOATEGUI_CODIGO, // Mantener Anzoátegui como selección
             municipio: "",
             organizacion_politica: ""
           });
@@ -173,19 +194,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
               </div>
             </div>
             
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Correo Electrónico</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="input input-bordered w-full"
-                placeholder="usuario@ejemplo.com"
-              />
-            </div>
+            {/* El campo de correo se oculta pero sigue formando parte del estado */}
             
             <div className="form-control">
               <label className="label">

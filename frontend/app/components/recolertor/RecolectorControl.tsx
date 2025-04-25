@@ -70,6 +70,8 @@ const RecolectorControl: React.FC = () => {
   const [recolectoresPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [municipioFiltro, setMunicipioFiltro] = useState("");
+  const [organizacionFiltro, setOrganizacionFiltro] = useState("");
   const [newRecolector, setNewRecolector] = useState({ 
     nombre: "", 
     cedula: "", 
@@ -134,7 +136,7 @@ const RecolectorControl: React.FC = () => {
 
   // Mutación para crear recolector
   const createRecolectorMutation = useMutation({
-    mutationFn: async (newRecolector: { nombre: string; cedula: string; telefono: string; es_referido: boolean }) => {
+    mutationFn: async (newRecolector: { nombre: string; cedula: string; telefono: string; es_referido: boolean; email: string; municipio: string; organizacion_politica: string }) => {
       if (!APIHost) throw new Error('API Host no definido');
       
       const response = await fetch(`${APIHost}/api/recolectores`, {
@@ -153,7 +155,15 @@ const RecolectorControl: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recolectores'] });
-      setNewRecolector({ nombre: "", cedula: "", telefono: "", es_referido: false });
+      setNewRecolector({ 
+        nombre: "", 
+        cedula: "", 
+        telefono: "", 
+        es_referido: false,
+        email: "",
+        municipio: "",
+        organizacion_politica: ""
+      });
       closeModal();
       setToastMessage("Recolector creado exitosamente");
       setToastType("success");
@@ -501,10 +511,6 @@ const RecolectorControl: React.FC = () => {
       setIsUploading(false);
     }
   };
-
-  // Nuevos filtros
-  const [municipioFiltro, setMunicipioFiltro] = useState("");
-  const [organizacionFiltro, setOrganizacionFiltro] = useState("");
 
   // Reiniciar filtros
   const resetFilters = () => {
