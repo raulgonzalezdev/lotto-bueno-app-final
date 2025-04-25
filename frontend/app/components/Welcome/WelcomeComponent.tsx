@@ -7,7 +7,7 @@ interface WelcomeComponentProps {
   title: string;
   subtitle: string;
   imageSrc: string;
-  setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER") => void;
+  setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER" | "REGISTER_RECOLECTOR" | "ORGANIZACIONES") => void;
 }
 
 const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, imageSrc, setCurrentPage }) => {
@@ -21,12 +21,20 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
       </div>
       <h1 className="title">{title}</h1>
       <h2 className="subtitle">{subtitle}</h2>
-      <button 
-        onClick={() => setCurrentPage('REGISTER')} 
-        className="register-button"
-      >
-        Regístrate aquí
-      </button>
+      <div className="flex flex-col gap-4 w-full max-w-xs">
+        <button 
+          onClick={() => setCurrentPage('REGISTER')} 
+          className="register-button"
+        >
+          Regístrate aquí
+        </button>
+        <button 
+          onClick={() => setCurrentPage('REGISTER_RECOLECTOR')} 
+          className="register-button register-button-secondary"
+        >
+          Registro para COPERO
+        </button>
+      </div>
       <div className="social-icons">
         <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
           <FaFacebook size={32} />

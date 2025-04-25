@@ -356,17 +356,30 @@ body {
 }
 
 .register-button {
-  background-color: var(--color-warning);
-  color: var(--color-dark);
-  padding: 0.75rem 1.5rem;
-  font-size: 1.25rem;
-  font-weight: bold;
-  border-radius: 0.5rem;
+  padding: 12px 24px;
+  background-color: var(--primary-verba, #007bff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  cursor: pointer;
   transition: background-color 0.3s;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 300px;
 }
 
 .register-button:hover {
-  background-color: var(--color-warning-dark);
+  background-color: var(--button-hover-verba, #0056b3);
+}
+
+.register-button-secondary {
+  background-color: var(--secondary-verba, #6c757d);
+  margin-top: 10px;
+}
+
+.register-button-secondary:hover {
+  background-color: var(--button-hover-verba, #5a6268);
 }
 
 .social-icons {

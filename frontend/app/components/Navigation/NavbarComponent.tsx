@@ -9,18 +9,17 @@ import { FcAssistant , FcCollaboration, FcSmartphoneTablet , FcSalesPerformance 
 import { LuMenu } from "react-icons/lu";
 
 import NavbarButton from "./NavButton";
+import { PageType } from "../../types/common";
 
 interface NavbarProps {
   imageSrc: string;
   title: string;
   subtitle: string;
   version: string;
-  currentPage: string;
+  currentPage: PageType;
   APIHost: string | null;
   production: boolean;
-  setCurrentPage: (
-    page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES"
-  ) => void;
+  setCurrentPage: (page: PageType) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -117,16 +116,16 @@ const Navbar: React.FC<NavbarProps> = ({
             setCurrentPage={setCurrentPage}
             setPage="ADD"
           />
-          {/* <NavbarButton
+          <NavbarButton
             hide={production}
             APIHost={APIHost}
-            Icon={IoBuildSharp}
+            Icon={IoListSharp}
             iconSize={icon_size}
-            title="RAG"
+            title="Organizaciones Políticas"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="RAG"
-          />  */}
+            setPage="ORGANIZACIONES"
+          />
           <NavbarButton
             hide={production}
             APIHost={APIHost}
@@ -163,21 +162,19 @@ const Navbar: React.FC<NavbarProps> = ({
                     <li onClick={() => setCurrentPage("RECOLECTORES")}>
                       <a>Recolectores</a>
                     </li>
-                   
-                       <li onClick={() => setCurrentPage("STATUS")}>
-                        <a>Sorteos</a>
-                      </li>
-                  
-                    {/* {!production && (
+                    <li onClick={() => setCurrentPage("STATUS")}>
+                      <a>Sorteos</a>
+                    </li>
+                    {!production && (
                       <li onClick={() => setCurrentPage("ADD")}>
-                        <a>Sorteos</a>
+                        <a>Líneas Telefónicas</a>
                       </li>
-                    )}  */}
-                    {/* {!production && (
-                      <li onClick={() => setCurrentPage("RAG")}>
-                        <a>RAG</a>
+                    )}
+                    {!production && (
+                      <li onClick={() => setCurrentPage("ORGANIZACIONES")}>
+                        <a>Organizaciones Políticas</a>
                       </li>
-                    )} */}
+                    )}
                     {!production && (
                       <li onClick={() => setCurrentPage("SETTINGS")}>
                         <a>Settings</a>

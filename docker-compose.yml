@@ -47,6 +47,10 @@ services:
       API_INSTANCE: "${API_INSTANCE:-7103942544}"
       API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,7 +61,7 @@ services:
     networks:
       - lotto-bueno-network
     command: >
-      sh -c "pip install aiosmtplib && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      sh -c "pip install alembic && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s

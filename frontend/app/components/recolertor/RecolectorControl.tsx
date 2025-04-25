@@ -14,6 +14,9 @@ interface Recolector {
   cedula: string;
   telefono: string;
   es_referido: boolean;
+  email?: string;
+  municipio?: string;
+  organizacion_politica?: string;
 }
 
 interface EstadisticasRecolector {
@@ -42,6 +45,22 @@ interface ReferidosData {
   referidos: Referido[];
 }
 
+const municipios = [
+  "BOLIVAR",
+  "S. RODRÍGUEZ", 
+  "SOTILLO", 
+  "ANACO", 
+  "GUANIPA"
+];
+
+const organizacionesPoliticas = [
+  "PV",
+  "AD",
+  "COPEI",
+  "VOL",
+  "BR"
+];
+
 const RecolectorControl: React.FC = () => {
   const [recolectores, setRecolectores] = useState<Recolector[]>([]);
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -51,7 +70,15 @@ const RecolectorControl: React.FC = () => {
   const [recolectoresPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [newRecolector, setNewRecolector] = useState({ nombre: "", cedula: "", telefono: "", es_referido: false });
+  const [newRecolector, setNewRecolector] = useState({ 
+    nombre: "", 
+    cedula: "", 
+    telefono: "", 
+    es_referido: false,
+    email: "",
+    municipio: "",
+    organizacion_politica: ""
+  });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
@@ -83,7 +110,7 @@ const RecolectorControl: React.FC = () => {
 
   // Fetch Recolectores con React Query
   const fetchRecolectoresQuery = useQuery({
-    queryKey: ['recolectores', currentPage, searchTerm],
+    queryKey: ['recolectores', currentPage, searchTerm, municipioFiltro, organizacionFiltro],
     queryFn: async () => {
       if (!APIHost) return { items: [], total: 0 };
       
@@ -91,6 +118,8 @@ const RecolectorControl: React.FC = () => {
         skip: ((currentPage - 1) * recolectoresPerPage).toString(),
         limit: recolectoresPerPage.toString(),
         ...(searchTerm && { search: searchTerm }),
+        ...(municipioFiltro && { municipio: municipioFiltro }),
+        ...(organizacionFiltro && { organizacion_politica: organizacionFiltro }),
       }).toString();
 
       const response = await fetch(`${APIHost}/api/recolectores/?${query}`);
@@ -473,6 +502,30 @@ const RecolectorControl: React.FC = () => {
     }
   };
 
+  // Nuevos filtros
+  const [municipioFiltro, setMunicipioFiltro] = useState("");
+  const [organizacionFiltro, setOrganizacionFiltro] = useState("");
+
+  // Reiniciar filtros
+  const resetFilters = () => {
+    setSearchTerm("");
+    setMunicipioFiltro("");
+    setOrganizacionFiltro("");
+    setEstadoFiltro("");
+    setCurrentPage(1);
+  };
+
+  // Funciones de manejo de cambios para nuevos filtros
+  const handleMunicipioFiltroChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMunicipioFiltro(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleOrganizacionFiltroChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setOrganizacionFiltro(e.target.value);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="p-4">
       <h2>Control de Recolectores</h2>
@@ -481,13 +534,52 @@ const RecolectorControl: React.FC = () => {
         <button onClick={() => fetchEstadisticas()} className="btn btn-secondary mb-4 ml-2">Ver Estadísticas Generales</button>
         <button onClick={openImportModal} className="btn btn-info mb-4 ml-2">Importar Recolectores</button>
       </div>
-      <input
-        type="text"
-        placeholder="Buscar..."
-        value={searchTerm}
-        onChange={handleSearchChange}
-        className="input input-bordered mb-4"
-      />
+
+      {/* Filtros */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
+        <div>
+          <input
+            type="text"
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="input input-bordered w-full"
+          />
+        </div>
+        <div>
+          <select
+            value={municipioFiltro}
+            onChange={handleMunicipioFiltroChange}
+            className="select select-bordered w-full"
+          >
+            <option value="">Todos los municipios</option>
+            {municipios.map(municipio => (
+              <option key={municipio} value={municipio}>{municipio}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <select
+            value={organizacionFiltro}
+            onChange={handleOrganizacionFiltroChange}
+            className="select select-bordered w-full"
+          >
+            <option value="">Todas las organizaciones</option>
+            {organizacionesPoliticas.map(org => (
+              <option key={org} value={org}>{org}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <button 
+            onClick={resetFilters} 
+            className="btn btn-outline btn-sm w-full"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      </div>
+      
       <div className="pagination mb-4 flex justify-center">
         <button onClick={() => paginate(1)} className="btn btn-primary mr-1">{"<<"}</button>
         <button onClick={() => paginate(currentPage - 1)} className="btn btn-primary mr-1">{"<"}</button>
@@ -501,59 +593,67 @@ const RecolectorControl: React.FC = () => {
       ) : fetchRecolectoresQuery.isError ? (
         <div className="text-center p-4 text-red-500">Error al cargar recolectores</div>
       ) : (
-        <table className="table-auto w-full">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Cédula</th>
-              <th>Teléfono</th>
-              <th>Referido</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recolectores.length > 0 ? (
-              recolectores.map((recolector) => (
-                <tr key={recolector.id}>
-                  <td>{recolector.id}</td>
-                  <td>{recolector.nombre}</td>
-                  <td>{recolector.cedula}</td>
-                  <td>{recolector.telefono}</td>
-                  <td>{recolector.es_referido ? "Sí" : "No"}</td>
-                  <td>
-                    <button 
-                      className="btn btn-primary mr-2" 
-                      onClick={() => openModal(recolector)}
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      className="btn btn-danger mr-2" 
-                      onClick={() => { 
-                        setRecolectorToDelete(recolector.id); 
-                        setIsConfirmationModalVisible(true); 
-                      }}
-                      disabled={deleteRecolectorMutation.isPending}
-                    >
-                      {deleteRecolectorMutation.isPending && recolectorToDelete === recolector.id 
-                        ? "Eliminando..." 
-                        : "Eliminar"
-                      }
-                    </button>
-                    <button className="btn btn-info" onClick={() => fetchEstadisticas(recolector.id)}>
-                      Ver Estadísticas
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
+        <div className="overflow-x-auto">
+          <table className="table-auto w-full">
+            <thead>
               <tr>
-                <td colSpan={6} className="text-center">No hay recolectores disponibles</td>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Cédula</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Municipio</th>
+                <th>Organización</th>
+                <th>Referido</th>
+                <th>Acciones</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recolectores.length > 0 ? (
+                recolectores.map((recolector) => (
+                  <tr key={recolector.id}>
+                    <td>{recolector.id}</td>
+                    <td>{recolector.nombre}</td>
+                    <td>{recolector.cedula}</td>
+                    <td>{recolector.telefono}</td>
+                    <td>{recolector.email || '-'}</td>
+                    <td>{recolector.municipio || '-'}</td>
+                    <td>{recolector.organizacion_politica || '-'}</td>
+                    <td>{recolector.es_referido ? "Sí" : "No"}</td>
+                    <td>
+                      <button 
+                        className="btn btn-primary btn-sm mr-2" 
+                        onClick={() => openModal(recolector)}
+                      >
+                        Editar
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm mr-2" 
+                        onClick={() => { 
+                          setRecolectorToDelete(recolector.id); 
+                          setIsConfirmationModalVisible(true); 
+                        }}
+                        disabled={deleteRecolectorMutation.isPending}
+                      >
+                        {deleteRecolectorMutation.isPending && recolectorToDelete === recolector.id 
+                          ? "Eliminando..." 
+                          : "Eliminar"
+                        }
+                      </button>
+                      <button className="btn btn-info btn-sm" onClick={() => fetchEstadisticas(recolector.id)}>
+                        Ver Estadísticas
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={9} className="text-center">No hay recolectores disponibles</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {modalIsOpen && (
@@ -561,62 +661,137 @@ const RecolectorControl: React.FC = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-button" onClick={closeModal}>×</button>
             <h2>{isEditing ? "Editar Recolector" : "Crear Recolector"}</h2>
-            <input
-              type="text"
-              placeholder="Nombre"
-              value={isEditing && selectedRecolector ? selectedRecolector.nombre : newRecolector.nombre}
-              onChange={(e) => {
-                if (isEditing && selectedRecolector) {
-                  setSelectedRecolector({ ...selectedRecolector, nombre: e.target.value });
-                } else {
-                  setNewRecolector({ ...newRecolector, nombre: e.target.value });
-                }
-              }}
-              className="input input-bordered w-full mb-2"
-            />
-            <input
-              type="text"
-              placeholder="Cédula"
-              value={isEditing && selectedRecolector ? selectedRecolector.cedula : newRecolector.cedula}
-              onChange={(e) => {
-                if (isEditing && selectedRecolector) {
-                  setSelectedRecolector({ ...selectedRecolector, cedula: e.target.value });
-                } else {
-                  setNewRecolector({ ...newRecolector, cedula: e.target.value });
-                }
-              }}
-              className="input input-bordered w-full mb-2"
-            />
-            <input
-              type="text"
-              placeholder="Teléfono"
-              value={isEditing && selectedRecolector ? selectedRecolector.telefono : newRecolector.telefono}
-              onChange={(e) => {
-                if (isEditing && selectedRecolector) {
-                  setSelectedRecolector({ ...selectedRecolector, telefono: e.target.value });
-                } else {
-                  setNewRecolector({ ...newRecolector, telefono: e.target.value });
-                }
-              }}
-              className="input input-bordered w-full mb-2"
-            />
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            
+            <div className="form-control mb-2">
+              <label className="label">Nombre</label>
               <input
-                type="checkbox"
-                checked={isEditing && selectedRecolector ? selectedRecolector.es_referido : newRecolector.es_referido}
+                type="text"
+                placeholder="Nombre"
+                value={isEditing && selectedRecolector ? selectedRecolector.nombre : newRecolector.nombre}
                 onChange={(e) => {
                   if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, es_referido: e.target.checked });
+                    setSelectedRecolector({ ...selectedRecolector, nombre: e.target.value });
                   } else {
-                    setNewRecolector({ ...newRecolector, es_referido: e.target.checked });
+                    setNewRecolector({ ...newRecolector, nombre: e.target.value });
                   }
                 }}
+                className="input input-bordered w-full"
               />
-              Es Referido
-            </label>
+            </div>
+            
+            <div className="form-control mb-2">
+              <label className="label">Cédula</label>
+              <input
+                type="text"
+                placeholder="Cédula"
+                value={isEditing && selectedRecolector ? selectedRecolector.cedula : newRecolector.cedula}
+                onChange={(e) => {
+                  if (isEditing && selectedRecolector) {
+                    setSelectedRecolector({ ...selectedRecolector, cedula: e.target.value });
+                  } else {
+                    setNewRecolector({ ...newRecolector, cedula: e.target.value });
+                  }
+                }}
+                className="input input-bordered w-full"
+              />
+            </div>
+            
+            <div className="form-control mb-2">
+              <label className="label">Teléfono</label>
+              <input
+                type="text"
+                placeholder="Teléfono"
+                value={isEditing && selectedRecolector ? selectedRecolector.telefono : newRecolector.telefono}
+                onChange={(e) => {
+                  if (isEditing && selectedRecolector) {
+                    setSelectedRecolector({ ...selectedRecolector, telefono: e.target.value });
+                  } else {
+                    setNewRecolector({ ...newRecolector, telefono: e.target.value });
+                  }
+                }}
+                className="input input-bordered w-full"
+              />
+            </div>
+            
+            {/* Nuevos campos */}
+            <div className="form-control mb-2">
+              <label className="label">Email</label>
+              <input
+                type="email"
+                placeholder="Email"
+                value={isEditing && selectedRecolector ? selectedRecolector.email || '' : newRecolector.email}
+                onChange={(e) => {
+                  if (isEditing && selectedRecolector) {
+                    setSelectedRecolector({ ...selectedRecolector, email: e.target.value });
+                  } else {
+                    setNewRecolector({ ...newRecolector, email: e.target.value });
+                  }
+                }}
+                className="input input-bordered w-full"
+              />
+            </div>
+            
+            <div className="form-control mb-2">
+              <label className="label">Municipio</label>
+              <select
+                value={isEditing && selectedRecolector ? selectedRecolector.municipio || '' : newRecolector.municipio}
+                onChange={(e) => {
+                  if (isEditing && selectedRecolector) {
+                    setSelectedRecolector({ ...selectedRecolector, municipio: e.target.value });
+                  } else {
+                    setNewRecolector({ ...newRecolector, municipio: e.target.value });
+                  }
+                }}
+                className="select select-bordered w-full"
+              >
+                <option value="">Seleccione un municipio</option>
+                {municipios.map(municipio => (
+                  <option key={municipio} value={municipio}>{municipio}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-control mb-2">
+              <label className="label">Organización Política</label>
+              <select
+                value={isEditing && selectedRecolector ? selectedRecolector.organizacion_politica || '' : newRecolector.organizacion_politica}
+                onChange={(e) => {
+                  if (isEditing && selectedRecolector) {
+                    setSelectedRecolector({ ...selectedRecolector, organizacion_politica: e.target.value });
+                  } else {
+                    setNewRecolector({ ...newRecolector, organizacion_politica: e.target.value });
+                  }
+                }}
+                className="select select-bordered w-full"
+              >
+                <option value="">Seleccione una organización</option>
+                {organizacionesPoliticas.map(org => (
+                  <option key={org} value={org}>{org}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-control mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isEditing && selectedRecolector ? selectedRecolector.es_referido : newRecolector.es_referido}
+                  onChange={(e) => {
+                    if (isEditing && selectedRecolector) {
+                      setSelectedRecolector({ ...selectedRecolector, es_referido: e.target.checked });
+                    } else {
+                      setNewRecolector({ ...newRecolector, es_referido: e.target.checked });
+                    }
+                  }}
+                  className="checkbox"
+                />
+                <span>Es Referido</span>
+              </label>
+            </div>
+            
             <button 
               onClick={isEditing ? () => handleUpdate(selectedRecolector!) : handleCreate} 
-              className="btn btn-primary"
+              className="btn btn-primary w-full"
               disabled={isEditing ? updateRecolectorMutation.isPending : createRecolectorMutation.isPending}
             >
               {isEditing 
@@ -627,6 +802,7 @@ const RecolectorControl: React.FC = () => {
           </div>
         </div>
       )}
+
       {toastMessage && (
         <Toast 
           message={toastMessage}
@@ -647,21 +823,51 @@ const RecolectorControl: React.FC = () => {
             <button className="modal-close-button" onClick={closeEstadisticasModal}>×</button>
             <h2 className="text-xl font-bold mb-4">Estadísticas de Recolectores</h2>
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">Filtrar por Estado:</label>
-              <select
-                value={estadoFiltro}
-                onChange={handleEstadoFiltroChange}
-                className="mt-1 block w-full md:w-1/3 lg:w-1/4 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                disabled={estadosLoading}
-              >
-                <option value="">Todos los estados</option>
-                {estados.map(estado => (
-                  <option key={estado.codigo_estado} value={estado.codigo_estado}>
-                    {estado.estado}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Filtrar por Estado:</label>
+                <select
+                  value={estadoFiltro}
+                  onChange={handleEstadoFiltroChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  disabled={estadosLoading}
+                >
+                  <option value="">Todos los estados</option>
+                  {estados.map(estado => (
+                    <option key={estado.codigo_estado} value={estado.codigo_estado}>
+                      {estado.estado}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Filtrar por Municipio:</label>
+                <select
+                  value={municipioFiltro}
+                  onChange={handleMunicipioFiltroChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                >
+                  <option value="">Todos los municipios</option>
+                  {municipios.map(municipio => (
+                    <option key={municipio} value={municipio}>{municipio}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Filtrar por Organización:</label>
+                <select
+                  value={organizacionFiltro}
+                  onChange={handleOrganizacionFiltroChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                >
+                  <option value="">Todas las organizaciones</option>
+                  {organizacionesPoliticas.map(org => (
+                    <option key={org} value={org}>{org}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="overflow-x-auto">

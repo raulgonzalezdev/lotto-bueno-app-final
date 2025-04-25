@@ -29,6 +29,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia solo el código de la aplicación backend
 COPY ./app /app/app
 COPY ./whatsapp_chatbot_python /app/whatsapp_chatbot_python
+COPY ./alembic /app/alembic
+COPY ./alembic.ini /app/
+
+# Asegurar que todas las dependencias de Alembic están instaladas
+RUN pip install alembic psycopg2-binary
 
 # Crear el archivo .env directamente en el contenedor
 # Considera usar variables de entorno de Docker Compose en su lugar para mayor seguridad y flexibilidad

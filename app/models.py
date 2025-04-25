@@ -58,7 +58,12 @@ class Recolector(Base):
     cedula = Column(String(20))
     telefono = Column(String(20))
     es_referido = Column(Boolean, default=False)
+    email = Column(String(100), nullable=True)
+    estado = Column(String(50), nullable=True)
+    municipio = Column(String(50), nullable=True)
+    organizacion_politica = Column(String(50), nullable=True)
     tickets = relationship("Ticket", back_populates="referido")
+
 class Ticket(Base):
     __tablename__ = 'tickets'
 
@@ -104,3 +109,12 @@ class LineaTelefonica(Base):
     id = Column(Integer, primary_key=True, index=True)
     numero = Column(String(20), unique=True, index=True)
     operador = Column(String(50))
+
+class OrganizacionPolitica(Base):
+    __tablename__ = 'organizaciones_politicas'
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(50), nullable=False, unique=True)
+    codigo = Column(String(20), nullable=True)
+    descripcion = Column(String(200), nullable=True)
+    activo = Column(Boolean, default=True)

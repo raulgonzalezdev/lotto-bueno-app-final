@@ -11,6 +11,10 @@ interface Recolector {
   cedula: string;
   telefono: string;
   es_referido: boolean;
+  email?: string;
+  estado?: string;
+  municipio?: string;
+  organizacion_politica?: string;
 }
 
 export interface RecolectoresResponse {
@@ -29,6 +33,10 @@ interface RecolectorCreatePayload {
   cedula: string;
   telefono: string;
   es_referido: boolean;
+  email?: string;
+  estado?: string;
+  municipio?: string;
+  organizacion_politica?: string;
 }
 
 interface RecolectorUpdatePayload {
@@ -36,6 +44,10 @@ interface RecolectorUpdatePayload {
   cedula?: string;
   telefono?: string;
   es_referido?: boolean;
+  email?: string;
+  estado?: string;
+  municipio?: string;
+  organizacion_politica?: string;
 }
 
 // Interfaz para la respuesta de importación
@@ -49,13 +61,23 @@ interface ImportacionResponse {
 // --- Hooks --- //
 
 // Hook para obtener recolectores
-export const useRecolectores = (params?: { currentPage?: number; recolectoresPerPage?: number; searchTerm?: string }) => {
+export const useRecolectores = (params?: { 
+  currentPage?: number; 
+  recolectoresPerPage?: number; 
+  searchTerm?: string;
+  estado?: string;
+  municipio?: string;
+  organizacion_politica?: string;
+}) => {
   const currentPage = params?.currentPage || 1;
   const recolectoresPerPage = params?.recolectoresPerPage || 10;
   const searchTerm = params?.searchTerm || '';
+  const estado = params?.estado || '';
+  const municipio = params?.municipio || '';
+  const organizacion_politica = params?.organizacion_politica || '';
   const queryClient = useQueryClient();
   
-  const queryKey = ['recolectores', currentPage, recolectoresPerPage, searchTerm];
+  const queryKey = ['recolectores', currentPage, recolectoresPerPage, searchTerm, estado, municipio, organizacion_politica];
 
   return useQuery<RecolectoresResponse, Error>({
     queryKey: queryKey,
@@ -66,6 +88,9 @@ export const useRecolectores = (params?: { currentPage?: number; recolectoresPer
       };
       
       if (searchTerm) queryParams.search = searchTerm;
+      if (estado) queryParams.estado = estado;
+      if (municipio) queryParams.municipio = municipio;
+      if (organizacion_politica) queryParams.organizacion_politica = organizacion_politica;
 
       const data = await apiClient.get<RecolectoresResponse>('api/recolectores/', queryParams);
       

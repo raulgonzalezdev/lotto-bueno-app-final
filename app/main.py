@@ -50,7 +50,8 @@ from app.models import (
     Ticket,
     Recolector,
     Users,
-    LineaTelefonica
+    LineaTelefonica,
+    OrganizacionPolitica
 )
 from app.schemas import (
     LineaTelefonicaList,
@@ -71,7 +72,10 @@ from app.schemas import (
     ElectorCreate,
     GeograficoCreate,
     CentroVotacionCreate,
-    ElectorDetail
+    ElectorDetail,
+    OrganizacionPoliticaList,
+    OrganizacionPoliticaCreate,
+    OrganizacionPoliticaUpdate
 )
 from dotenv import load_dotenv
 from whatsapp_chatbot_python import GreenAPIBot, Notification
@@ -1790,9 +1794,39 @@ class RecolectorResponse(BaseModel):
 
 
 @app.get("/api/recolectores/", response_model=RecolectorResponse)
-async def read_recolectores(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    total = db.query(Recolector).count()
-    recolectores = db.query(Recolector).offset(skip).limit(limit).all()
+async def read_recolectores(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: Optional[str] = None,
+    estado: Optional[str] = None,
+    municipio: Optional[str] = None,
+    organizacion_politica: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Recolector)
+    
+    # Aplicar filtros si se proporcionan
+    if search:
+        query = query.filter(
+            or_(
+                Recolector.nombre.ilike(f"%{search}%"),
+                Recolector.cedula.ilike(f"%{search}%"),
+                Recolector.telefono.ilike(f"%{search}%")
+            )
+        )
+    
+    if estado:
+        query = query.filter(Recolector.estado == estado)
+        
+    if municipio:
+        query = query.filter(Recolector.municipio == municipio)
+        
+    if organizacion_politica:
+        query = query.filter(Recolector.organizacion_politica == organizacion_politica)
+        
+    total = query.count()
+    recolectores = query.offset(skip).limit(limit).all()
+    
     return {"total": total, "items": [to_dict(recolector) for recolector in recolectores]}
 
 
@@ -3272,6 +3306,12 @@ async def importar_recolectores(
                 telefono = str(row['telefono']) if not pd.isna(row['telefono']) else ""
                 es_referido = bool(row.get('es_referido', False)) if 'es_referido' in row and not pd.isna(row['es_referido']) else False
                 
+                # Extraer campos adicionales si están presentes
+                email = str(row['email']) if 'email' in row and not pd.isna(row['email']) else None
+                estado = str(row['estado']) if 'estado' in row and not pd.isna(row['estado']) else None
+                municipio = str(row['municipio']) if 'municipio' in row and not pd.isna(row['municipio']) else None
+                organizacion_politica = str(row['organizacion_politica']) if 'organizacion_politica' in row and not pd.isna(row['organizacion_politica']) else None
+                
                 # Verificar si ya existe un recolector con ese número de cédula o teléfono
                 existing = db.query(Recolector).filter(
                     or_(
@@ -3286,6 +3326,17 @@ async def importar_recolectores(
                     existing.cedula = cedula
                     existing.telefono = telefono
                     existing.es_referido = es_referido
+                    
+                    # Actualizar campos adicionales si están presentes
+                    if email is not None:
+                        existing.email = email
+                    if estado is not None:
+                        existing.estado = estado
+                    if municipio is not None:
+                        existing.municipio = municipio
+                    if organizacion_politica is not None:
+                        existing.organizacion_politica = organizacion_politica
+                        
                     db.commit()
                 else:
                     # Crear nuevo recolector
@@ -3293,7 +3344,11 @@ async def importar_recolectores(
                         nombre=nombre,
                         cedula=cedula,
                         telefono=telefono,
-                        es_referido=es_referido
+                        es_referido=es_referido,
+                        email=email,
+                        estado=estado,
+                        municipio=municipio,
+                        organizacion_politica=organizacion_politica
                     )
                     db.add(new_recolector)
                     db.commit()
@@ -3327,6 +3382,57 @@ async def importar_recolectores(
             status_code=500,
             detail=f"Error durante la importación: {str(e)}"
         )
+
+
+@app.get("/api/organizaciones-politicas/", response_model=List[OrganizacionPoliticaList])
+async def get_organizaciones_politicas(db: Session = Depends(get_db)):
+    """Obtener todas las organizaciones políticas activas"""
+    organizaciones = db.query(OrganizacionPolitica).filter(OrganizacionPolitica.activo == True).all()
+    return [to_dict(org) for org in organizaciones]
+
+@app.post("/api/organizaciones-politicas/", response_model=OrganizacionPoliticaList)
+async def create_organizacion_politica(
+    organizacion: OrganizacionPoliticaCreate, 
+    db: Session = Depends(get_db)
+):
+    """Crear una nueva organización política"""
+    db_organizacion = OrganizacionPolitica(**organizacion.dict())
+    db.add(db_organizacion)
+    db.commit()
+    db.refresh(db_organizacion)
+    return to_dict(db_organizacion)
+
+@app.patch("/api/organizaciones-politicas/{organizacion_id}", response_model=OrganizacionPoliticaList)
+async def update_organizacion_politica(
+    organizacion_id: int, 
+    organizacion: OrganizacionPoliticaUpdate, 
+    db: Session = Depends(get_db)
+):
+    """Actualizar una organización política existente"""
+    db_organizacion = db.query(OrganizacionPolitica).filter(OrganizacionPolitica.id == organizacion_id).first()
+    if not db_organizacion:
+        raise HTTPException(status_code=404, detail="Organización política no encontrada")
+    
+    update_data = organizacion.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_organizacion, key, value)
+    
+    db.commit()
+    db.refresh(db_organizacion)
+    return to_dict(db_organizacion)
+
+@app.delete("/api/organizaciones-politicas/{organizacion_id}", response_model=dict)
+async def delete_organizacion_politica(organizacion_id: int, db: Session = Depends(get_db)):
+    """Eliminar (desactivar) una organización política"""
+    db_organizacion = db.query(OrganizacionPolitica).filter(OrganizacionPolitica.id == organizacion_id).first()
+    if not db_organizacion:
+        raise HTTPException(status_code=404, detail="Organización política no encontrada")
+    
+    # Marcar como inactiva en lugar de eliminar
+    db_organizacion.activo = False
+    db.commit()
+    
+    return {"detail": "Organización política eliminada correctamente"}
 
 
 if __name__ == "__main__":

@@ -31,6 +31,9 @@ ssh -i ~/.ssh/id_rsa_1.pem azureuser@20.233.251.22
 
 ssh -i C:\Users\Dell\.ssh\gcp_lottobueno gqraulpay@34.134.166.180
 
+
+ssh -i exo@101.46.32.159
+
 --copiapr en local desde ssh 
 scp -i C:\Users\Dell\.ssh\gcp_lottobueno -r gqraulpay@34.134.166.180:/home/gqraulpay/logs /Users/Dell/Downloads/logs_local
 

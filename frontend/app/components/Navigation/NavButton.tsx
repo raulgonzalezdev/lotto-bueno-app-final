@@ -2,16 +2,15 @@
 
 import React from "react";
 import { FaStar } from "react-icons/fa";
+import { PageType } from "../../types/common";
 
 interface NavbarButtonProps {
   Icon: typeof FaStar;
   iconSize: number;
   title: string;
-  currentPage: string;
-  setCurrentPage: (
-    page:  "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES"
-  ) => void;
-  setPage:  "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES"
+  currentPage: PageType;
+  setCurrentPage: (page: PageType) => void;
+  setPage: PageType;
   APIHost: string | null;
   hide: boolean;
 }

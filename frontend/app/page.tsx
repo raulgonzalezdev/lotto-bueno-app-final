@@ -7,14 +7,17 @@ import ChatComponent from "./components/Chat/ChatComponent";
 
 import WelcomeComponent from "./components/Welcome/WelcomeComponent";
 import RegisterWindow from "./components/register/RegisterWindow";
+import RecolectorRegisterWindow from "./components/register/RecolectorRegisterWindow";
 import UserControl from "./components/login/UserControl";
 import TicketControl from "./components/ticket/TicketControl";
 import RecolectorControl from "./components/recolertor/RecolectorControl";
 import LineaTelefonicaControl from "./components/lineas/LineaTelefonicaControl";
 import SorteoControl from "./components/sorteo/SorteoControl";
+import OrganizacionPoliticaControl from './components/organizacionpolitica/OrganizacionPoliticaControl';
 
 import { Settings } from "./components/Settings/types";
 import { RAGConfig } from "./components/RAG/types";
+import { PageType } from "./types/common";
 
 import Script from 'next/script';
 import { fonts, FontKey } from "./info";
@@ -23,9 +26,7 @@ import { useSettings } from "./hooks/useSettings";
 
 const Home = () => {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentPage, setCurrentPage] = useState<
-    "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER"
-  >("WELCOME");
+  const [currentPage, setCurrentPage] = useState<PageType>("WELCOME");
   const [production, setProduction] = useState(false);
   const [gtag, setGtag] = useState("");
   const [settingTemplate, setSettingTemplate] = useState<string>("Default");
@@ -215,6 +216,15 @@ const Home = () => {
             />
           )}
 
+          {!isAdmin && currentPage === "REGISTER_RECOLECTOR" && (
+            <RecolectorRegisterWindow 
+              title={baseSetting?.[settingTemplate]?.Customization?.settings?.title?.text || 'Registro de COPERO'}
+              subtitle={baseSetting?.[settingTemplate]?.Customization?.settings?.subtitle?.text || 'Completa tus datos para registrarte como COPERO'}
+              imageSrc={baseSetting?.[settingTemplate]?.Customization?.settings?.image?.src || '/lotto.avif'}
+              setCurrentPage={setCurrentPage}
+            />
+          )}
+
           {isAdmin && (
             <>
               <div className="flex justify-between items-center mb-4">
@@ -268,6 +278,7 @@ const Home = () => {
               {currentPage === "TICKETS" && !production && <TicketControl />}
               {currentPage === "RECOLECTORES" && !production && <RecolectorControl />}
               {currentPage === "ADD" && !production && <LineaTelefonicaControl />}
+              {currentPage === "ORGANIZACIONES" && !production && <OrganizacionPoliticaControl />}
             </>
           )}
         </div>

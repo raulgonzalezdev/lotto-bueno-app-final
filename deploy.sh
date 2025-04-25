@@ -9,5 +9,9 @@ docker compose --env-file .env up -d --build
 echo "Waiting for services to become healthy..."
 docker-compose ps
 
-echo "All services are up and running."
+echo "Applying Alembic migrations to create new table and fields..."
+# Ejecutar migraciones de Alembic dentro del contenedor 'app'
+docker-compose exec app alembic upgrade head
+
+echo "All services are up and running with latest database schema."
 

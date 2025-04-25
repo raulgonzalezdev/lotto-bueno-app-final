@@ -104,6 +104,10 @@ class RecolectorBase(BaseModel):
     cedula: Optional[str]
     telefono: Optional[str]
     es_referido: Optional[bool]
+    email: Optional[str] = None
+    estado: Optional[str] = None
+    municipio: Optional[str] = None
+    organizacion_politica: Optional[str] = None
 
 class RecolectorCreate(RecolectorBase):
     pass
@@ -119,6 +123,10 @@ class RecolectorUpdate(BaseModel):
     cedula: Optional[str]
     telefono: Optional[str]
     es_referido: Optional[bool]
+    email: Optional[str]
+    estado: Optional[str]
+    municipio: Optional[str]
+    organizacion_politica: Optional[str]
 
 class RecolectorEstadisticas(BaseModel):
     recolector_id: int
@@ -165,3 +173,24 @@ class LineaTelefonicaList(LineaTelefonicaBase):
         
 class CedulaRequest(BaseModel):
     numero_cedula: str
+
+class OrganizacionPoliticaBase(BaseModel):
+    nombre: str
+    codigo: Optional[str] = None
+    descripcion: Optional[str] = None
+    activo: Optional[bool] = True
+
+class OrganizacionPoliticaCreate(OrganizacionPoliticaBase):
+    pass
+
+class OrganizacionPoliticaList(OrganizacionPoliticaBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+class OrganizacionPoliticaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    codigo: Optional[str] = None
+    descripcion: Optional[str] = None
+    activo: Optional[bool] = None
