@@ -86,6 +86,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   // Efecto para cargar datos del recolector existente
   useEffect(() => {
     if (recolectorExistente) {
+      // Si existe el recolector, cargar sus datos
       setFormData(prevState => ({
         ...prevState,
         nombre: recolectorExistente.nombre,
@@ -93,46 +94,35 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         operador: recolectorExistente.telefono.slice(2, 6),
         estado: recolectorExistente.estado || ANZOATEGUI_CODIGO,
         municipio: recolectorExistente.municipio || "",
-        organizacion_politica: recolectorExistente.organizacion_politica || ""
+        organizacion_politica: recolectorExistente.organizacion_politica || "",
+        email: recolectorExistente.email || "default@example.com"
       }));
-    } else if (electorData) {
+    }
+  }, [recolectorExistente]);
+
+  // Efecto separado para manejar datos del elector solo si no existe como recolector
+  useEffect(() => {
+    if (!recolectorExistente && electorData) {
       setFormData(prevState => ({
         ...prevState,
         nombre: electorData.nombre,
         estado: electorData.codigoEstado?.toString() || ANZOATEGUI_CODIGO
       }));
     }
-  }, [recolectorExistente, electorData]);
+  }, [electorData, recolectorExistente]);
 
-  // Efecto para actualizar el formulario cuando se obtienen datos del elector
-  useEffect(() => {
-    if (electorData && !recolectorExistente) {
-      setFormData(prevState => ({
-        ...prevState,
-        nombre: electorData.nombre
-      }));
-      
-      if (electorData.codigoEstado !== undefined && estados) {
-        const estado = estados.find(e => 
-          e.codigo_estado !== undefined && 
-          e.codigo_estado.toString() === electorData.codigoEstado?.toString()
-        );
-        if (estado) {
-          setFormData(prevState => ({
-            ...prevState,
-            estado: estado.codigo_estado.toString()
-          }));
-        }
-      }
-    }
-  }, [electorData, estados, recolectorExistente]);
-
-  // Agregar un efecto para limpiar el nombre cuando se cambia la cédula
+  // Efecto para limpiar el nombre cuando se cambia la cédula
   useEffect(() => {
     if (formData.cedula.length < 6) {
       setFormData(prevState => ({
         ...prevState,
-        nombre: ''
+        nombre: '',
+        telefono: '',
+        operador: "0414",
+        estado: ANZOATEGUI_CODIGO,
+        municipio: "",
+        organizacion_politica: "",
+        email: "default@example.com"
       }));
       setCedulaNotFound(false);
     }
@@ -182,9 +172,9 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       organizacion_politica: ""
     };
 
-    // Validar que la cédula existe en el registro electoral si es nuevo registro
+    // Si no es un recolector existente, validar que exista en el registro electoral
     if (!recolectorExistente && !electorData) {
-      newErrors.cedula = "La cédula debe existir en el registro";
+      newErrors.cedula = "La cédula debe existir en el registro electoral";
       isValid = false;
     }
 
@@ -352,9 +342,9 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                     <span className="animate-spin">⟳</span>
                   </div>
                 )}
-                {!electorData && formData.cedula.length >= 6 && !isLoadingElector && (
+                {!recolectorExistente && !electorData && formData.cedula.length >= 6 && !isLoadingElector && (
                   <p className="mt-1 text-sm text-red-500">
-                    Esta cédula esta invalidada para ser copero
+                    Esta cédula no está autorizada para ser copero
                   </p>
                 )}
                 {recolectorExistente && (
@@ -483,7 +473,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
               <button
                 type="submit"
                 className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                disabled={isSubmitting || registrationComplete}
+                disabled={isSubmitting || registrationComplete || (!recolectorExistente && !electorData && formData.cedula.length >= 6)}
               >
                 {isSubmitting ? (
                   <>

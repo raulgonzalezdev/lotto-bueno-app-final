@@ -10,9 +10,8 @@ import { useImportarRecolectores } from "../../hooks/useRecolectores";
 import { useMunicipios } from "../../hooks/useMunicipios";
 
 interface Municipio {
-  codigo_municipio: string | number;
+  codigo_municipio: string;
   municipio: string;
-  codigo_estado: string | number;
 }
 
 interface Recolector {
@@ -119,8 +118,22 @@ const RecolectorControl: React.FC = () => {
   // Fetch Estados usando useEstados
   const { data: estados = [], isLoading: estadosLoading } = useEstados();
 
-  // Fetch Municipios basado en el estado seleccionado
+  // Fetch Municipios basado en el estado seleccionado para el filtro
   const { data: municipiosData = [], isLoading: municipiosLoading } = useMunicipios(estadoFiltro);
+
+  // Objeto para almacenar los hooks de municipios por estado
+  const municipiosQueries: { [key: string]: Municipio[] } = {};
+  
+  // Crear un conjunto único de estados de los recolectores
+  const estadosUnicos = [...new Set(recolectores.map(r => r.estado))];
+  
+  // Crear queries para cada estado único
+  estadosUnicos.forEach(estado => {
+    if (estado) {
+      const { data: municipios = [] } = useMunicipios(estado);
+      municipiosQueries[estado] = municipios;
+    }
+  });
 
   // Fetch Recolectores con React Query
   const fetchRecolectoresQuery = useQuery({
@@ -146,6 +159,9 @@ const RecolectorControl: React.FC = () => {
     },
     enabled: !!APIHost,
   });
+
+  // Hook para obtener municipios de cada recolector
+  const { data: municipiosRecolector = [] } = useMunicipios(recolectores[0]?.estado || "");
 
   // Mutación para crear recolector
   const createRecolectorMutation = useMutation({
@@ -651,9 +667,15 @@ const RecolectorControl: React.FC = () => {
                 recolectores.map((recolector) => {
                   // Encontrar el estado correspondiente
                   const estadoObj = estados.find(e => e.codigo_estado.toString() === recolector.estado);
-                  // Encontrar el municipio correspondiente
-                  const municipioObj = municipiosData.find(m => m.codigo_municipio.toString() === recolector.municipio);
                   
+                  // Obtener los municipios del estado del recolector
+                  const municipiosDelEstado = recolector.estado ? municipiosQueries[recolector.estado] || [] : [];
+                  
+                  // Encontrar el municipio correspondiente
+                  const municipioObj = municipiosDelEstado.find(
+                    m => m.codigo_municipio.toString() === recolector.municipio
+                  );
+
                   return (
                     <tr key={recolector.id}>
                       <td>{recolector.id}</td>
