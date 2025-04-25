@@ -6,6 +6,7 @@ import { useCreateRecolector } from '../../hooks/useRecolectores';
 import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
 import { useOrganizacionesPoliticas } from '../../hooks/useOrganizacionesPoliticas';
+import { useElectorSimpleByCedula } from "@/app/hooks/useElectores";
 
 interface RecolectorRegisterWindowProps {
   title: string;
@@ -30,11 +31,21 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     email: "default@example.com", // Valor por defecto para el email
     estado: ANZOATEGUI_CODIGO, // Inicializar con Anzoátegui
     municipio: "",
+    organizacion_politica: "",
+    nombre: ""
+  });
+  const [errors, setErrors] = useState({
+    cedula: "",
+    telefono: "",
+    nombre: "",
+    estado: "",
+    municipio: "",
     organizacion_politica: ""
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Utilizar hooks para obtener datos
   const { data: estados = [], isLoading: isLoadingEstados } = useEstados();
@@ -42,6 +53,9 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const { data: organizacionesPoliticas = [], isLoading: isLoadingOrganizaciones } = useOrganizacionesPoliticas();
   
   const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
+
+  // Hook para buscar elector por cédula
+  const { data: electorData, isLoading: isLoadingElector } = useElectorSimpleByCedula(formData.cedula);
 
   // Efecto para cargar los municipios tan pronto como se carguen los estados
   useEffect(() => {
@@ -61,6 +75,45 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     }
   }, [estados, formData.estado]);
 
+  // Efecto para actualizar el formulario cuando se obtienen datos del elector
+  useEffect(() => {
+    if (electorData) {
+      setFormData(prevState => ({
+        ...prevState,
+        nombre: electorData.nombre
+      }));
+      
+      if (electorData.codigoEstado && estados) {
+        const estado = estados.find(e => 
+          e.codigo_estado !== undefined && 
+          e.codigo_estado.toString() === electorData.codigoEstado.toString()
+        );
+        if (estado) {
+          setFormData(prevState => ({
+            ...prevState,
+            estado: estado.codigo_estado.toString()
+          }));
+        }
+      }
+    }
+  }, [electorData, estados]);
+
+  // Efecto para actualizar municipio cuando se cargan los municipios
+  useEffect(() => {
+    if (electorData?.codigoMunicipio && municipios) {
+      const municipio = municipios.find(m => 
+        m.codigo_municipio !== undefined && 
+        m.codigo_municipio.toString() === electorData.codigoMunicipio.toString()
+      );
+      if (municipio) {
+        setFormData(prevState => ({
+          ...prevState,
+          municipio: municipio.codigo_municipio.toString()
+        }));
+      }
+    }
+  }, [electorData, municipios]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prevState => ({
@@ -77,13 +130,57 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     }
   };
 
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {
+      cedula: "",
+      telefono: "",
+      nombre: "",
+      estado: "",
+      municipio: "",
+      organizacion_politica: ""
+    };
+
+    if (!formData.cedula) {
+      newErrors.cedula = "La cédula es requerida";
+      isValid = false;
+    }
+
+    if (!formData.telefono || formData.telefono.length < 7) {
+      newErrors.telefono = "El teléfono debe tener al menos 7 dígitos";
+      isValid = false;
+    }
+
+    if (!formData.nombre) {
+      newErrors.nombre = "El nombre es requerido";
+      isValid = false;
+    }
+
+    if (!formData.estado) {
+      newErrors.estado = "Debes seleccionar un estado";
+      isValid = false;
+    }
+
+    if (!formData.municipio) {
+      newErrors.municipio = "Debes seleccionar un municipio";
+      isValid = false;
+    }
+
+    if (!formData.organizacion_politica) {
+      newErrors.organizacion_politica = "Debes seleccionar una organización política";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setToastMessage(null);
 
-    // Validar formulario
-    if (!formData.cedula || !formData.telefono || !formData.municipio || !formData.organizacion_politica) {
-      setToastMessage("Por favor complete todos los campos obligatorios.");
+    if (!validateForm()) {
+      setToastMessage("Por favor completa todos los campos requeridos.");
       setToastType('error');
       return;
     }
@@ -95,9 +192,11 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       return;
     }
 
+    setIsSubmitting(true);
+
     // Crear el recolector
     const recolectorPayload = {
-      nombre: `${formData.cedula} - ${formData.municipio} - ${formData.organizacion_politica}`,
+      nombre: formData.nombre,
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
@@ -112,6 +211,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         setToastMessage(`Registro exitoso. Su código de recolector es: ${data.id}`);
         setToastType('success');
         setRegistrationComplete(true);
+        setIsSubmitting(false);
         
         // Reiniciar formulario después de 5 segundos
         setTimeout(() => {
@@ -122,15 +222,17 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
             email: "default@example.com", // Mantener el valor por defecto
             estado: ANZOATEGUI_CODIGO, // Mantener Anzoátegui como selección
             municipio: "",
-            organizacion_politica: ""
+            organizacion_politica: "",
+            nombre: ""
           });
           setRegistrationComplete(false);
         }, 5000);
       },
-      onError: (error: Error) => {
+      onError: (error: any) => {
         console.error("Error al registrar recolector:", error);
         setToastMessage(error.message || "Ocurrió un error inesperado al registrar.");
         setToastType('error');
+        setIsSubmitting(false);
       },
     });
   };
@@ -150,31 +252,50 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
           <h3 className="text-2xl font-bold mb-4 text-center">Registro de COPERO</h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Cédula*</span>
-              </label>
-              <input
-                type="text"
-                name="cedula"
-                value={formData.cedula}
-                onChange={handleInputChange}
-                className="input input-bordered w-full"
-                placeholder="Ingrese su número de cédula"
-                required
-              />
+            <div className="form-group">
+              <label htmlFor="cedula" className="block text-sm font-medium text-gray-700">Cédula</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="cedula"
+                  name="cedula"
+                  value={formData.cedula}
+                  onChange={handleInputChange}
+                  placeholder="V12345678"
+                  className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.cedula ? 'border-red-500' : ''}`}
+                />
+                {isLoadingElector && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <span className="animate-spin">⟳</span>
+                  </div>
+                )}
+              </div>
+              {errors.cedula && <p className="mt-1 text-sm text-red-500">{errors.cedula}</p>}
             </div>
             
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Teléfono Celular*</span>
-              </label>
+            <div className="form-group">
+              <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">Nombre</label>
+              <input
+                type="text"
+                id="nombre"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                placeholder="Nombre del recolector"
+                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.nombre ? 'border-red-500' : ''}`}
+              />
+              {errors.nombre && <p className="mt-1 text-sm text-red-500">{errors.nombre}</p>}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="telefono" className="block text-sm font-medium text-gray-700">Teléfono Celular*</label>
               <div className="flex">
                 <select
                   name="operador"
+                  id="operador"
                   value={formData.operador}
                   onChange={handleInputChange}
-                  className="select select-bordered"
+                  className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
@@ -184,32 +305,29 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                 </select>
                 <input
                   type="text"
+                  id="telefono"
                   name="telefono"
                   value={formData.telefono}
                   onChange={handleInputChange}
-                  className="input input-bordered flex-1 ml-2"
                   placeholder="Ej: 1234567"
-                  required
+                  className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ml-2 ${errors.telefono ? 'border-red-500' : ''}`}
                 />
               </div>
+              {errors.telefono && <p className="mt-1 text-sm text-red-500">{errors.telefono}</p>}
             </div>
             
-            {/* El campo de correo se oculta pero sigue formando parte del estado */}
-            
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Estado*</span>
-              </label>
+            <div className="form-group">
+              <label htmlFor="estado" className="block text-sm font-medium text-gray-700">Estado*</label>
               <select
+                id="estado"
                 name="estado"
                 value={formData.estado}
                 onChange={handleInputChange}
-                className="select select-bordered w-full"
-                required
+                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.estado ? 'border-red-500' : ''}`}
               >
-                <option value="">Seleccione un estado</option>
+                <option value="">Selecciona un estado</option>
                 {isLoadingEstados ? (
-                  <option disabled value="">Cargando estados...</option>
+                  <option disabled>Cargando estados...</option>
                 ) : (
                   estados.map((estado) => (
                     <option key={estado.codigo_estado} value={estado.codigo_estado}>
@@ -218,47 +336,45 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   ))
                 )}
               </select>
+              {errors.estado && <p className="mt-1 text-sm text-red-500">{errors.estado}</p>}
             </div>
             
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Municipio*</span>
-              </label>
+            <div className="form-group">
+              <label htmlFor="municipio" className="block text-sm font-medium text-gray-700">Municipio*</label>
               <select
+                id="municipio"
                 name="municipio"
                 value={formData.municipio}
                 onChange={handleInputChange}
-                className="select select-bordered w-full"
                 disabled={!formData.estado || isLoadingMunicipios}
-                required
+                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.municipio ? 'border-red-500' : ''}`}
               >
-                <option value="">Seleccione un municipio</option>
+                <option value="">Selecciona un municipio</option>
                 {isLoadingMunicipios ? (
-                  <option disabled value="">Cargando municipios...</option>
+                  <option disabled>Cargando municipios...</option>
                 ) : (
                   municipios.map((municipio) => (
-                    <option key={municipio.codigo_municipio} value={municipio.municipio}>
+                    <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
                       {municipio.municipio}
                     </option>
                   ))
                 )}
               </select>
+              {errors.municipio && <p className="mt-1 text-sm text-red-500">{errors.municipio}</p>}
             </div>
             
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Organización Política*</span>
-              </label>
+            <div className="form-group">
+              <label htmlFor="organizacion_politica" className="block text-sm font-medium text-gray-700">Organización Política*</label>
               <select
+                id="organizacion_politica"
                 name="organizacion_politica"
                 value={formData.organizacion_politica}
                 onChange={handleInputChange}
-                className="select select-bordered w-full"
-                required
+                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${errors.organizacion_politica ? 'border-red-500' : ''}`}
               >
-                <option value="">Seleccione una organización</option>
+                <option value="">Selecciona una organización</option>
                 {isLoadingOrganizaciones ? (
-                  <option disabled value="">Cargando organizaciones...</option>
+                  <option disabled>Cargando organizaciones...</option>
                 ) : (
                   organizacionesPoliticas.map((org) => (
                     <option key={org.id} value={org.nombre}>
@@ -267,15 +383,23 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   ))
                 )}
               </select>
+              {errors.organizacion_politica && <p className="mt-1 text-sm text-red-500">{errors.organizacion_politica}</p>}
             </div>
             
             <div className="form-control mt-6">
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={isLoadingSubmit || registrationComplete}
+              <button
+                type="submit"
+                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                disabled={isSubmitting || registrationComplete}
               >
-                {isLoadingSubmit ? 'Registrando...' : 'Registrarme como COPERO'}
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin mr-2">⟳</span>
+                    Registrando...
+                  </>
+                ) : (
+                  "Registrarme como COPERO"
+                )}
               </button>
             </div>
           </form>
@@ -283,7 +407,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
           <div className="mt-4 text-center">
             <button
               onClick={handleVolverClick}
-              className="btn btn-outline btn-sm"
+              className="py-1 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Volver
             </button>

@@ -57,6 +57,31 @@ interface FetchElectoresParams {
   // searchTerm?: string; // Si tu API soporta búsqueda general de electores
 }
 
+// Tipo básico para evitar errores de linter
+interface ElectorResult {
+  elector?: {
+    p_nombre?: string;
+    s_nombre?: string;
+    p_apellido?: string;
+    s_apellido?: string;
+    codigo_estado?: number;
+    codigo_municipio?: number;
+  };
+  geografico?: {
+    municipio?: string;
+    estado?: string;
+  };
+}
+
+// Tipo para el resultado
+interface ElectorSimple {
+  nombre: string;
+  municipio?: string;
+  estado?: string;
+  codigoEstado?: number;
+  codigoMunicipio?: number;
+}
+
 // --- Funciones para operaciones con electores (usando apiClient) --- //
 
 const fetchElectores = async ({ currentPage, electoresPerPage, ...filters }: FetchElectoresParams): Promise<Elector[]> => {
@@ -137,5 +162,53 @@ export const useElectorDetail = (numeroCedula: string) => {
     queryKey: ['electorDetail', numeroCedula],
     queryFn: () => fetchElectorDetail(numeroCedula),
     enabled: !!numeroCedula, // Solo ejecutar si hay cédula
+  });
+};
+
+// Función para buscar elector por cédula - sin Zod
+export const fetchElectorByCedulaSimple = async (cedula: string): Promise<ElectorSimple | null> => {
+  if (!cedula || cedula.length < 3) {
+    return null;
+  }
+  
+  try {
+    // Limpiamos la cédula
+    const numeroCedula = cedula.replace(/[^0-9]/g, '');
+    
+    const data = await apiClient.get<ElectorResult>(`api/electores/cedula/${encodeURIComponent(numeroCedula)}`);
+    
+    if (!data || !data.elector) {
+      return null;
+    }
+
+    // Construir nombre completo
+    const nombre = [
+      data.elector.p_nombre,
+      data.elector.s_nombre,
+      data.elector.p_apellido,
+      data.elector.s_apellido
+    ].filter(Boolean).join(' ').trim();
+
+    return {
+      nombre,
+      municipio: data.geografico?.municipio,
+      estado: data.geografico?.estado,
+      codigoEstado: data.elector?.codigo_estado,
+      codigoMunicipio: data.elector?.codigo_municipio
+    };
+  } catch (error) {
+    console.log('Error buscando elector por cédula:', error);
+    return null;
+  }
+};
+
+// Hook para buscar elector por cédula
+export const useElectorSimpleByCedula = (cedula: string) => {
+  return useQuery({
+    queryKey: ['electorSimple', cedula],
+    queryFn: () => fetchElectorByCedulaSimple(cedula),
+    enabled: !!cedula && cedula.length > 3,
+    retry: false,
+    staleTime: 1000 * 60 * 5
   });
 }; 
