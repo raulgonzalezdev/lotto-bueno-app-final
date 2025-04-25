@@ -56,11 +56,13 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
   const { mutate: updateRecolector } = useUpdateRecolector();
   
-  // Hook para buscar elector por cédula
-  const { data: electorData, isLoading: isLoadingElector } = useElectorSimpleByCedula(formData.cedula);
-  
-  // Hook para buscar recolector existente
+  // Hook para buscar recolector existente - debe ir primero
   const { data: recolectorExistente, isLoading: isLoadingRecolector } = useRecolectorByCedula(formData.cedula);
+  
+  // Hook para buscar elector por cédula - solo se usa si no existe como recolector
+  const { data: electorData, isLoading: isLoadingElector } = useElectorSimpleByCedula(
+    !recolectorExistente && formData.cedula ? formData.cedula : ''
+  );
 
   // Agregar después de los otros hooks
   const { data: recolectorExists, isLoading: isCheckingRecolector } = useCheckRecolectorExistsByCedula(formData.cedula);
@@ -103,19 +105,15 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         organizacion_politica: recolectorExistente.organizacion_politica || "",
         email: recolectorExistente.email || "default@example.com"
       }));
-    }
-  }, [recolectorExistente]);
-
-  // Efecto separado para manejar datos del elector solo si no existe como recolector
-  useEffect(() => {
-    if (!recolectorExistente && electorData) {
+    } else if (!isLoadingRecolector && !recolectorExistente && electorData) {
+      // Solo si no existe como recolector y existe como elector
       setFormData(prevState => ({
         ...prevState,
         nombre: electorData.nombre,
         estado: electorData.codigoEstado?.toString() || ANZOATEGUI_CODIGO
       }));
     }
-  }, [electorData, recolectorExistente]);
+  }, [recolectorExistente, electorData, isLoadingRecolector]);
 
   // Efecto para limpiar el nombre cuando se cambia la cédula
   useEffect(() => {
@@ -178,15 +176,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       organizacion_politica: ""
     };
 
-    // Si no es un recolector existente, validar que exista en el registro electoral
-    if (!recolectorExistente && !electorData) {
-      newErrors.cedula = "La cédula debe existir en el registro electoral";
-      isValid = false;
-    }
-
     if (!formData.cedula) {
       newErrors.cedula = "La cédula es requerida";
       isValid = false;
+    } else if (formData.cedula.length >= 6) {
+      if (!recolectorExistente && !electorData && !isLoadingRecolector && !isLoadingElector) {
+        newErrors.cedula = "La cédula no está autorizada para ser copero";
+        isValid = false;
+      }
     }
 
     if (!formData.telefono || formData.telefono.length < 7) {
@@ -348,14 +345,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                     <span className="animate-spin">⟳</span>
                   </div>
                 )}
-                {!recolectorExistente && !electorData && formData.cedula.length >= 6 && !isLoadingElector && (
-                  <p className="mt-1 text-sm text-red-500">
-                    Esta cédula no está autorizada para ser copero
-                  </p>
-                )}
-                {recolectorExistente && (
+                {!isLoadingRecolector && recolectorExistente && (
                   <p className="mt-1 text-sm text-blue-600">
                     Este copero ya existe. Se actualizarán sus datos.
+                  </p>
+                )}
+                {!isLoadingRecolector && !recolectorExistente && !isLoadingElector && !electorData && formData.cedula.length >= 6 && (
+                  <p className="mt-1 text-sm text-red-500">
+                    Esta cédula no está autorizada para ser copero
                   </p>
                 )}
               </div>
