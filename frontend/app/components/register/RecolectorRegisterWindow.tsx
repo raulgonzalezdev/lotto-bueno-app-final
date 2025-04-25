@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Toast from '../toast/Toast';
-import { useCreateRecolector, useCheckRecolectorExistsByCedula, useUpdateRecolector } from '../../hooks/useRecolectores';
+import { useCreateRecolector, useCheckRecolectorExistsByCedula, useUpdateRecolector, useRecolectorByCedula } from '../../hooks/useRecolectores';
 import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
 import { useOrganizacionesPoliticas } from '../../hooks/useOrganizacionesPoliticas';
@@ -55,9 +55,12 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   
   const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
   const { mutate: updateRecolector } = useUpdateRecolector();
-
+  
   // Hook para buscar elector por cédula
   const { data: electorData, isLoading: isLoadingElector } = useElectorSimpleByCedula(formData.cedula);
+  
+  // Hook para buscar recolector existente
+  const { data: recolectorExistente, isLoading: isLoadingRecolector } = useRecolectorByCedula(formData.cedula);
 
   // Agregar después de los otros hooks
   const { data: recolectorExists, isLoading: isCheckingRecolector } = useCheckRecolectorExistsByCedula(formData.cedula);
@@ -80,15 +83,29 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     }
   }, [estados, formData.estado]);
 
+  // Efecto para cargar datos del recolector existente
+  useEffect(() => {
+    if (recolectorExistente) {
+      setFormData(prevState => ({
+        ...prevState,
+        nombre: recolectorExistente.nombre,
+        telefono: recolectorExistente.telefono.slice(-7),
+        operador: recolectorExistente.telefono.slice(2, 6),
+        estado: recolectorExistente.estado || ANZOATEGUI_CODIGO,
+        municipio: recolectorExistente.municipio || "",
+        organizacion_politica: recolectorExistente.organizacion_politica || ""
+      }));
+    }
+  }, [recolectorExistente]);
+
   // Efecto para actualizar el formulario cuando se obtienen datos del elector
   useEffect(() => {
-    if (electorData) {
+    if (electorData && !recolectorExistente) {
       setFormData(prevState => ({
         ...prevState,
         nombre: electorData.nombre
       }));
       
-      // Verificar que codigoEstado existe y no es undefined
       if (electorData.codigoEstado !== undefined && estados) {
         const estado = estados.find(e => 
           e.codigo_estado !== undefined && 
@@ -102,7 +119,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         }
       }
     }
-  }, [electorData, estados]);
+  }, [electorData, estados, recolectorExistente]);
 
   // Agregar un efecto para limpiar el nombre cuando se cambia la cédula
   useEffect(() => {
@@ -220,7 +237,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     setIsSubmitting(true);
 
     const recolectorPayload = {
-      nombre: electorData.nombre, // Usar siempre el nombre del registro electoral
+      nombre: electorData.nombre,
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
@@ -230,9 +247,8 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       organizacion_politica: formData.organizacion_politica
     };
 
-    if (recolectorExists) {
-      // Actualizar recolector existente
-      updateRecolector({ recolectorId: parseInt(formData.cedula), payload: recolectorPayload }, {
+    if (recolectorExistente) {
+      updateRecolector({ recolectorId: recolectorExistente.id, payload: recolectorPayload }, {
         onSuccess: () => {
           setToastMessage("Datos del copero actualizados exitosamente");
           setToastType('success');
@@ -261,7 +277,6 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         },
       });
     } else {
-      // Crear nuevo recolector
       createRecolector(recolectorPayload, {
         onSuccess: (data) => {
           setToastMessage(`Registro exitoso. Su código de recolector es: ${data.id}`);
@@ -334,7 +349,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                     Esta cédula esta invalidada para ser copero 
                   </p>
                 )}
-                {recolectorExists && (
+                {recolectorExistente && (
                   <p className="mt-1 text-sm text-blue-600">
                     Este copero ya existe. Se actualizarán sus datos.
                   </p>
@@ -465,10 +480,10 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                 {isSubmitting ? (
                   <>
                     <span className="animate-spin mr-2">⟳</span>
-                    Registrando...
+                    {recolectorExistente ? "Actualizando..." : "Registrando..."}
                   </>
                 ) : (
-                  "Registrarme como COPERO"
+                  recolectorExistente ? "Actualizar datos de COPERO" : "Registrarme como COPERO"
                 )}
               </button>
             </div>

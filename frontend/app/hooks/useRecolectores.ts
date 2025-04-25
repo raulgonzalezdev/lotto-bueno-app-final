@@ -184,4 +184,21 @@ export const useCheckRecolectorExistsByCedula = (cedula: string) => {
     },
     enabled: !!cedula && cedula.length >= 6,
   });
+};
+
+// Hook para obtener un recolector por cédula
+export const useRecolectorByCedula = (cedula: string) => {
+  return useQuery<Recolector | null, Error>({
+    queryKey: ['recolector', cedula],
+    queryFn: async () => {
+      if (!cedula || cedula.length < 6) return null;
+      try {
+        const response = await apiClient.get<Recolector>(`api/recolectores/by_cedula/${cedula}`);
+        return response;
+      } catch (error) {
+        return null;
+      }
+    },
+    enabled: !!cedula && cedula.length >= 6,
+  });
 }; 

@@ -7,6 +7,7 @@ import { detectHost } from "../../api";
 import { useEstados } from "../../hooks/useEstados";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useImportarRecolectores } from "../../hooks/useRecolectores";
+import { useMunicipios } from "../../hooks/useMunicipios";
 
 interface Recolector {
   id: number;
@@ -15,6 +16,7 @@ interface Recolector {
   telefono: string;
   es_referido: boolean;
   email?: string;
+  estado?: string;
   municipio?: string;
   organizacion_politica?: string;
 }
@@ -78,6 +80,7 @@ const RecolectorControl: React.FC = () => {
     telefono: "", 
     es_referido: false,
     email: "",
+    estado: "",
     municipio: "",
     organizacion_politica: ""
   });
@@ -91,7 +94,7 @@ const RecolectorControl: React.FC = () => {
   const [APIHost, setAPIHost] = useState<string | null>(null);
   const [selectedRecolectorId, setSelectedRecolectorId] = useState<number | null>(null);
   const [referidosData, setReferidosData] = useState<ReferidosData | null>(null);
-  const [estadoFiltro, setEstadoFiltro] = useState<string>("");
+  const [estadoFiltro, setEstadoFiltro] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -110,9 +113,12 @@ const RecolectorControl: React.FC = () => {
   // Fetch Estados usando useEstados
   const { data: estados = [], isLoading: estadosLoading } = useEstados();
 
+  // Fetch Municipios basado en el estado seleccionado
+  const { data: municipiosData = [], isLoading: municipiosLoading } = useMunicipios(estadoFiltro);
+
   // Fetch Recolectores con React Query
   const fetchRecolectoresQuery = useQuery({
-    queryKey: ['recolectores', currentPage, searchTerm, municipioFiltro, organizacionFiltro],
+    queryKey: ['recolectores', currentPage, searchTerm, estadoFiltro, municipioFiltro, organizacionFiltro],
     queryFn: async () => {
       if (!APIHost) return { items: [], total: 0 };
       
@@ -120,6 +126,7 @@ const RecolectorControl: React.FC = () => {
         skip: ((currentPage - 1) * recolectoresPerPage).toString(),
         limit: recolectoresPerPage.toString(),
         ...(searchTerm && { search: searchTerm }),
+        ...(estadoFiltro && { estado: estadoFiltro }),
         ...(municipioFiltro && { municipio: municipioFiltro }),
         ...(organizacionFiltro && { organizacion_politica: organizacionFiltro }),
       }).toString();
@@ -161,6 +168,7 @@ const RecolectorControl: React.FC = () => {
         telefono: "", 
         es_referido: false,
         email: "",
+        estado: "",
         municipio: "",
         organizacion_politica: ""
       });
@@ -369,12 +377,11 @@ const RecolectorControl: React.FC = () => {
     }
   };
 
-  const handleEstadoFiltroChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleEstadoFiltroChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newEstado = e.target.value;
     setEstadoFiltro(newEstado);
-    if (isEstadisticasModalOpen) {
-      await fetchEstadisticas(selectedRecolectorId || undefined);
-    }
+    setMunicipioFiltro(""); // Resetear municipio al cambiar estado
+    setCurrentPage(1);
   };
 
   // Función para mostrar mensajes
@@ -515,9 +522,9 @@ const RecolectorControl: React.FC = () => {
   // Reiniciar filtros
   const resetFilters = () => {
     setSearchTerm("");
+    setEstadoFiltro("");
     setMunicipioFiltro("");
     setOrganizacionFiltro("");
-    setEstadoFiltro("");
     setCurrentPage(1);
   };
 
@@ -542,7 +549,7 @@ const RecolectorControl: React.FC = () => {
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
         <div>
           <input
             type="text"
@@ -554,13 +561,31 @@ const RecolectorControl: React.FC = () => {
         </div>
         <div>
           <select
+            value={estadoFiltro}
+            onChange={handleEstadoFiltroChange}
+            className="select select-bordered w-full"
+            disabled={estadosLoading}
+          >
+            <option value="">Todos los estados</option>
+            {estados.map(estado => (
+              <option key={estado.codigo_estado} value={estado.codigo_estado}>
+                {estado.estado}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <select
             value={municipioFiltro}
             onChange={handleMunicipioFiltroChange}
             className="select select-bordered w-full"
+            disabled={municipiosLoading || !estadoFiltro}
           >
             <option value="">Todos los municipios</option>
-            {municipios.map(municipio => (
-              <option key={municipio} value={municipio}>{municipio}</option>
+            {municipiosData.map(municipio => (
+              <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
+                {municipio.municipio}
+              </option>
             ))}
           </select>
         </div>
@@ -608,6 +633,7 @@ const RecolectorControl: React.FC = () => {
                 <th>Cédula</th>
                 <th>Teléfono</th>
                 <th>Email</th>
+                <th>Estado</th>
                 <th>Municipio</th>
                 <th>Organización</th>
                 <th>Referido</th>
@@ -616,45 +642,56 @@ const RecolectorControl: React.FC = () => {
             </thead>
             <tbody>
               {recolectores.length > 0 ? (
-                recolectores.map((recolector) => (
-                  <tr key={recolector.id}>
-                    <td>{recolector.id}</td>
-                    <td>{recolector.nombre}</td>
-                    <td>{recolector.cedula}</td>
-                    <td>{recolector.telefono}</td>
-                    <td>{recolector.email || '-'}</td>
-                    <td>{recolector.municipio || '-'}</td>
-                    <td>{recolector.organizacion_politica || '-'}</td>
-                    <td>{recolector.es_referido ? "Sí" : "No"}</td>
-                    <td>
-                      <button 
-                        className="btn btn-primary btn-sm mr-2" 
-                        onClick={() => openModal(recolector)}
-                      >
-                        Editar
-                      </button>
-                      <button 
-                        className="btn btn-danger btn-sm mr-2" 
-                        onClick={() => { 
-                          setRecolectorToDelete(recolector.id); 
-                          setIsConfirmationModalVisible(true); 
-                        }}
-                        disabled={deleteRecolectorMutation.isPending}
-                      >
-                        {deleteRecolectorMutation.isPending && recolectorToDelete === recolector.id 
-                          ? "Eliminando..." 
-                          : "Eliminar"
-                        }
-                      </button>
-                      <button className="btn btn-info btn-sm" onClick={() => fetchEstadisticas(recolector.id)}>
-                        Ver Estadísticas
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                recolectores.map((recolector) => {
+                  // Encontrar el estado correspondiente
+                  const estadoObj = estados.find(e => e.codigo_estado.toString() === recolector.estado);
+                  // Encontrar el municipio correspondiente
+                  const municipioObj = municipiosData.find(m => m.codigo_municipio.toString() === recolector.municipio);
+                  
+                  return (
+                    <tr key={recolector.id}>
+                      <td>{recolector.id}</td>
+                      <td>{recolector.nombre}</td>
+                      <td>{recolector.cedula}</td>
+                      <td>{recolector.telefono}</td>
+                      <td>{recolector.email || '-'}</td>
+                      <td>{estadoObj ? estadoObj.estado : recolector.estado || '-'}</td>
+                      <td>{municipioObj ? municipioObj.municipio : recolector.municipio || '-'}</td>
+                      <td>{recolector.organizacion_politica || '-'}</td>
+                      <td>{recolector.es_referido ? "Sí" : "No"}</td>
+                      <td>
+                        <button 
+                          className="btn btn-primary btn-sm mr-2" 
+                          onClick={() => openModal(recolector)}
+                        >
+                          Editar
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-sm mr-2" 
+                          onClick={() => { 
+                            setRecolectorToDelete(recolector.id); 
+                            setIsConfirmationModalVisible(true); 
+                          }}
+                          disabled={deleteRecolectorMutation.isPending}
+                        >
+                          {deleteRecolectorMutation.isPending && recolectorToDelete === recolector.id 
+                            ? "Eliminando..." 
+                            : "Eliminar"
+                          }
+                        </button>
+                        <button 
+                          className="btn btn-info btn-sm" 
+                          onClick={() => fetchEstadisticas(recolector.id)}
+                        >
+                          Ver Estadísticas
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={9} className="text-center">No hay recolectores disponibles</td>
+                  <td colSpan={10} className="text-center">No hay recolectores disponibles</td>
                 </tr>
               )}
             </tbody>
@@ -738,6 +775,38 @@ const RecolectorControl: React.FC = () => {
             </div>
             
             <div className="form-control mb-2">
+              <label className="label">Estado</label>
+              <select
+                value={isEditing && selectedRecolector ? selectedRecolector.estado || '' : newRecolector.estado}
+                onChange={(e) => {
+                  const newEstado = e.target.value;
+                  if (isEditing && selectedRecolector) {
+                    setSelectedRecolector({ 
+                      ...selectedRecolector, 
+                      estado: newEstado,
+                      municipio: '' // Resetear municipio al cambiar estado
+                    });
+                  } else {
+                    setNewRecolector({ 
+                      ...newRecolector, 
+                      estado: newEstado,
+                      municipio: '' // Resetear municipio al cambiar estado
+                    });
+                  }
+                }}
+                className="select select-bordered w-full"
+                disabled={estadosLoading}
+              >
+                <option value="">Seleccione un estado</option>
+                {estados.map(estado => (
+                  <option key={estado.codigo_estado} value={estado.codigo_estado}>
+                    {estado.estado}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-control mb-2">
               <label className="label">Municipio</label>
               <select
                 value={isEditing && selectedRecolector ? selectedRecolector.municipio || '' : newRecolector.municipio}
@@ -749,10 +818,13 @@ const RecolectorControl: React.FC = () => {
                   }
                 }}
                 className="select select-bordered w-full"
+                disabled={municipiosLoading || !(isEditing ? selectedRecolector?.estado : newRecolector.estado)}
               >
                 <option value="">Seleccione un municipio</option>
-                {municipios.map(municipio => (
-                  <option key={municipio} value={municipio}>{municipio}</option>
+                {municipiosData.map(municipio => (
+                  <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
+                    {municipio.municipio}
+                  </option>
                 ))}
               </select>
             </div>
