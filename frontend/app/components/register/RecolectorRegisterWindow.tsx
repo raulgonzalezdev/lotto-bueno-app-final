@@ -95,8 +95,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         municipio: recolectorExistente.municipio || "",
         organizacion_politica: recolectorExistente.organizacion_politica || ""
       }));
+    } else if (electorData) {
+      setFormData(prevState => ({
+        ...prevState,
+        nombre: electorData.nombre,
+        estado: electorData.codigoEstado?.toString() || ANZOATEGUI_CODIGO
+      }));
     }
-  }, [recolectorExistente]);
+  }, [recolectorExistente, electorData]);
 
   // Efecto para actualizar el formulario cuando se obtienen datos del elector
   useEffect(() => {
@@ -176,9 +182,9 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       organizacion_politica: ""
     };
 
-    // Validar que la cédula existe en la base de electores
-    if (!electorData) {
-      newErrors.cedula = "La cédula debe existir en el registro ";
+    // Validar que la cédula existe en el registro electoral si es nuevo registro
+    if (!recolectorExistente && !electorData) {
+      newErrors.cedula = "La cédula debe existir en el registro";
       isValid = false;
     }
 
@@ -221,7 +227,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       return;
     }
 
-    if (!electorData) {
+    if (!recolectorExistente && !electorData) {
       setToastMessage("Solo se pueden registrar personas que existan en el registro electoral.");
       setToastType('error');
       return;
@@ -237,7 +243,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     setIsSubmitting(true);
 
     const recolectorPayload = {
-      nombre: electorData.nombre,
+      nombre: electorData?.nombre || recolectorExistente?.nombre || "",
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
@@ -248,6 +254,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     };
 
     if (recolectorExistente) {
+      // Actualizar recolector existente
       updateRecolector({ recolectorId: recolectorExistente.id, payload: recolectorPayload }, {
         onSuccess: () => {
           setToastMessage("Datos del copero actualizados exitosamente");
@@ -277,6 +284,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         },
       });
     } else {
+      // Crear nuevo recolector
       createRecolector(recolectorPayload, {
         onSuccess: (data) => {
           setToastMessage(`Registro exitoso. Su código de recolector es: ${data.id}`);
@@ -339,14 +347,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   placeholder="V12345678"
                   className={inputClassName}
                 />
-                {isLoadingElector && (
+                {(isLoadingElector || isLoadingRecolector) && (
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                     <span className="animate-spin">⟳</span>
                   </div>
                 )}
                 {!electorData && formData.cedula.length >= 6 && !isLoadingElector && (
                   <p className="mt-1 text-sm text-red-500">
-                    Esta cédula esta invalidada para ser copero 
+                    Esta cédula esta invalidada para ser copero
                   </p>
                 )}
                 {recolectorExistente && (

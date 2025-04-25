@@ -9,6 +9,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useImportarRecolectores } from "../../hooks/useRecolectores";
 import { useMunicipios } from "../../hooks/useMunicipios";
 
+interface Municipio {
+  codigo_municipio: string | number;
+  municipio: string;
+  codigo_estado: string | number;
+}
+
 interface Recolector {
   id: number;
   nombre: string;
