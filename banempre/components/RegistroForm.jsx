@@ -192,7 +192,7 @@ export default function RegistroForm() {
             )}
           </div>
           {electorData && (
-            <p className="text-xs text-green-300 mt-1">Información encontrada en el registro electoral</p>
+            <p className="text-xs text-green-300 mt-1">Información encontrada en la base de datos</p>
           )}
         </div>
 

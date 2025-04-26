@@ -25,12 +25,12 @@ export default function Home() {
                 alt="Banempre - Banco de los Emprendedores"
                 width={500}
                 height={105}
-                className="w-64 md:w-auto" 
+                className="w-94 md:w-94"
                 priority
               />
             </a>
           </div>
-          
+
           {/* Contenido principal - formulario a la derecha en desktop, centrado en móvil */}
           <div className="flex-grow flex flex-col md:flex-row md:justify-end items-center md:items-start">
             {/* Formulario */}
