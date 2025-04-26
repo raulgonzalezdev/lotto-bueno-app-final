@@ -3533,8 +3533,8 @@ async def download_excel_recolectores(
             'Estado': rec.estado or '',
             'Municipio': rec.municipio or '',
             'Organización Política': rec.organizacion_politica or '',
-            'Es Referido': 'Sí' if rec.es_referido else 'No',
-            'Fecha de Registro': rec.created_at.strftime('%Y-%m-%d %H:%M:%S') if rec.created_at else ''
+            'Es Referido': 'Sí' if rec.es_referido else 'No'
+            # Eliminamos el campo 'Fecha de Registro' que usaba created_at
         } for rec in recolectores])
         
         # Crear el archivo Excel
