@@ -168,7 +168,15 @@ origins = [
     "https://www.applottobueno.com",
     "https://7103.api.greenapi.com",
      "https://wa.me",
-     "https://t.me"
+     "https://t.me",
+     "https://lottobueno.com",
+     "https://banempre.online",
+     "https://www.banempre.online",
+     "https://lottobueno.com",
+     "https://www.lottobueno.com",
+     "https://lottobueno.com",
+     "https://www.lottobueno.com",
+     
    
 ]
 

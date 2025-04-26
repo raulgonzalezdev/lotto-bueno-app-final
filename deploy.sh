@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "Creating necessary .env files..."
+echo "NEXT_PUBLIC_API_URL=https://applottobueno.com/api
+PORT=3002
+NODE_ENV=production" > banempre/.env
+
 echo "Building Docker images and starting containers..."
 
 # Construir las imágenes de Docker
