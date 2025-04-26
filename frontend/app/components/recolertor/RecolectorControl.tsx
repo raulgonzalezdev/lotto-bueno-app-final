@@ -72,6 +72,9 @@ const RecolectorControl: React.FC = () => {
   const [modalImport, setModalImport] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [downloading, setDownloading] = useState<boolean>(false);
+  
+  // Estado para el botón de exportar
+  const [exporting, setExporting] = useState<boolean>(false);
 
   /* ------------------------- filtros y paginación ----------------------- */
   const [page, setPage] = useState<number>(1);
@@ -342,6 +345,62 @@ const RecolectorControl: React.FC = () => {
     }
   };
 
+  // Función para exportar recolectores según los filtros actuales
+  const exportarRecolectores = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      
+      // Agregar filtros actuales
+      if (filters.search) params.append('search', filters.search);
+      
+      if (filters.estado) {
+        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
+        if (estadoObj) {
+          params.append('estado', estadoObj.estado);
+        }
+      }
+      
+      if (filters.municipio) {
+        const municipioObj = municipios.find(m => m.codigo_municipio.toString() === filters.municipio);
+        if (municipioObj) {
+          params.append('municipio', municipioObj.municipio);
+        }
+      }
+      
+      if (filters.organizacion) {
+        params.append('organizacion_politica', filters.organizacion);
+      }
+
+      // Verificar si existe el endpoint en el backend
+      const res = await fetch(`${apiHost}/api/download/excel/recolectores?${params}`);
+      
+      if (!res.ok) {
+        throw new Error(`Error al exportar: ${res.statusText}`);
+      }
+      
+      const blob = await res.blob();
+      const fileName = res.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/["']/g, '') || 
+                      `recolectores_${new Date().toISOString().slice(0,10)}.xlsx`;
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      
+      fireToast('Exportación completada', 'success');
+    } catch (err) {
+      fireToast(`Error al exportar: ${(err as Error).message}`, 'error');
+      console.error('Error al exportar:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   /* -------------------------------------------------------------------------- */
   /*                              Render helpers                                 */
   /* -------------------------------------------------------------------------- */
@@ -392,6 +451,13 @@ const RecolectorControl: React.FC = () => {
         </button>
         <button onClick={() => setModalImport(true)} className="btn btn-info">
           Importar
+        </button>
+        <button 
+          onClick={exportarRecolectores} 
+          className="btn btn-success" 
+          disabled={exporting}
+        >
+          {exporting ? 'Exportando...' : 'Exportar Excel'}
         </button>
       </div>
 
@@ -684,7 +750,7 @@ const RecolectorControl: React.FC = () => {
       {/* ----------------------- MODAL Estadísticas ----------------------- */}
       {modalStats && (
         <div className="modal-overlay" onClick={() => setModalStats(false)}>
-          <div className="modal-content max-w-7xl" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content max-w-7xl w-4/5" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold mb-4">Estadísticas de Recolectores</h2>
 
             {/* Filtro adicional por estado dentro del modal */}
