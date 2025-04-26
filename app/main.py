@@ -10,7 +10,7 @@ import jwt
 import logging
 import re
 import asyncio
-from pathlib import Path
+from pathlib import Path as PathLib
 from typing import Dict, Any, List, Union, Collection, Tuple, Optional
 
 from dotenv import load_dotenv
@@ -203,7 +203,7 @@ GOOGLE_CHAT_SPACE_ID = os.getenv("GOOGLE_CHAT_SPACE_ID")
 if not API_INSTANCE or not API_TOKEN:
     raise ValueError("API_INSTANCE y API_TOKEN deben estar definidos en las variables de entorno")
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = PathLib(__file__).resolve().parent
 
 redis = Redis.from_url(REDIS_URL, decode_responses=True)
 
@@ -2138,7 +2138,8 @@ class UpdateHTMLSettings(BaseModel):
     faviconUrl: str
     
 
-BASE_DIR = Path(__file__).resolve().parent
+# Segunda definición redundante, eliminada para evitar redefiniciones
+# BASE_DIR ya fue definido al inicio del archivo
 
 @app.post("/api/update-html")
 async def update_html(settings: UpdateHTMLSettings):
