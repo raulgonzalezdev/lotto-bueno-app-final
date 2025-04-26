@@ -19,14 +19,45 @@ body {
 }
 
 .bg-banempre {
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/fondopbamempre.jpg');
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('/fondopbamempre.jpg');
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
 }
 
 .form-container {
-  background-color: rgba(245, 175, 0, 0.9);
+  background-color: rgba(205, 150, 0, 0.5);
   border-radius: 0.5rem;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 450px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .bg-banempre {
+    background-position: center;
+    background-attachment: scroll;
+  }
+  
+  .form-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 1.5rem;
+  }
+  
+  .form-container h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-container {
+    padding: 1.25rem;
+  }
+  
+  .form-container input {
+    padding: 0.5rem;
+  }
 } 

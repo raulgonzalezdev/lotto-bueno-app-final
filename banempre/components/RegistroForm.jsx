@@ -52,64 +52,64 @@ export default function RegistroForm() {
   };
 
   return (
-    <div className="form-container text-white">
-      <h2 className="text-2xl font-bold mb-6 text-center">REGISTRA TU EMPRENDIMIENTO</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block mb-1">Cédula de Identidad:</label>
+    <div className="form-container">
+      <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white text-center">REGISTRA TU EMPRENDIMIENTO</h2>
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+        <div className="mb-2 md:mb-3">
+          <label className="block mb-1 text-white text-sm md:text-base">Cédula de Identidad:</label>
           <input
             type="text"
             name="cedula"
             value={formData.cedula}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black"
+            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
             required
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block mb-1">Nombre y Apellido:</label>
+        <div className="mb-2 md:mb-3">
+          <label className="block mb-1 text-white text-sm md:text-base">Nombre y Apellido:</label>
           <input
             type="text"
             name="nombre"
             value={formData.nombre}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black"
+            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
             required
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block mb-1">RIF (Si posee):</label>
+        <div className="mb-2 md:mb-3">
+          <label className="block mb-1 text-white text-sm md:text-base">RIF (Si posee):</label>
           <input
             type="text"
             name="rif"
             value={formData.rif}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black"
+            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block mb-1">Nombre del Emprendimiento:</label>
+        <div className="mb-2 md:mb-3">
+          <label className="block mb-1 text-white text-sm md:text-base">Nombre del Emprendimiento:</label>
           <input
             type="text"
             name="nombreEmprendimiento"
             value={formData.nombreEmprendimiento}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black"
+            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
             required
           />
         </div>
 
-        <div className="mb-6">
-          <label className="block mb-1">Número Telefónico:</label>
+        <div className="mb-3 md:mb-4">
+          <label className="block mb-1 text-white text-sm md:text-base">Número Telefónico:</label>
           <input
             type="tel"
             name="telefono"
             value={formData.telefono}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black"
+            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
             required
           />
         </div>
@@ -118,7 +118,7 @@ export default function RegistroForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-white text-primary font-bold py-2 px-6 rounded-full hover:bg-gray-100 transition-colors"
+            className="bg-blue-600 text-white font-medium py-2 px-6 md:px-8 rounded-full hover:bg-blue-700 transition-colors w-full"
           >
             {isSubmitting ? 'Procesando...' : 'REGISTRAR'}
           </button>

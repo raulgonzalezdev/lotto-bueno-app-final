@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import Header from '../components/Header';
+import Image from 'next/image';
 import RegistroForm from '../components/RegistroForm';
 
 export default function Home() {
@@ -16,20 +16,25 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="min-h-screen bg-banempre">
-        <Header />
-        <div className="container mx-auto px-4 flex min-h-[calc(100vh-100px)] items-center justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            <div className="text-white flex flex-col items-center">
-              <h1 className="text-4xl font-bold mb-4">BANEMPRE</h1>
-              <h2 className="text-2xl mb-8">BANCO DE LOS EMPRENDEDORES</h2>
-              <button 
-                onClick={goToDashboard}
-                className="bg-secondary text-white font-bold py-3 px-8 rounded-full hover:bg-yellow-600 transition-colors mt-4"
-              >
-                Ir al Dashboard
-              </button>
-            </div>
-            <div>
+        <div className="container mx-auto px-4 py-4 md:py-6 flex flex-col min-h-screen">
+          {/* Logo en la esquina superior izquierda */}
+          <div className="flex justify-start mb-4 md:mb-10">
+            <a href="https://applottobueno.com/dashboard">
+              <Image
+                src="/logo bamempre.png"
+                alt="Banempre - Banco de los Emprendedores"
+                width={500}
+                height={105}
+                className="w-64 md:w-auto" 
+                priority
+              />
+            </a>
+          </div>
+          
+          {/* Contenido principal - formulario a la derecha en desktop, centrado en móvil */}
+          <div className="flex-grow flex flex-col md:flex-row md:justify-end items-center md:items-start">
+            {/* Formulario */}
+            <div className="w-full md:w-1/2 lg:w-5/12">
               <RegistroForm />
             </div>
           </div>
