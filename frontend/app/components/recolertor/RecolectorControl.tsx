@@ -12,7 +12,8 @@ import { detectHost } from '../../api';
 import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
 import { useOrganizacionesPoliticas } from '../../hooks/useOrganizacionesPoliticas';
-import { useImportarRecolectores } from '../../hooks/useRecolectores';
+import { useImportarRecolectores, useRecolectorByCedula } from '../../hooks/useRecolectores';
+import { useElectorSimpleByCedula } from '../../hooks/useElectores';
 
 /* -------------------------------------------------------------------------- */
 /*                                 Tipos                                      */
@@ -216,11 +217,77 @@ const RecolectorControl: React.FC = () => {
   const fireToast = (msg: string, type: 'info' | 'success' | 'error' = 'info') =>
     setToast({ msg, type });
 
-  const openRecolectorModal = (rec?: Recolector) =>
-    setModalRecolector({ open: true, editing: Boolean(rec), data: rec ?? {} });
+  const [cedulaInput, setCedulaInput] = useState<string>('');
+  const [showFullForm, setShowFullForm] = useState<boolean>(false);
 
-  const closeRecolectorModal = () =>
+  const { data: recolectorData, isLoading: loadingRecolector } = useRecolectorByCedula(
+    cedulaInput.length >= 6 ? cedulaInput : ''
+  );
+
+  const { data: electorData, isLoading: loadingElector } = useElectorSimpleByCedula(
+    !recolectorData && cedulaInput.length >= 6 ? cedulaInput : ''
+  );
+
+  const buscarPorCedula = () => {
+    if (cedulaInput.length < 6) {
+      fireToast('La cédula debe tener al menos 6 dígitos', 'error');
+      return;
+    }
+    
+    if (recolectorData) {
+      setModalRecolector({
+        open: true,
+        editing: true,
+        data: {
+          ...recolectorData,
+          estado: estados.find(e => e.estado === recolectorData.estado)?.codigo_estado.toString() || '',
+          municipio: municipios.find(m => m.municipio === recolectorData.municipio)?.codigo_municipio.toString() || '',
+        }
+      });
+      setShowFullForm(true);
+    } else if (electorData) {
+      setModalRecolector({
+        open: true,
+        editing: false,
+        data: {
+          nombre: electorData.nombre,
+          cedula: cedulaInput,
+          estado: electorData.codigoEstado?.toString() || '',
+          municipio: electorData.codigoMunicipio?.toString() || '',
+          telefono: '',
+          es_referido: false
+        }
+      });
+      setShowFullForm(true);
+    } else {
+      fireToast('Esta cédula no está registrada en el sistema', 'error');
+    }
+  };
+
+  const openRecolectorModal = (rec?: Recolector) => {
+    if (rec) {
+      setModalRecolector({ 
+        open: true, 
+        editing: true, 
+        data: {
+          ...rec,
+          estado: estados.find(e => e.estado === rec.estado)?.codigo_estado.toString() || '',
+          municipio: municipios.find(m => m.municipio === rec.municipio)?.codigo_municipio.toString() || '',
+        } 
+      });
+      setShowFullForm(true);
+    } else {
+      setModalRecolector({ open: true, editing: false, data: {} });
+      setCedulaInput('');
+      setShowFullForm(false);
+    }
+  };
+
+  const closeRecolectorModal = () => {
     setModalRecolector({ open: false, editing: false, data: {} });
+    setCedulaInput('');
+    setShowFullForm(false);
+  };
 
   const handleSaveRecolector = () => {
     const payload = { ...modalRecolector.data } as Recolector;
@@ -463,105 +530,144 @@ const RecolectorControl: React.FC = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>{modalRecolector.editing ? 'Editar' : 'Crear'} Recolector</h3>
 
-            {(['nombre', 'cedula', 'telefono', 'email'] as Array<keyof Recolector>).map((key) => (
-              <div className="form-control mt-2" key={key}>
-                <label>{key.charAt(0).toUpperCase() + key.slice(1)}</label>
-                <input
-                  type={key === 'email' ? 'email' : 'text'}
-                  value={modalRecolector.data[key]?.toString() ?? ''}
-                  onChange={(e) =>
-                    setModalRecolector((m) => ({ ...m, data: { ...m.data, [key]: e.target.value } }))
-                  }
-                  className="input"
-                />
+            {!showFullForm ? (
+              <div>
+                <div className="form-control mt-2">
+                  <label>Cédula</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={cedulaInput}
+                      onChange={(e) => setCedulaInput(e.target.value)}
+                      className="input flex-1"
+                      placeholder="Ingrese la cédula"
+                    />
+                    <button 
+                      onClick={buscarPorCedula} 
+                      className="btn"
+                      disabled={loadingRecolector || loadingElector || cedulaInput.length < 6}
+                    >
+                      {loadingRecolector || loadingElector ? (
+                        <span className="animate-spin">⟳</span>
+                      ) : (
+                        'Buscar'
+                      )}
+                    </button>
+                  </div>
+                  {loadingRecolector || loadingElector ? (
+                    <p className="text-sm text-gray-500 mt-2">Buscando...</p>
+                  ) : cedulaInput.length >= 6 && !recolectorData && !electorData ? (
+                    <p className="text-sm text-red-500 mt-2">Esta cédula no está registrada en el sistema</p>
+                  ) : null}
+                </div>
+                
+                <div className="mt-4 flex justify-end">
+                  <button onClick={closeRecolectorModal} className="btn mr-2">Cancelar</button>
+                </div>
               </div>
-            ))}
-
-            {/* Estado, Municipio, Org */}
-            <div className="form-control mt-2">
-              <label>Estado</label>
-              <select
-                value={modalRecolector.data.estado ?? ''}
-                onChange={(e) =>
-                  setModalRecolector((m) => ({
-                    ...m,
-                    data: { ...m.data, estado: e.target.value, municipio: '' },
-                  }))
-                }
-                className="select"
-              >
-                <option value="">Seleccione</option>
-                {estados.map((e) => (
-                  <option key={e.codigo_estado} value={e.codigo_estado}>
-                    {e.estado}
-                  </option>
+            ) : (
+              <div>
+                {(['nombre', 'cedula', 'telefono', 'email'] as Array<keyof Recolector>).map((key) => (
+                  <div className="form-control mt-2" key={key}>
+                    <label>{key.charAt(0).toUpperCase() + key.slice(1)}</label>
+                    <input
+                      type={key === 'email' ? 'email' : 'text'}
+                      value={modalRecolector.data[key]?.toString() ?? ''}
+                      onChange={(e) =>
+                        setModalRecolector((m) => ({ ...m, data: { ...m.data, [key]: e.target.value } }))
+                      }
+                      className="input"
+                      disabled={key === 'cedula' || (key === 'nombre' && Boolean(electorData))}
+                    />
+                  </div>
                 ))}
-              </select>
-            </div>
 
-            <div className="form-control mt-2">
-              <label>Municipio</label>
-              <select
-                value={modalRecolector.data.municipio ?? ''}
-                onChange={(e) =>
-                  setModalRecolector((m) => ({
-                    ...m,
-                    data: { ...m.data, municipio: e.target.value },
-                  }))
-                }
-                className="select"
-                disabled={!modalRecolector.data.estado}
-              >
-                <option value="">Seleccione</option>
-                {municipios.map((m) => (
-                  <option key={m.codigo_municipio} value={m.codigo_municipio}>
-                    {m.municipio}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {/* Estado, Municipio, Org */}
+                <div className="form-control mt-2">
+                  <label>Estado</label>
+                  <select
+                    value={modalRecolector.data.estado ?? ''}
+                    onChange={(e) =>
+                      setModalRecolector((m) => ({
+                        ...m,
+                        data: { ...m.data, estado: e.target.value, municipio: '' },
+                      }))
+                    }
+                    className="select"
+                  >
+                    <option value="">Seleccione</option>
+                    {estados.map((e) => (
+                      <option key={e.codigo_estado} value={e.codigo_estado}>
+                        {e.estado}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="form-control mt-2">
-              <label>Organización Política</label>
-              <select
-                value={modalRecolector.data.organizacion_politica ?? ''}
-                onChange={(e) =>
-                  setModalRecolector((m) => ({
-                    ...m,
-                    data: { ...m.data, organizacion_politica: e.target.value },
-                  }))
-                }
-                className="select"
-              >
-                <option value="">Seleccione</option>
-                {organizaciones.map((o) => (
-                  <option key={o.id} value={o.nombre}>
-                    {o.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div className="form-control mt-2">
+                  <label>Municipio</label>
+                  <select
+                    value={modalRecolector.data.municipio ?? ''}
+                    onChange={(e) =>
+                      setModalRecolector((m) => ({
+                        ...m,
+                        data: { ...m.data, municipio: e.target.value },
+                      }))
+                    }
+                    className="select"
+                    disabled={!modalRecolector.data.estado}
+                  >
+                    <option value="">Seleccione</option>
+                    {municipios.map((m) => (
+                      <option key={m.codigo_municipio} value={m.codigo_municipio}>
+                        {m.municipio}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="form-control mt-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={modalRecolector.data.es_referido ?? false}
-                  onChange={(e) =>
-                    setModalRecolector((m) => ({
-                      ...m,
-                      data: { ...m.data, es_referido: e.target.checked },
-                    }))
-                  }
-                  className="checkbox"
-                />
-                Es referido
-              </label>
-            </div>
+                <div className="form-control mt-2">
+                  <label>Organización Política</label>
+                  <select
+                    value={modalRecolector.data.organizacion_politica ?? ''}
+                    onChange={(e) =>
+                      setModalRecolector((m) => ({
+                        ...m,
+                        data: { ...m.data, organizacion_politica: e.target.value },
+                      }))
+                    }
+                    className="select"
+                  >
+                    <option value="">Seleccione</option>
+                    {organizaciones.map((o) => (
+                      <option key={o.id} value={o.nombre}>
+                        {o.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-control mt-2">
+                  <label className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      checked={modalRecolector.data.es_referido ?? false}
+                      onChange={(e) =>
+                        setModalRecolector((m) => ({
+                          ...m,
+                          data: { ...m.data, es_referido: e.target.checked },
+                        }))
+                      }
+                      className="checkbox" 
+                    />
+                    Es referido
+                  </label>
+                </div>
 
-            <button onClick={handleSaveRecolector} className="btn btn-primary w-full mt-4">
-              {modalRecolector.editing ? 'Actualizar' : 'Crear'}
-            </button>
+                <button onClick={handleSaveRecolector} className="btn btn-primary w-full mt-4">
+                  {modalRecolector.editing ? 'Actualizar' : 'Crear'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
