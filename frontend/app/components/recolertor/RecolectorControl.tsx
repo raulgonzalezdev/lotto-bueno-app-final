@@ -135,8 +135,16 @@ const RecolectorControl: React.FC = () => {
     queryFn: async () => {
       const params = new URLSearchParams({
         ...(selectedRecolectorId ? { recolector_id: selectedRecolectorId.toString() } : {}),
-        ...(filters.estado ? { codigo_estado: filters.estado } : {}),
       });
+      
+      // Usar la descripción del estado en lugar del código
+      if (filters.estado) {
+        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
+        if (estadoObj) {
+          params.append('codigo_estado', filters.estado);
+        }
+      }
+      
       const res = await fetch(`${apiHost}/api/recolectores/estadisticas/?${params}`);
       if (!res.ok) throw new Error('Error al obtener estadísticas');
       return res.json() as Promise<Estadistica[]>;
@@ -307,11 +315,17 @@ const RecolectorControl: React.FC = () => {
     modalRecolector.editing ? updateMut.mutate(payload) : createMut.mutate(payload);
   };
 
-  const openStatsModal = async (recolectorId?: number) => {
-    setSelectedRecolectorId(recolectorId || null);
-    await refetchEstadisticas();
-    if (recolectorId) await refetchReferidos();
+  const openStatsModal = async (recolectorId: number) => {
+    if (!recolectorId) {
+      fireToast('Debe seleccionar un recolector', 'error');
+      return;
+    }
+    
+    setSelectedRecolectorId(recolectorId);
     setModalStats(true);
+    
+    // Cargar los referidos directamente
+    await refetchReferidos();
   };
 
   const downloadReferidosExcel = async (recolectorId: number) => {
@@ -327,6 +341,47 @@ const RecolectorControl: React.FC = () => {
 
       const recolectorName = estadisticas.find((e) => e.recolector_id === recolectorId)?.nombre ?? 'recolector';
       const fileName = `referidos_${recolectorName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      fireToast('Descarga completada', 'success');
+    } catch (err) {
+      fireToast(`Error al descargar: ${(err as Error).message}`, 'error');
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
+
+  // Función para exportar referidos de un recolector específico
+  const exportarReferidosDetalles = async (recolectorId: number) => {
+    if (!recolectorId || !referidosData) return;
+    
+    setDownloading(true);
+    setDownloadProgress(10);
+    try {
+      const params = new URLSearchParams();
+      if (filters.estado) {
+        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
+        if (estadoObj) {
+          params.append('codigo_estado', filters.estado);
+        }
+      }
+      
+      const res = await fetch(`${apiHost}/api/recolector/referidos-excel/${recolectorId}?${params}`);
+      if (!res.ok) throw new Error('Error descarga');
+
+      setDownloadProgress(80);
+      const blob = await res.blob();
+      setDownloadProgress(100);
+
+      const fileName = `referidos_detalle_${referidosData.recolector.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -446,18 +501,15 @@ const RecolectorControl: React.FC = () => {
         <button onClick={() => openRecolectorModal()} className="btn btn-primary">
           Nuevo Recolector
         </button>
-        <button onClick={() => openStatsModal()} className="btn btn-secondary">
-          Estadísticas
-        </button>
-        <button onClick={() => setModalImport(true)} className="btn btn-info">
-          Importar
-        </button>
         <button 
           onClick={exportarRecolectores} 
           className="btn btn-success" 
           disabled={exporting}
         >
           {exporting ? 'Exportando...' : 'Exportar Excel'}
+        </button>
+        <button onClick={() => setModalImport(true)} className="btn btn-info">
+          Importar
         </button>
       </div>
 
@@ -546,7 +598,7 @@ const RecolectorControl: React.FC = () => {
                         onClick={() => openStatsModal(r.id)}
                         className="btn btn-sm btn-info"
                       >
-                        Stats
+                        Ver Referidos
                       </button>
                     </td>
                   </tr>
@@ -748,117 +800,100 @@ const RecolectorControl: React.FC = () => {
       )}
 
       {/* ----------------------- MODAL Estadísticas ----------------------- */}
-      {modalStats && (
+      {modalStats && selectedRecolectorId && (
         <div className="modal-overlay" onClick={() => setModalStats(false)}>
-          <div className="modal-content max-w-7xl w-4/5" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-4">Estadísticas de Recolectores</h2>
+          <div className="modal-content w-11/12 h-5/6 max-w-screen-xl overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Referidos del Recolector</h2>
+              <button 
+                onClick={() => setModalStats(false)} 
+                className="btn btn-sm btn-circle"
+              >
+                ×
+              </button>
+            </div>
 
             {/* Filtro adicional por estado dentro del modal */}
-            {renderSelect(
-              'estado',
-              estados.map((e) => ({ value: e.codigo_estado.toString(), label: e.estado })),
-            )}
-
-            {loadingStats ? (
-              <div>Cargando...</div>
-            ) : (
-              <table className="table w-full mb-4">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Tickets</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estadisticas.length ? (
-                    estadisticas.map((s) => (
-                      <tr key={s.recolector_id}>
-                        <td>{s.recolector_id}</td>
-                        <td>{s.nombre}</td>
-                        <td>{s.tickets_count}</td>
-                        <td className="flex gap-1 flex-wrap">
-                          <button
-                            className="btn btn-sm"
-                            onClick={() => openStatsModal(s.recolector_id)}
-                          >
-                            Referidos
-                          </button>
-                          <button
-                            className="btn btn-sm btn-secondary"
-                            disabled={downloading}
-                            onClick={() => downloadReferidosExcel(s.recolector_id)}
-                          >
-                            {downloading ? 'Descargando…' : 'Excel'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="text-center">
-                        Sin datos
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Filtrar por Estado:</label>
+              {renderSelect(
+                'estado',
+                estados.map((e) => ({ value: e.codigo_estado.toString(), label: e.estado })),
+              )}
+            </div>
 
             {/* Referidos */}
-            {selectedRecolectorId && referidosData && (
+            {loadingReferidos ? (
+              <div className="p-4 text-center">Cargando datos...</div>
+            ) : referidosData ? (
               <>
-                <h3 className="font-semibold mb-2">
-                  Referidos de {referidosData.recolector.nombre} (Total:{' '}
-                  {referidosData.recolector.total_referidos})
-                </h3>
-                {loadingReferidos ? (
-                  <div>Cargando…</div>
-                ) : (
-                  <div className="overflow-x-auto max-h-72">
-                    <table className="table w-full">
-                      <thead>
-                        <tr>
-                          {[
-                            'Cédula',
-                            'Nombre',
-                            'Teléfono',
-                            'Estado',
-                            'Municipio',
-                            'Parroquia',
-                            'Fecha',
-                          ].map((h) => (
-                            <th key={h}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {referidosData.referidos.length ? (
-                          referidosData.referidos.map((r) => (
-                            <tr key={r.id}>
-                              <td>{r.cedula}</td>
-                              <td>{r.nombre}</td>
-                              <td>{r.telefono}</td>
-                              <td>{r.estado}</td>
-                              <td>{r.municipio}</td>
-                              <td>{r.parroquia}</td>
-                              <td>{new Date(r.fecha_registro).toLocaleDateString()}</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="text-center">
-                              Sin referidos
-                            </td>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">
+                    Referidos de {referidosData.recolector.nombre} (Total:{' '}
+                    {referidosData.recolector.total_referidos})
+                  </h3>
+                  <button
+                    onClick={() => exportarReferidosDetalles(selectedRecolectorId)}
+                    className="btn btn-sm btn-success"
+                    disabled={downloading}
+                  >
+                    {downloading ? 'Exportando...' : 'Exportar Referidos'}
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto max-h-96">
+                  <table className="table w-full">
+                    <thead>
+                      <tr>
+                        {[
+                          'Cédula',
+                          'Nombre',
+                          'Teléfono',
+                          'Estado',
+                          'Municipio',
+                          'Parroquia',
+                          'Fecha',
+                        ].map((h) => (
+                          <th key={h}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {referidosData.referidos.length ? (
+                        referidosData.referidos.map((r) => (
+                          <tr key={r.id}>
+                            <td>{r.cedula}</td>
+                            <td>{r.nombre}</td>
+                            <td>{r.telefono}</td>
+                            <td>{r.estado}</td>
+                            <td>{r.municipio}</td>
+                            <td>{r.parroquia}</td>
+                            <td>{new Date(r.fecha_registro).toLocaleDateString()}</td>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="text-center">
+                            Este recolector no tiene referidos
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </>
+            ) : (
+              <div className="p-4 text-center">No se encontraron datos</div>
             )}
+            
+            <div className="flex justify-end mt-4">
+              <button 
+                onClick={() => setModalStats(false)} 
+                className="btn"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
