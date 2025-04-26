@@ -82,30 +82,48 @@ export const useRecolectores = (params?: {
   return useQuery<RecolectoresResponse, Error>({
     queryKey: queryKey,
     queryFn: async (): Promise<RecolectoresResponse> => {
-      const queryParams: Record<string, string> = {
-        skip: ((currentPage - 1) * recolectoresPerPage).toString(),
-        limit: recolectoresPerPage.toString()
-      };
-      
-      if (searchTerm) queryParams.search = searchTerm;
-      if (estado) queryParams.estado = estado;
-      if (municipio) queryParams.municipio = municipio;
-      if (organizacion_politica) queryParams.organizacion_politica = organizacion_politica;
+      try {
+        const queryParams: Record<string, string> = {
+          skip: ((currentPage - 1) * recolectoresPerPage).toString(),
+          limit: recolectoresPerPage.toString()
+        };
+        
+        if (searchTerm) queryParams.search = searchTerm;
+        if (estado) queryParams.estado = estado;
+        if (municipio) queryParams.municipio = municipio;
+        if (organizacion_politica) queryParams.organizacion_politica = organizacion_politica;
 
-      const data = await apiClient.get<RecolectoresResponse>('api/recolectores/', queryParams);
-      
-      // Asegurarse de que la respuesta tenga el formato esperado
-      if (typeof data === 'object' && data !== null && Array.isArray(data.items) && typeof data.total === 'number') {
-        return data as RecolectoresResponse;
-      } else {
-        // Si la API devuelve un array directamente (caso antiguo?)
-        if (Array.isArray(data)){
-          return { items: data, total: data.length }; // Asumir total basado en la longitud si falta
+        const data = await apiClient.get<any>('api/recolectores/', queryParams);
+        
+        // Manejo seguro para cualquier formato de respuesta
+        if (data === null || data === undefined) {
+          console.warn('La API devolvió una respuesta nula o indefinida');
+          return { items: [], total: 0 };
         }
-        throw new Error('Formato de respuesta inesperado de la API');
+        
+        // Si es un objeto con items y total
+        if (typeof data === 'object' && data !== null && 'items' in data && Array.isArray(data.items)) {
+          return {
+            items: data.items || [],
+            total: typeof data.total === 'number' ? data.total : (data.items?.length || 0)
+          };
+        }
+        
+        // Si es un array directamente
+        if (Array.isArray(data)) {
+          return { items: data, total: data.length };
+        }
+        
+        // Último recurso: devolver un objeto vacío
+        console.warn('Formato de respuesta inesperado de la API:', data);
+        return { items: [], total: 0 };
+      } catch (error) {
+        console.error('Error al obtener recolectores:', error);
+        throw error;
       }
     },
-    placeholderData: (oldData) => oldData, // Usar datos anteriores como placeholder mientras carga
+    placeholderData: (oldData) => oldData || { items: [], total: 0 },
+    refetchOnWindowFocus: false,
   });
 };
 

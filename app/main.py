@@ -1803,31 +1803,39 @@ async def read_recolectores(
     organizacion_politica: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Recolector)
-    
-    # Aplicar filtros si se proporcionan
-    if search:
-        query = query.filter(
-            or_(
-                Recolector.nombre.ilike(f"%{search}%"),
-                Recolector.cedula.ilike(f"%{search}%"),
-                Recolector.telefono.ilike(f"%{search}%")
+    try:
+        query = db.query(Recolector)
+        
+        # Aplicar filtros si se proporcionan
+        if search:
+            query = query.filter(
+                or_(
+                    Recolector.nombre.ilike(f"%{search}%"),
+                    Recolector.cedula.ilike(f"%{search}%"),
+                    Recolector.telefono.ilike(f"%{search}%")
+                )
             )
-        )
-    
-    if estado:
-        query = query.filter(Recolector.estado == estado)
         
-    if municipio:
-        query = query.filter(Recolector.municipio == municipio)
+        if estado:
+            query = query.filter(Recolector.estado == estado)
+            
+        if municipio:
+            query = query.filter(Recolector.municipio == municipio)
+            
+        if organizacion_politica:
+            query = query.filter(Recolector.organizacion_politica == organizacion_politica)
+            
+        total = query.count()
+        recolectores = query.offset(skip).limit(limit).all()
         
-    if organizacion_politica:
-        query = query.filter(Recolector.organizacion_politica == organizacion_politica)
-        
-    total = query.count()
-    recolectores = query.offset(skip).limit(limit).all()
-    
-    return {"total": total, "items": [to_dict(recolector) for recolector in recolectores]}
+        # Asegurar que la respuesta siempre tenga el formato correcto
+        response_items = [to_dict(recolector) for recolector in recolectores] if recolectores else []
+        return {"total": total, "items": response_items}
+    except Exception as e:
+        # Log del error
+        print(f"Error en read_recolectores: {str(e)}")
+        # Devolver un resultado vacío en caso de error
+        return {"total": 0, "items": []}
 
 
 @app.get("/api/recolectores/{recolector_id}", response_model=RecolectorList)

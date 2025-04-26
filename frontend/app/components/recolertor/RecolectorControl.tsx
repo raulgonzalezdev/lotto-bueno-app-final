@@ -699,36 +699,58 @@ const RecolectorControl: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {recolectores.length > 0 ? (
+              {(!recolectores || recolectores.length === 0) ? (
+                <tr>
+                  <td colSpan={10} className="text-center">No hay recolectores disponibles</td>
+                </tr>
+              ) : (
                 recolectores.map((recolector) => {
-                  // Encontrar el estado correspondiente
-                  const estadoObj = estados.find(e => e?.codigo_estado?.toString() === recolector?.estado);
+                  if (!recolector) return null;
                   
-                  // Obtener los municipios del estado del recolector
-                  const municipiosDelEstado = recolector?.estado && municipiosQueries[recolector.estado] 
-                    ? municipiosQueries[recolector.estado]
-                    : [];
+                  // Buscar nombres descriptivos de forma segura
+                  let estadoNombre = recolector.estado || '-';
+                  let municipioNombre = recolector.municipio || '-';
+                  let orgPoliticaNombre = recolector.organizacion_politica || '-';
                   
-                  // Encontrar el municipio correspondiente
-                  const municipioObj = municipiosDelEstado.find(
-                    m => m?.codigo_municipio?.toString() === recolector?.municipio
-                  );
-
-                  // Encontrar la organización política
-                  const orgPolitica = organizacionesPoliticas.find(
-                    org => org?.codigo === recolector?.organizacion_politica
-                  );
-
+                  try {
+                    // Encontrar el estado correspondiente de forma segura
+                    const estadoObj = estados?.find(e => e && e.codigo_estado && 
+                      e.codigo_estado.toString() === recolector.estado);
+                    if (estadoObj?.estado) estadoNombre = estadoObj.estado;
+                    
+                    // Obtener los municipios del estado del recolector de forma segura
+                    const municipiosDelEstado = recolector.estado && municipiosQueries && 
+                      municipiosQueries[recolector.estado] 
+                        ? municipiosQueries[recolector.estado] 
+                        : [];
+                    
+                    // Encontrar el municipio correspondiente de forma segura
+                    const municipioObj = municipiosDelEstado?.find(
+                      m => m && m.codigo_municipio && 
+                        m.codigo_municipio.toString() === recolector.municipio
+                    );
+                    if (municipioObj?.municipio) municipioNombre = municipioObj.municipio;
+                    
+                    // Encontrar la organización política de forma segura
+                    const orgPolitica = organizacionesPoliticas?.find(
+                      org => org && org.codigo === recolector.organizacion_politica
+                    );
+                    if (orgPolitica?.nombre) orgPoliticaNombre = orgPolitica.nombre;
+                  } catch (error) {
+                    console.error("Error al procesar datos descriptivos:", error);
+                    // Ya tenemos valores por defecto, así que no es necesario hacer nada aquí
+                  }
+                  
                   return (
                     <tr key={recolector.id}>
                       <td>{recolector.id}</td>
-                      <td>{recolector.nombre}</td>
-                      <td>{recolector.cedula}</td>
-                      <td>{recolector.telefono}</td>
+                      <td>{recolector.nombre || '-'}</td>
+                      <td>{recolector.cedula || '-'}</td>
+                      <td>{recolector.telefono || '-'}</td>
                       <td>{recolector.email || '-'}</td>
-                      <td>{estadoObj ? estadoObj.estado : recolector.estado || '-'}</td>
-                      <td>{municipioObj ? municipioObj.municipio : recolector.municipio || '-'}</td>
-                      <td>{orgPolitica ? orgPolitica.nombre : recolector.organizacion_politica || '-'}</td>
+                      <td>{estadoNombre}</td>
+                      <td>{municipioNombre}</td>
+                      <td>{orgPoliticaNombre}</td>
                       <td>{recolector.es_referido ? "Sí" : "No"}</td>
                       <td>
                         <button 
@@ -760,10 +782,6 @@ const RecolectorControl: React.FC = () => {
                     </tr>
                   );
                 })
-              ) : (
-                <tr>
-                  <td colSpan={10} className="text-center">No hay recolectores disponibles</td>
-                </tr>
               )}
             </tbody>
           </table>
