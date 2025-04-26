@@ -157,22 +157,19 @@ const RecolectorControl: React.FC = () => {
     queryFn: async () => {
       if (!selectedRecolectorId) return null;
       
-      // Construir parámetros con código y nombre del estado
+      // Construir parámetros con el formato exacto requerido por la API
       const params = new URLSearchParams();
       if (filters.estado) {
-        // Enviamos el código del estado
-        params.append('codigo_estado', filters.estado);
-        
         // Buscamos el estado por su código para obtener su nombre
         const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
         if (estadoObj) {
-          // También enviamos el nombre formateado como aparece en la tabla
-          params.append('estado', `EDO. ${estadoObj.estado.toUpperCase()}`);
+          // El nombre del estado ya viene con el formato "EDO. NOMBREESTADO", usarlo directamente
+          params.append('estado', estadoObj.estado);
         }
       }
       
       console.log(`API call: Obteniendo referidos para recolector ID: ${selectedRecolectorId}`);
-      console.log('Parámetros:', Object.fromEntries(params.entries()));
+      console.log('URL de consulta:', `${apiHost}/api/recolectores/${selectedRecolectorId}/referidos?${params}`);
       
       const res = await fetch(`${apiHost}/api/recolectores/${selectedRecolectorId}/referidos?${params}`);
       
@@ -340,7 +337,7 @@ const RecolectorControl: React.FC = () => {
     modalRecolector.editing ? updateMut.mutate(payload) : createMut.mutate(payload);
   };
 
-  const openStatsModal = async (recolectorId: number) => {
+  const openStatsModal = async (recolectorId: number, recolector?: Recolector) => {
     if (!recolectorId) {
       fireToast('Debe seleccionar un recolector', 'error');
       return;
@@ -348,11 +345,29 @@ const RecolectorControl: React.FC = () => {
     
     console.log(`Abriendo modal para recolector ID: ${recolectorId}`);
     setSelectedRecolectorId(recolectorId);
+    
+    // Si tenemos los datos del recolector, seleccionamos su estado automáticamente
+    if (recolector?.estado) {
+      console.log('Preseleccionando estado:', recolector.estado);
+      
+      // Buscar el código del estado a partir del nombre
+      const estadoObj = estados.find(e => e.estado === recolector.estado);
+      if (estadoObj) {
+        // Actualizar el filtro con el código del estado
+        setFilters(prev => ({
+          ...prev,
+          estado: estadoObj.codigo_estado.toString()
+        }));
+      }
+    }
+    
     setModalStats(true);
     
     try {
-      // Cargar los referidos directamente
-      await refetchReferidos();
+      // Cargar los referidos con un pequeño retraso para asegurar que el filtro se actualice
+      setTimeout(async () => {
+        await refetchReferidos();
+      }, 100);
     } catch (error) {
       console.error('Error al cargar referidos:', error);
       fireToast('Error al cargar los referidos', 'error');
@@ -626,7 +641,7 @@ const RecolectorControl: React.FC = () => {
                         Eliminar
                       </button>
                       <button
-                        onClick={() => openStatsModal(r.id)}
+                        onClick={() => openStatsModal(r.id, r)}
                         className="btn btn-sm btn-info"
                       >
                         Ver Referidos
