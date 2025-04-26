@@ -158,7 +158,12 @@ services:
     ports:
       - "3002:3002"
     command: >
-      sh -c "npm install && npm install @tailwindcss/typography daisyui && npm run build:standalone && npm start"
+      sh -c "cd /app && 
+             echo 'legacy-peer-deps=true' > .npmrc && 
+             npm install --legacy-peer-deps && 
+             npm install --legacy-peer-deps -D @tailwindcss/typography daisyui && 
+             npm run build:standalone && 
+             npm start"
     networks:
       - lotto-bueno-network
     depends_on:
