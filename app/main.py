@@ -3497,6 +3497,107 @@ async def download_excel_recolectores(
 ):
     # Código para filtrar recolectores y generar archivo Excel
     # Similar a download_excel_recolector_referidos pero para recolectores
+    try:
+        # Construir la consulta base
+        query = db.query(Recolector)
+        
+        # Aplicar filtros
+        if search:
+            query = query.filter(
+                or_(
+                    Recolector.cedula.like(f"%{search}%"),
+                    Recolector.nombre.like(f"%{search}%"),
+                    Recolector.telefono.like(f"%{search}%")
+                )
+            )
+            
+        if estado:
+            query = query.filter(Recolector.estado == estado)
+            
+        if municipio:
+            query = query.filter(Recolector.municipio == municipio)
+            
+        if organizacion_politica:
+            query = query.filter(Recolector.organizacion_politica == organizacion_politica)
+        
+        # Obtener los recolectores filtrados
+        recolectores = query.all()
+        
+        # Crear DataFrame con los datos
+        df = pd.DataFrame([{
+            'ID': rec.id,
+            'Nombre': rec.nombre,
+            'Cédula': rec.cedula,
+            'Teléfono': rec.telefono,
+            'Email': rec.email or '',
+            'Estado': rec.estado or '',
+            'Municipio': rec.municipio or '',
+            'Organización Política': rec.organizacion_politica or '',
+            'Es Referido': 'Sí' if rec.es_referido else 'No',
+            'Fecha de Registro': rec.created_at.strftime('%Y-%m-%d %H:%M:%S') if rec.created_at else ''
+        } for rec in recolectores])
+        
+        # Crear el archivo Excel
+        excel_buffer = BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+            workbook = writer.book
+            header_format = workbook.add_format({
+                'bold': True,
+                'bg_color': '#D3D3D3',
+                'border': 1
+            })
+            
+            # Escribir la información de filtros y estadísticas
+            worksheet = workbook.add_worksheet('Recolectores')
+            worksheet.write(0, 0, f"Total de Recolectores: {len(recolectores)}", header_format)
+            
+            if estado:
+                worksheet.write(1, 0, f"Estado: {estado}", header_format)
+            if municipio:
+                worksheet.write(2, 0, f"Municipio: {municipio}", header_format)
+            if organizacion_politica:
+                worksheet.write(3, 0, f"Organización Política: {organizacion_politica}", header_format)
+            if search:
+                worksheet.write(4, 0, f"Búsqueda: {search}", header_format)
+            
+            # Escribir los datos de recolectores
+            df.to_excel(writer, sheet_name='Recolectores', startrow=6, index=False)
+            
+            # Ajustar el ancho de las columnas
+            for idx, col in enumerate(df.columns):
+                max_length = max(df[col].astype(str).apply(len).max(), len(str(col)))
+                worksheet.set_column(idx, idx, max_length + 2)
+        
+        excel_buffer.seek(0)
+        
+        # Construir nombre del archivo
+        filtros = []
+        if estado:
+            filtros.append(estado.replace(" ", "_"))
+        if municipio:
+            filtros.append(municipio.replace(" ", "_"))
+        if organizacion_politica:
+            filtros.append(organizacion_politica.replace(" ", "_"))
+        if search:
+            filtros.append(f"busqueda_{search.replace(' ', '_')}")
+        
+        filtros_str = "_".join(filtros) if filtros else "todos"
+        filename = f"recolectores_{filtros_str}.xlsx"
+        
+        # Comprimir el archivo Excel
+        zip_buffer = compress_file(excel_buffer, filename)
+        
+        return StreamingResponse(
+            zip_buffer,
+            media_type='application/zip',
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}.zip"'
+            }
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
