@@ -1,38 +1,35 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-"use client";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+'use client';
+import React, {
+  useState, useEffect, useRef, useCallback, useMemo,
+} from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import Toast from '../toast/Toast';
 import ConfirmationModal from '../confirmation/ConfirmationModal';
-import { detectHost } from "../../api";
-import { useEstados } from "../../hooks/useEstados";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useImportarRecolectores } from "../../hooks/useRecolectores";
-import { useMunicipios } from "../../hooks/useMunicipios";
-import { useOrganizacionesPoliticas } from "../../hooks/useOrganizacionesPoliticas";
 
-interface Municipio {
-  codigo_municipio: string;
-  municipio: string;
-}
+import { detectHost } from '../../api';
+import { useEstados } from '../../hooks/useEstados';
+import { useMunicipios } from '../../hooks/useMunicipios';
+import { useOrganizacionesPoliticas } from '../../hooks/useOrganizacionesPoliticas';
+import { useImportarRecolectores } from '../../hooks/useRecolectores';
 
-interface OrganizacionPolitica {
-  id: number;
-  nombre: string;
-}
-
+/* -------------------------------------------------------------------------- */
+/*                                 Tipos                                      */
+/* -------------------------------------------------------------------------- */
 interface Recolector {
   id: number;
   nombre: string;
   cedula: string;
   telefono: string;
-  es_referido: boolean;
   email?: string;
   estado?: string;
   municipio?: string;
   organizacion_politica?: string;
+  es_referido: boolean;
 }
 
-interface EstadisticasRecolector {
+interface Estadistica {
   recolector_id: number;
   nombre: string;
   tickets_count: number;
@@ -50,1274 +47,706 @@ interface Referido {
 }
 
 interface ReferidosData {
-  recolector: {
-    id: number;
-    nombre: string;
-    total_referidos: number;
-  };
+  recolector: { id: number; nombre: string; total_referidos: number };
   referidos: Referido[];
 }
 
+interface QueryRecolectoresResponse {
+  items: Recolector[];
+  total: number;
+}
 
+/* -------------------------------------------------------------------------- */
+/*                               Componente                                   */
+/* -------------------------------------------------------------------------- */
 const RecolectorControl: React.FC = () => {
-  const [recolectores, setRecolectores] = useState<Recolector[]>([]);
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedRecolector, setSelectedRecolector] = useState<Recolector | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recolectoresPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [municipioFiltro, setMunicipioFiltro] = useState("");
-  const [organizacionFiltro, setOrganizacionFiltro] = useState("");
-  const [newRecolector, setNewRecolector] = useState({ 
-    nombre: "", 
-    cedula: "", 
-    telefono: "", 
-    es_referido: false,
-    email: "",
-    estado: "",
-    municipio: "",
-    organizacion_politica: ""
+  /* ----------------------------- estados UI ----------------------------- */
+  const [apiHost, setApiHost] = useState<string>('');
+  const [toast, setToast] = useState<{ msg: string; type: 'info' | 'success' | 'error' }>({ msg: '', type: 'info' });
+  const [confirmation, setConfirmation] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
+  const [modalRecolector, setModalRecolector] = useState<{ open: boolean; editing: boolean; data: Partial<Recolector> }>({
+    open: false, editing: false, data: {},
+  });
+  const [modalStats, setModalStats] = useState<boolean>(false);
+  const [modalImport, setModalImport] = useState<boolean>(false);
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
+  const [downloading, setDownloading] = useState<boolean>(false);
+
+  /* ------------------------- filtros y paginación ----------------------- */
+  const [page, setPage] = useState<number>(1);
+  const PER_PAGE = 10;
+
+  const [filters, setFilters] = useState({
+    search: '', estado: '', municipio: '', organizacion: '',
   });
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
-  const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
-  const [recolectorToDelete, setRecolectorToDelete] = useState<number | null>(null);
-  const [estadisticas, setEstadisticas] = useState<EstadisticasRecolector[]>([]);
-  const [isEstadisticasModalOpen, setIsEstadisticasModalOpen] = useState(false);
-  const [APIHost, setAPIHost] = useState<string | null>(null);
+  /* ------------------------------ hooks API ----------------------------- */
+  const qc = useQueryClient();
+  const { data: estados = [] } = useEstados();
+  const { data: municipios = [] } = useMunicipios(filters.estado);
+  const { data: organizaciones = [] } = useOrganizacionesPoliticas();
+
+  /* -------------------- Recolectores (principal) ------------------------ */
+  const { data: recolectoresResp, isLoading: loadingRecolectores, isError: errorRecolectores } = useQuery({
+    queryKey: ['recolectores', page, filters],
+    enabled: Boolean(apiHost),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        skip: ((page - 1) * PER_PAGE).toString(),
+        limit: PER_PAGE.toString(),
+        ...(filters.search && { search: filters.search }),
+        ...(filters.estado && { estado: filters.estado }),
+        ...(filters.municipio && { municipio: filters.municipio }),
+        ...(filters.organizacion && { organizacion_politica: filters.organizacion }),
+      });
+      const res = await fetch(`${apiHost}/api/recolectores?${params}`);
+      if (!res.ok) throw new Error('Error al obtener recolectores');
+      return res.json() as Promise<QueryRecolectoresResponse>;
+    },
+    staleTime: 60_000,
+  });
+
+  /* ----------------------- Estadísticas y referidos --------------------- */
   const [selectedRecolectorId, setSelectedRecolectorId] = useState<number | null>(null);
-  const [referidosData, setReferidosData] = useState<ReferidosData | null>(null);
-  const [estadoFiltro, setEstadoFiltro] = useState("");
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [showMessageModal, setShowMessageModal] = useState(false);
-  const [messageModalConfig, setMessageModalConfig] = useState({
-    message: '',
-    type: 'info', // 'info', 'error', 'success'
-  });
-  const [importModalIsOpen, setImportModalIsOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // React Query client
-  const queryClient = useQueryClient();
-
-  // Fetch Estados usando useEstados
-  const { data: estados = [], isLoading: estadosLoading } = useEstados();
-
-  // Fetch Municipios basado en el estado seleccionado para el filtro
-  const { data: municipiosData = [], isLoading: municipiosLoading } = useMunicipios(estadoFiltro);
-
-  // Obtener organizaciones políticas dinámicamente
-  const { data: organizacionesPoliticasData = [], isLoading: organizacionesLoading } = useOrganizacionesPoliticas();
-
-  // Crear queries para cada estado de los recolectores
-  const municipiosQueries = useMemo(() => {
-    const queries: { [key: string]: Municipio[] } = {};
-    recolectores.forEach(recolector => {
-      if (recolector?.estado && !queries[recolector.estado]) {
-        const { data: municipios = [] } = useMunicipios(recolector.estado);
-        queries[recolector.estado] = municipios || [];
-      }
-    });
-    return queries;
-  }, [recolectores]);
-
-  // Crear un conjunto único de estados de los recolectores
-  const estadosUnicos = [...new Set(recolectores.filter(r => r?.estado).map(r => r.estado))];
-  
-  // Crear queries para cada estado único
-  estadosUnicos.forEach(estado => {
-    if (estado) {
-      const { data: municipios = [] } = useMunicipios(estado);
-      municipiosQueries[estado] = municipios || [];
-    }
-  });
-
-  // Fetch Recolectores con React Query
-  const fetchRecolectoresQuery = useQuery({
-    queryKey: ['recolectores', currentPage, searchTerm, estadoFiltro, municipioFiltro, organizacionFiltro],
+  const { data: estadisticas = [], refetch: refetchEstadisticas, isLoading: loadingStats } = useQuery({
+    queryKey: ['estadisticas', selectedRecolectorId, filters.estado],
+    enabled: false,
     queryFn: async () => {
-      try {
-        if (!APIHost) {
-          console.log("APIHost no disponible aún, retornando datos vacíos");
-          return { items: [], total: 0 };
-        }
-        
-        const query = new URLSearchParams({
-          skip: ((currentPage - 1) * recolectoresPerPage).toString(),
-          limit: recolectoresPerPage.toString(),
-          ...(searchTerm && { search: searchTerm }),
-          ...(estadoFiltro && { estado: estadoFiltro }),
-          ...(municipioFiltro && { municipio: municipioFiltro }),
-          ...(organizacionFiltro && { organizacion_politica: organizacionFiltro }),
-        }).toString();
-
-        console.log(`Obteniendo recolectores: ${APIHost}/api/recolectores/?${query}`);
-        const response = await fetch(`${APIHost}/api/recolectores/?${query}`);
-        if (!response.ok) {
-          throw new Error(`Error: ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log("Datos recibidos:", data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching recolectores:", error);
-        return { items: [], total: 0 };
-      }
+      const params = new URLSearchParams({
+        ...(selectedRecolectorId ? { recolector_id: selectedRecolectorId.toString() } : {}),
+        ...(filters.estado ? { codigo_estado: filters.estado } : {}),
+      });
+      const res = await fetch(`${apiHost}/api/recolectores/estadisticas/?${params}`);
+      if (!res.ok) throw new Error('Error al obtener estadísticas');
+      return res.json() as Promise<Estadistica[]>;
     },
-    enabled: !!APIHost,
-    retry: 1,
-    staleTime: 60000, // 1 minuto
   });
 
-  // Restauramos el uso de municipiosRecolector de manera segura
-  const { data: municipiosRecolector = [] } = useMunicipios(
-    // Solo intentamos obtener municipios si hay al menos un recolector con estado
-    recolectores && recolectores.length > 0 && recolectores[0]?.estado
-      ? recolectores[0].estado
-      : ""
-  );
+  const { data: referidosData, refetch: refetchReferidos, isLoading: loadingReferidos } = useQuery({
+    queryKey: ['referidos', selectedRecolectorId, filters.estado],
+    enabled: false,
+    queryFn: async () => {
+      if (!selectedRecolectorId) return null;
+      const params = new URLSearchParams({ ...(filters.estado && { codigo_estado: filters.estado }) });
+      const res = await fetch(`${apiHost}/api/recolectores/${selectedRecolectorId}/referidos?${params}`);
+      if (!res.ok) throw new Error('Error al obtener referidos');
+      return res.json() as Promise<ReferidosData>;
+    },
+  });
 
-  // Mutación para crear recolector
-  const createRecolectorMutation = useMutation({
-    mutationFn: async (newRecolector: { nombre: string; cedula: string; telefono: string; es_referido: boolean; email: string; municipio: string; organizacion_politica: string }) => {
-      if (!APIHost) throw new Error('API Host no definido');
-      
-      const response = await fetch(`${APIHost}/api/recolectores`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(newRecolector)
+  /* --------------------------- Mutaciones ------------------------------- */
+  const createMut = useMutation({
+    mutationFn: async (payload: Partial<Recolector>) => {
+      const res = await fetch(`${apiHost}/api/recolectores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-  
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      
-      return response.json();
+      if (!res.ok) throw new Error(res.statusText);
+      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recolectores'] });
-      setNewRecolector({ 
-        nombre: "", 
-        cedula: "", 
-        telefono: "", 
-        es_referido: false,
-        email: "",
-        estado: "",
-        municipio: "",
-        organizacion_politica: ""
-      });
-      closeModal();
-      setToastMessage("Recolector creado exitosamente");
-      setToastType("success");
+      qc.invalidateQueries({ queryKey: ['recolectores'] });
+      closeRecolectorModal();
+      fireToast('Recolector creado', 'success');
     },
-    onError: (error) => {
-      console.error("Error creating recolector:", error);
-      setToastMessage("Error creando recolector");
-      setToastType("error");
-    }
+    onError: () => fireToast('Error al crear recolector', 'error'),
   });
 
-  // Mutación para actualizar recolector
-  const updateRecolectorMutation = useMutation({
-    mutationFn: async (recolector: Recolector) => {
-      if (!APIHost) throw new Error('API Host no definido');
-      
-      const response = await fetch(`${APIHost}/api/recolectores/${recolector.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(recolector)
+  const updateMut = useMutation({
+    mutationFn: async (payload: Recolector) => {
+      const res = await fetch(`${apiHost}/api/recolectores/${payload.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      return response.json();
+      if (!res.ok) throw new Error(res.statusText);
+      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recolectores'] });
-      closeModal();
-      setToastMessage("Recolector actualizado exitosamente");
-      setToastType("success");
+      qc.invalidateQueries({ queryKey: ['recolectores'] });
+      closeRecolectorModal();
+      fireToast('Recolector actualizado', 'success');
     },
-    onError: (error) => {
-      console.error("Error updating recolector:", error);
-      setToastMessage("Error actualizando recolector");
-      setToastType("error");
-    }
+    onError: () => fireToast('Error al actualizar recolector', 'error'),
   });
 
-  // Mutación para eliminar recolector
-  const deleteRecolectorMutation = useMutation({
+  const deleteMut = useMutation({
     mutationFn: async (id: number) => {
-      if (!APIHost) throw new Error('API Host no definido');
-      
-      const response = await fetch(`${APIHost}/api/recolectores/${id}`, { 
-        method: "DELETE" 
-      });
-      
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
+      const res = await fetch(`${apiHost}/api/recolectores/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(res.statusText);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recolectores'] });
-      setRecolectorToDelete(null);
-      setIsConfirmationModalVisible(false);
-      setToastMessage("Recolector eliminado exitosamente");
-      setToastType("success");
+      qc.invalidateQueries({ queryKey: ['recolectores'] });
+      setConfirmation({ open: false, id: null });
+      fireToast('Recolector eliminado', 'success');
     },
-    onError: (error) => {
-      console.error("Error deleting recolector:", error);
-      setToastMessage("Error eliminando recolector");
-      setToastType("error");
-    }
+    onError: () => fireToast('Error al eliminar recolector', 'error'),
   });
 
-  // Query para estadísticas
-  const fetchEstadisticasQuery = useQuery({
-    queryKey: ['estadisticas', selectedRecolectorId, estadoFiltro],
-    queryFn: async () => {
-      if (!APIHost) return [];
-      
-      let url = `${APIHost}/api/recolectores/estadisticas/`;
-      if (selectedRecolectorId) {
-        url += `?recolector_id=${selectedRecolectorId}`;
-      }
-      if (estadoFiltro) {
-        url += `${selectedRecolectorId ? '&' : '?'}codigo_estado=${estadoFiltro}`;
-      }
+  const importarRecolectoresMut = useImportarRecolectores();
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-      return response.json();
-    },
-    enabled: false, // No ejecutar automáticamente, solo cuando se solicite
-  });
-
-  // Query para referidos
-  const fetchReferidosQuery = useQuery({
-    queryKey: ['referidos', selectedRecolectorId, estadoFiltro],
-    queryFn: async () => {
-      if (!APIHost || !selectedRecolectorId) return null;
-      
-      let url = `${APIHost}/api/recolectores/${selectedRecolectorId}/referidos`;
-      if (estadoFiltro) {
-        url += `?codigo_estado=${estadoFiltro}`;
-      }
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-      return response.json();
-    },
-    enabled: false, // No ejecutar automáticamente
-  });
-
-  // Mutation para importar recolectores
-  const importarRecolectoresMutation = useImportarRecolectores();
-
-  // Inicializar API host al cargar
+  /* ------------------------- Efectos iniciales -------------------------- */
   useEffect(() => {
-    fetchHost();
+    detectHost()
+      .then(setApiHost)
+      .catch(() => setApiHost(process.env.NEXT_PUBLIC_API_URL || ''));
   }, []);
 
-  // Efecto para procesar datos de recolectores
-  useEffect(() => {
-    console.log("Estado de fetchRecolectoresQuery:", {
-      isLoading: fetchRecolectoresQuery.isLoading,
-      isError: fetchRecolectoresQuery.isError,
-      data: fetchRecolectoresQuery.data
-    });
-    
-    if (fetchRecolectoresQuery.data) {
-      try {
-        if (fetchRecolectoresQuery.data && typeof fetchRecolectoresQuery.data === 'object' && 'items' in fetchRecolectoresQuery.data && Array.isArray(fetchRecolectoresQuery.data.items)) {
-          // Caso 1: Objeto con propiedad 'items' que es un array
-          console.log("Procesando respuesta tipo objeto con 'items'");
-          setRecolectores(fetchRecolectoresQuery.data.items || []);
-          const total = typeof fetchRecolectoresQuery.data.total === 'number' ? fetchRecolectoresQuery.data.total : fetchRecolectoresQuery.data.items.length;
-          setTotalPages(Math.ceil(total / recolectoresPerPage) || 1);
-        } else if (Array.isArray(fetchRecolectoresQuery.data)) {
-          // Caso 2: Es directamente un array
-          console.log("Procesando respuesta tipo array");
-          setRecolectores(fetchRecolectoresQuery.data);
-          setTotalPages(Math.ceil(fetchRecolectoresQuery.data.length / recolectoresPerPage) || 1);
-        } else {
-          // Caso 3: No tiene el formato esperado
-          console.error("Formato de respuesta inesperado:", fetchRecolectoresQuery.data);
-          setRecolectores([]);
-          setTotalPages(1);
-        }
-      } catch (error) {
-        console.error("Error al procesar datos de recolectores:", error);
-        setRecolectores([]);
-        setTotalPages(1);
-      }
-    } else {
-      // Si no hay datos, inicializar con valores vacíos
-      console.log("No hay datos de recolectores, inicializando vacío");
-      setRecolectores([]);
-      setTotalPages(1);
-    }
-  }, [fetchRecolectoresQuery.data, recolectoresPerPage]);
+  /* -------------------------------------------------------------------------- */
+  /*                               Callbacks                                     */
+  /* -------------------------------------------------------------------------- */
+  const fireToast = (msg: string, type: 'info' | 'success' | 'error' = 'info') =>
+    setToast({ msg, type });
 
-  useEffect(() => {
-    if (fetchEstadisticasQuery.data) {
-      setEstadisticas(fetchEstadisticasQuery.data);
-    }
-  }, [fetchEstadisticasQuery.data]);
+  const openRecolectorModal = (rec?: Recolector) =>
+    setModalRecolector({ open: true, editing: Boolean(rec), data: rec ?? {} });
 
-  useEffect(() => {
-    if (fetchReferidosQuery.data) {
-      setReferidosData(fetchReferidosQuery.data);
-    }
-  }, [fetchReferidosQuery.data]);
+  const closeRecolectorModal = () =>
+    setModalRecolector({ open: false, editing: false, data: {} });
 
-  const fetchHost = async () => {
-    try {
-      console.log("Detectando host...");
-      const host = await detectHost();
-      console.log("Host detectado:", host);
-      setAPIHost(host);
-    } catch (error) {
-      console.error("Error detecting host:", error);
-      const fallbackHost = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com';
-      console.log("Usando host de respaldo:", fallbackHost);
-      setAPIHost(fallbackHost);
-    }
+  const handleSaveRecolector = () => {
+    const payload = { ...modalRecolector.data } as Recolector;
+
+    /* Transformar códigos en nombres antes de enviar */
+    const estadoObj = estados.find((e) => e.codigo_estado.toString() === payload.estado);
+    const municipioObj = municipios.find((m) => m.codigo_municipio.toString() === payload.municipio);
+    const orgObj = organizaciones.find((o) => o.nombre === payload.organizacion_politica);
+
+    payload.estado = estadoObj?.estado || payload.estado;
+    payload.municipio = municipioObj?.municipio || payload.municipio;
+    payload.organizacion_politica = orgObj?.nombre || payload.organizacion_politica;
+
+    modalRecolector.editing ? updateMut.mutate(payload) : createMut.mutate(payload);
   };
 
-  const handleDelete = async () => {
-    if (!recolectorToDelete) return;
-    deleteRecolectorMutation.mutate(recolectorToDelete);
-  };
-
-  const handleCreate = async () => {
-    // Buscar valores descriptivos
-    const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === newRecolector.estado);
-    const municipioSeleccionado = municipiosData.find(m => m.codigo_municipio.toString() === newRecolector.municipio);
-    const orgPoliticaSeleccionada = organizacionesPoliticasData.find(org => org.nombre === newRecolector.organizacion_politica);
-
-    const recolectorPayload = {
-      ...newRecolector,
-      estado: estadoSeleccionado?.estado || newRecolector.estado,
-      municipio: municipioSeleccionado?.municipio || newRecolector.municipio,
-      organizacion_politica: orgPoliticaSeleccionada?.nombre || newRecolector.organizacion_politica
-    };
-
-    createRecolectorMutation.mutate(recolectorPayload);
-  };
-
-  const handleUpdate = async (recolector: Recolector) => {
-    // Buscar valores descriptivos
-    const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === recolector.estado);
-    const municipioSeleccionado = municipiosData.find(m => m.codigo_municipio.toString() === recolector.municipio);
-    const orgPoliticaSeleccionada = organizacionesPoliticasData.find(org => org.nombre === recolector.organizacion_politica);
-
-    const recolectorPayload = {
-      ...recolector,
-      estado: estadoSeleccionado?.estado || recolector.estado,
-      municipio: municipioSeleccionado?.municipio || recolector.municipio,
-      organizacion_politica: orgPoliticaSeleccionada?.nombre || recolector.organizacion_politica
-    };
-
-    updateRecolectorMutation.mutate(recolectorPayload);
-  };
-
-  const openModal = (recolector: Recolector | null = null) => {
-    setSelectedRecolector(recolector);
-    setIsEditing(!!recolector);
-    setModalIsOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalIsOpen(false);
-    setSelectedRecolector(null);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to the first page on search
-  };
-
-  const paginate = (pageNumber: number) => {
-    if (pageNumber < 1) {
-      setCurrentPage(1);
-    } else if (pageNumber > totalPages) {
-      setCurrentPage(totalPages);
-    } else {
-      setCurrentPage(pageNumber);
-    }
-  };
-
-  const fetchEstadisticas = async (recolectorId?: number) => {
+  const openStatsModal = async (recolectorId?: number) => {
     setSelectedRecolectorId(recolectorId || null);
-    await fetchEstadisticasQuery.refetch();
-    setIsEstadisticasModalOpen(true);
-    
-    if (recolectorId) {
-      await fetchReferidosQuery.refetch();
-    } else {
-      setReferidosData(null);
-    }
-  };
-
-  const handleEstadoFiltroChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newEstado = e.target.value;
-    setEstadoFiltro(newEstado);
-    setMunicipioFiltro(""); // Resetear municipio al cambiar estado
-    setCurrentPage(1);
-  };
-
-  // Función para mostrar mensajes
-  const showMessage = (message: string, type = 'info') => {
-    setMessageModalConfig({ message, type });
-    setShowMessageModal(true);
-  };
-  
-  // Función para cerrar el modal de mensaje
-  const closeMessageModal = () => {
-    setShowMessageModal(false);
-  };
-
-  // Función para descargar el archivo como blob
-  const downloadBlobAsFile = (blob: Blob, fileName: string) => {
-    try {
-      // Crear URL para el blob
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      
-      // Añadir a DOM, simular clic y eliminar
-      document.body.appendChild(link);
-      link.click();
-      
-      // Limpiar
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-      
-      // Indicar finalización
-      setIsDownloading(false);
-      setDownloadProgress(0);
-      showMessage('Descarga completada con éxito', 'success');
-    } catch (error) {
-      console.error('Error al descargar el archivo:', error);
-      setIsDownloading(false);
-      setDownloadProgress(0);
-      showMessage('Error al descargar el archivo. Inténtelo de nuevo.', 'error');
-    }
+    await refetchEstadisticas();
+    if (recolectorId) await refetchReferidos();
+    setModalStats(true);
   };
 
   const downloadReferidosExcel = async (recolectorId: number) => {
-    const apiHost = await detectHost();
-    if (!apiHost) {
-      showMessage('No se pudo detectar el host del API. Verifique la configuración.', 'error');
-      return;
-    }
-    
+    setDownloading(true);
+    setDownloadProgress(10);
     try {
-      setIsDownloading(true);
-      setDownloadProgress(10);
-      
-      // Simular progreso de carga
-      const progressInterval = setInterval(() => {
-        setDownloadProgress(prev => {
-          const newProgress = prev + 5;
-          return newProgress >= 90 ? 90 : newProgress;
-        });
-      }, 300);
+      const res = await fetch(`${apiHost}/api/recolector/referidos-excel/${recolectorId}`);
+      if (!res.ok) throw new Error('Error descarga');
 
-      const response = await fetch(`${apiHost}/api/recolector/referidos-excel/${recolectorId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      clearInterval(progressInterval);
-      
-      if (!response.ok) {
-        throw new Error(`Error al descargar: ${response.status} ${response.statusText}`);
-      }
-      
       setDownloadProgress(95);
-      
-      const blob = await response.blob();
+      const blob = await res.blob();
       setDownloadProgress(100);
-      
-      // Obtener nombre del recolector para personalizar el nombre del archivo
-      const recolectorName = estadisticas && estadisticas.length > 0 
-        ? (estadisticas.find(stat => stat.recolector_id === recolectorId)?.nombre || 'recolector')
-        : 'recolector';
-      
-      const fileName = `referidos_${recolectorName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      downloadBlobAsFile(blob, fileName);
-    } catch (error) {
-      console.error('Error al descargar referidos:', error);
-      setIsDownloading(false);
-      setDownloadProgress(0);
-      showMessage(`Error al descargar referidos: ${error instanceof Error ? error.message : 'Error desconocido'}`, 'error');
-    }
-  };
 
-  const closeEstadisticasModal = () => {
-    setIsEstadisticasModalOpen(false);
-    setEstadisticas([]);
-  };
+      const recolectorName = estadisticas.find((e) => e.recolector_id === recolectorId)?.nombre ?? 'recolector';
+      const fileName = `referidos_${recolectorName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
 
-  const openImportModal = () => {
-    setImportModalIsOpen(true);
-  };
-
-  const closeImportModal = () => {
-    setImportModalIsOpen(false);
-    setSelectedFile(null);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
-  const handleImportSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFile) {
-      setToastMessage("Por favor seleccione un archivo para importar");
-      setToastType("error");
-      return;
-    }
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-
-    try {
-      const result = await importarRecolectoresMutation.mutateAsync(formData);
-      setToastMessage(`Importación completada: ${result.insertados} recolectores insertados, ${result.errores} errores. ${result.mensaje}`);
-      setToastType("success");
-      closeImportModal();
-    } catch (error) {
-      setToastMessage(`Error durante la importación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-      setToastType("error");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      fireToast('Descarga completada', 'success');
+    } catch (err) {
+      fireToast(`Error al descargar: ${(err as Error).message}`, 'error');
     } finally {
-      setIsUploading(false);
+      setDownloading(false);
+      setDownloadProgress(0);
     }
   };
 
-  // Reiniciar filtros
-  const resetFilters = () => {
-    setSearchTerm("");
-    setEstadoFiltro("");
-    setMunicipioFiltro("");
-    setOrganizacionFiltro("");
-    setCurrentPage(1);
-  };
+  /* -------------------------------------------------------------------------- */
+  /*                              Render helpers                                 */
+  /* -------------------------------------------------------------------------- */
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil((recolectoresResp?.total ?? 0) / PER_PAGE)),
+    [recolectoresResp?.total],
+  );
 
-  // Funciones de manejo de cambios para nuevos filtros
-  const handleMunicipioFiltroChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMunicipioFiltro(e.target.value);
-    setCurrentPage(1);
-  };
+  const renderSelect = (
+    name: keyof typeof filters,
+    items: { value: string; label: string }[],
+    extra?: { disabled?: boolean },
+  ) => (
+    <select
+      name={name}
+      value={filters[name]}
+      onChange={(e) => {
+        const { value } = e.target;
+        setFilters((f) => ({ ...f, [name]: value, ...(name === 'estado' ? { municipio: '' } : {}) }));
+        setPage(1);
+      }}
+      className="select select-bordered w-full"
+      {...extra}
+    >
+      <option value="">Todos</option>
+      {items.map(({ value, label }) => (
+        <option key={value} value={value}>
+          {label}
+        </option>
+      ))}
+    </select>
+  );
 
-  const handleOrganizacionFiltroChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setOrganizacionFiltro(e.target.value);
-    setCurrentPage(1);
-  };
-
+  /* -------------------------------------------------------------------------- */
+  /*                                   UI                                       */
+  /* -------------------------------------------------------------------------- */
   return (
     <div className="p-4">
-      <h2>Control de Recolectores</h2>
+      <h2 className="text-xl font-bold mb-4">Control de Recolectores</h2>
+
+      {/* Acciones principales */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <button onClick={() => openModal()} className="btn btn-primary mb-4">Crear Nuevo Recolector</button>
-        <button onClick={() => fetchEstadisticas()} className="btn btn-secondary mb-4 ml-2">Ver Estadísticas Generales</button>
-        <button onClick={openImportModal} className="btn btn-info mb-4 ml-2">Importar Recolectores</button>
+        <button onClick={() => openRecolectorModal()} className="btn btn-primary">
+          Nuevo Recolector
+        </button>
+        <button onClick={() => openStatsModal()} className="btn btn-secondary">
+          Estadísticas
+        </button>
+        <button onClick={() => setModalImport(true)} className="btn btn-info">
+          Importar
+        </button>
       </div>
 
       {/* Filtros */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
-        <div>
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="input input-bordered w-full"
-          />
-        </div>
-        <div>
-          <select
-            value={estadoFiltro}
-            onChange={handleEstadoFiltroChange}
-            className="select select-bordered w-full"
-            disabled={estadosLoading}
-          >
-            <option value="">Todos los estados</option>
-            {estados.map(estado => (
-              <option key={estado.codigo_estado} value={estado.codigo_estado}>
-                {estado.estado}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <select
-            value={municipioFiltro}
-            onChange={handleMunicipioFiltroChange}
-            className="select select-bordered w-full"
-            disabled={municipiosLoading || !estadoFiltro}
-          >
-            <option value="">Todos los municipios</option>
-            {municipiosData.map(municipio => (
-              <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
-                {municipio.municipio}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <select
-            value={organizacionFiltro}
-            onChange={handleOrganizacionFiltroChange}
-            className="select select-bordered w-full"
-          >
-            <option value="">Todas las organizaciones</option>
-            {organizacionesPoliticasData.map(org => (
-              <option key={org.id} value={org.nombre}>
-                {org.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <button 
-            onClick={resetFilters} 
-            className="btn btn-outline btn-sm w-full"
-          >
-            Limpiar filtros
-          </button>
-        </div>
-      </div>
-      
-      <div className="pagination mb-4 flex justify-center">
-        <button onClick={() => paginate(1)} className="btn btn-primary mr-1">{"<<"}</button>
-        <button onClick={() => paginate(currentPage - 1)} className="btn btn-primary mr-1">{"<"}</button>
-        <span className="btn btn-disabled mr-1">Página {currentPage} de {totalPages}</span>
-        <button onClick={() => paginate(currentPage + 1)} className="btn btn-primary mr-1">{">"}</button>
-        <button onClick={() => paginate(totalPages)} className="btn btn-primary">{">>"}</button>
+        <input
+          name="search"
+          placeholder="Buscar..."
+          value={filters.search}
+          onChange={(e) => {
+            setFilters((f) => ({ ...f, search: e.target.value }));
+            setPage(1);
+          }}
+          className="input input-bordered w-full"
+        />
+
+        {renderSelect(
+          'estado',
+          estados.map((e) => ({ value: e.codigo_estado.toString(), label: e.estado })),
+        )}
+
+        {renderSelect(
+          'municipio',
+          municipios.map((m) => ({ value: m.codigo_municipio.toString(), label: m.municipio })),
+          { disabled: !filters.estado },
+        )}
+
+        {renderSelect(
+          'organizacion',
+          organizaciones.map((o) => ({ value: o.nombre, label: o.nombre })),
+        )}
+
+        <button
+          onClick={() => {
+            setFilters({ search: '', estado: '', municipio: '', organizacion: '' });
+            setPage(1);
+          }}
+          className="btn btn-outline"
+        >
+          Limpiar
+        </button>
       </div>
 
-      {fetchRecolectoresQuery.isLoading ? (
-        <div className="text-center p-4">Cargando recolectores...</div>
-      ) : fetchRecolectoresQuery.isError ? (
-        <div className="text-center p-4 text-red-500">Error al cargar recolectores</div>
+      {/* Tabla de recolectores */}
+      {loadingRecolectores ? (
+        <div>Cargando...</div>
+      ) : errorRecolectores ? (
+        <div className="text-red-500">Error al cargar</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="table-auto w-full">
+          <table className="table w-full">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Cédula</th>
-                <th>Teléfono</th>
-                <th>Email</th>
-                <th>Estado</th>
-                <th>Municipio</th>
-                <th>Organización</th>
-                <th>Referido</th>
-                <th>Acciones</th>
+                {[
+                  'ID', 'Nombre', 'Cédula', 'Teléfono', 'Email',
+                  'Estado', 'Municipio', 'Org. Pol.', 'Referido', 'Acciones',
+                ].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {(!recolectores || recolectores.length === 0) ? (
-                <tr>
-                  <td colSpan={10} className="text-center">No hay recolectores disponibles</td>
-                </tr>
+              {recolectoresResp?.items.length ? (
+                recolectoresResp.items.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.id}</td>
+                    <td>{r.nombre}</td>
+                    <td>{r.cedula}</td>
+                    <td>{r.telefono}</td>
+                    <td>{r.email ?? '-'}</td>
+                    <td>{r.estado ?? '-'}</td>
+                    <td>{r.municipio ?? '-'}</td>
+                    <td>{r.organizacion_politica ?? '-'}</td>
+                    <td>{r.es_referido ? 'Sí' : 'No'}</td>
+                    <td className="flex gap-1 flex-wrap">
+                      <button onClick={() => openRecolectorModal(r)} className="btn btn-sm">
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => setConfirmation({ open: true, id: r.id })}
+                        className="btn btn-sm btn-danger"
+                      >
+                        Eliminar
+                      </button>
+                      <button
+                        onClick={() => openStatsModal(r.id)}
+                        className="btn btn-sm btn-info"
+                      >
+                        Stats
+                      </button>
+                    </td>
+                  </tr>
+                ))
               ) : (
-                recolectores.map((recolector) => {
-                  if (!recolector) return null;
-                  
-                  // Mostrar directamente los valores originales
-                  // y solo intentar buscar nombres descriptivos si ya tenemos cargados los datos de referencia
-                  let estadoNombre = recolector.estado || '-';
-                  let municipioNombre = recolector.municipio || '-';
-                  let orgPoliticaNombre = recolector.organizacion_politica || '-';
-                  
-                  // Intentamos transformar con seguridad - solo si la data ya está disponible
-                  if (estados && estados.length > 0) {
-                    const estadoObj = estados.find(e => e.codigo_estado && 
-                      e.codigo_estado.toString() === recolector.estado);
-                    
-                    if (estadoObj?.estado) {
-                      estadoNombre = estadoObj.estado;
-                    }
-                  }
-                  
-                  return (
-                    <tr key={recolector.id}>
-                      <td>{recolector.id}</td>
-                      <td>{recolector.nombre || '-'}</td>
-                      <td>{recolector.cedula || '-'}</td>
-                      <td>{recolector.telefono || '-'}</td>
-                      <td>{recolector.email || '-'}</td>
-                      <td>{estadoNombre}</td>
-                      <td>{municipioNombre}</td>
-                      <td>{orgPoliticaNombre}</td>
-                      <td>{recolector.es_referido ? "Sí" : "No"}</td>
-                      <td>
-                        <button 
-                          className="btn btn-primary btn-sm mr-2" 
-                          onClick={() => openModal(recolector)}
-                        >
-                          Editar
-                        </button>
-                        <button 
-                          className="btn btn-danger btn-sm mr-2" 
-                          onClick={() => { 
-                            setRecolectorToDelete(recolector.id); 
-                            setIsConfirmationModalVisible(true); 
-                          }}
-                          disabled={deleteRecolectorMutation.isPending}
-                        >
-                          {deleteRecolectorMutation.isPending && recolectorToDelete === recolector.id 
-                            ? "Eliminando..." 
-                            : "Eliminar"
-                          }
-                        </button>
-                        <button 
-                          className="btn btn-info btn-sm" 
-                          onClick={() => fetchEstadisticas(recolector.id)}
-                        >
-                          Ver Estadísticas
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                <tr>
+                  <td colSpan={10} className="text-center">
+                    Sin datos
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       )}
 
-      {modalIsOpen && (
-        <div className="modal-overlay" onClick={closeModal}>
+      {/* Paginación */}
+      <div className="flex justify-center gap-2 mt-4">
+        {['«', '‹'].map((s, i) => (
+          <button
+            key={s}
+            onClick={() => setPage((p) => Math.max(1, p - (i === 0 ? p - 1 : 1)))}
+            className="btn"
+            disabled={page === 1}
+          >
+            {s}
+          </button>
+        ))}
+        <span className="btn btn-disabled">
+          Página {page} de {totalPages}
+        </span>
+        {['›', '»'].map((s, i) => (
+          <button
+            key={s}
+            onClick={() => setPage((p) => Math.min(totalPages, p + (i === 1 ? totalPages - p : 1)))}
+            className="btn"
+            disabled={page === totalPages}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {/* ----------------------- MODAL Recolector ------------------------ */}
+      {modalRecolector.open && (
+        <div className="modal-overlay" onClick={closeRecolectorModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-button" onClick={closeModal}>×</button>
-            <h2>{isEditing ? "Editar Recolector" : "Crear Recolector"}</h2>
-            
-            <div className="form-control mb-2">
-              <label className="label">Nombre</label>
-              <input
-                type="text"
-                placeholder="Nombre"
-                value={isEditing && selectedRecolector ? selectedRecolector.nombre : newRecolector.nombre}
-                onChange={(e) => {
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, nombre: e.target.value });
-                  } else {
-                    setNewRecolector({ ...newRecolector, nombre: e.target.value });
+            <h3>{modalRecolector.editing ? 'Editar' : 'Crear'} Recolector</h3>
+
+            {(['nombre', 'cedula', 'telefono', 'email'] as Array<keyof Recolector>).map((key) => (
+              <div className="form-control mt-2" key={key}>
+                <label>{key.charAt(0).toUpperCase() + key.slice(1)}</label>
+                <input
+                  type={key === 'email' ? 'email' : 'text'}
+                  value={modalRecolector.data[key]?.toString() ?? ''}
+                  onChange={(e) =>
+                    setModalRecolector((m) => ({ ...m, data: { ...m.data, [key]: e.target.value } }))
                   }
-                }}
-                className="input input-bordered w-full"
-              />
-            </div>
-            
-            <div className="form-control mb-2">
-              <label className="label">Cédula</label>
-              <input
-                type="text"
-                placeholder="Cédula"
-                value={isEditing && selectedRecolector ? selectedRecolector.cedula : newRecolector.cedula}
-                onChange={(e) => {
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, cedula: e.target.value });
-                  } else {
-                    setNewRecolector({ ...newRecolector, cedula: e.target.value });
-                  }
-                }}
-                className="input input-bordered w-full"
-              />
-            </div>
-            
-            <div className="form-control mb-2">
-              <label className="label">Teléfono</label>
-              <input
-                type="text"
-                placeholder="Teléfono"
-                value={isEditing && selectedRecolector ? selectedRecolector.telefono : newRecolector.telefono}
-                onChange={(e) => {
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, telefono: e.target.value });
-                  } else {
-                    setNewRecolector({ ...newRecolector, telefono: e.target.value });
-                  }
-                }}
-                className="input input-bordered w-full"
-              />
-            </div>
-            
-            {/* Nuevos campos */}
-            <div className="form-control mb-2">
-              <label className="label">Email</label>
-              <input
-                type="email"
-                placeholder="Email"
-                value={isEditing && selectedRecolector ? selectedRecolector.email || '' : newRecolector.email}
-                onChange={(e) => {
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, email: e.target.value });
-                  } else {
-                    setNewRecolector({ ...newRecolector, email: e.target.value });
-                  }
-                }}
-                className="input input-bordered w-full"
-              />
-            </div>
-            
-            <div className="form-control mb-2">
-              <label className="label">Estado</label>
+                  className="input"
+                />
+              </div>
+            ))}
+
+            {/* Estado, Municipio, Org */}
+            <div className="form-control mt-2">
+              <label>Estado</label>
               <select
-                value={isEditing && selectedRecolector ? selectedRecolector.estado || '' : newRecolector.estado}
-                onChange={(e) => {
-                  const newEstado = e.target.value;
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ 
-                      ...selectedRecolector, 
-                      estado: newEstado,
-                      municipio: '' // Resetear municipio al cambiar estado
-                    });
-                  } else {
-                    setNewRecolector({ 
-                      ...newRecolector, 
-                      estado: newEstado,
-                      municipio: '' // Resetear municipio al cambiar estado
-                    });
-                  }
-                }}
-                className="select select-bordered w-full"
-                disabled={estadosLoading}
+                value={modalRecolector.data.estado ?? ''}
+                onChange={(e) =>
+                  setModalRecolector((m) => ({
+                    ...m,
+                    data: { ...m.data, estado: e.target.value, municipio: '' },
+                  }))
+                }
+                className="select"
               >
-                <option value="">Seleccione un estado</option>
-                {estados.map(estado => (
-                  <option key={estado.codigo_estado} value={estado.codigo_estado}>
-                    {estado.estado}
+                <option value="">Seleccione</option>
+                {estados.map((e) => (
+                  <option key={e.codigo_estado} value={e.codigo_estado}>
+                    {e.estado}
                   </option>
                 ))}
               </select>
             </div>
-            
-            <div className="form-control mb-2">
-              <label className="label">Municipio</label>
+
+            <div className="form-control mt-2">
+              <label>Municipio</label>
               <select
-                value={isEditing && selectedRecolector ? selectedRecolector.municipio || '' : newRecolector.municipio}
-                onChange={(e) => {
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, municipio: e.target.value });
-                  } else {
-                    setNewRecolector({ ...newRecolector, municipio: e.target.value });
-                  }
-                }}
-                className="select select-bordered w-full"
-                disabled={municipiosLoading || !(isEditing ? selectedRecolector?.estado : newRecolector.estado)}
+                value={modalRecolector.data.municipio ?? ''}
+                onChange={(e) =>
+                  setModalRecolector((m) => ({
+                    ...m,
+                    data: { ...m.data, municipio: e.target.value },
+                  }))
+                }
+                className="select"
+                disabled={!modalRecolector.data.estado}
               >
-                <option value="">Seleccione un municipio</option>
-                {municipiosData.map(municipio => (
-                  <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
-                    {municipio.municipio}
+                <option value="">Seleccione</option>
+                {municipios.map((m) => (
+                  <option key={m.codigo_municipio} value={m.codigo_municipio}>
+                    {m.municipio}
                   </option>
                 ))}
               </select>
             </div>
-            
-            <div className="form-control mb-2">
-              <label className="label">Organización Política</label>
+
+            <div className="form-control mt-2">
+              <label>Organización Política</label>
               <select
-                value={isEditing && selectedRecolector ? selectedRecolector.organizacion_politica || '' : newRecolector.organizacion_politica}
-                onChange={(e) => {
-                  if (isEditing && selectedRecolector) {
-                    setSelectedRecolector({ ...selectedRecolector, organizacion_politica: e.target.value });
-                  } else {
-                    setNewRecolector({ ...newRecolector, organizacion_politica: e.target.value });
-                  }
-                }}
-                className="select select-bordered w-full"
+                value={modalRecolector.data.organizacion_politica ?? ''}
+                onChange={(e) =>
+                  setModalRecolector((m) => ({
+                    ...m,
+                    data: { ...m.data, organizacion_politica: e.target.value },
+                  }))
+                }
+                className="select"
               >
-                <option value="">Seleccione una organización</option>
-                {organizacionesPoliticasData.map(org => (
-                  <option key={org.id} value={org.nombre}>
-                    {org.nombre}
+                <option value="">Seleccione</option>
+                {organizaciones.map((o) => (
+                  <option key={o.id} value={o.nombre}>
+                    {o.nombre}
                   </option>
                 ))}
               </select>
             </div>
-            
-            <div className="form-control mb-4">
+
+            <div className="form-control mt-2">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={isEditing && selectedRecolector ? selectedRecolector.es_referido : newRecolector.es_referido}
-                  onChange={(e) => {
-                    if (isEditing && selectedRecolector) {
-                      setSelectedRecolector({ ...selectedRecolector, es_referido: e.target.checked });
-                    } else {
-                      setNewRecolector({ ...newRecolector, es_referido: e.target.checked });
-                    }
-                  }}
+                  checked={modalRecolector.data.es_referido ?? false}
+                  onChange={(e) =>
+                    setModalRecolector((m) => ({
+                      ...m,
+                      data: { ...m.data, es_referido: e.target.checked },
+                    }))
+                  }
                   className="checkbox"
                 />
-                <span>Es Referido</span>
+                Es referido
               </label>
             </div>
-            
-            <button 
-              onClick={isEditing ? () => handleUpdate(selectedRecolector!) : handleCreate} 
-              className="btn btn-primary w-full"
-              disabled={isEditing ? updateRecolectorMutation.isPending : createRecolectorMutation.isPending}
-            >
-              {isEditing 
-                ? (updateRecolectorMutation.isPending ? "Actualizando..." : "Actualizar Recolector") 
-                : (createRecolectorMutation.isPending ? "Creando..." : "Crear Recolector")
-              }
+
+            <button onClick={handleSaveRecolector} className="btn btn-primary w-full mt-4">
+              {modalRecolector.editing ? 'Actualizar' : 'Crear'}
             </button>
           </div>
         </div>
       )}
 
-      {toastMessage && (
-        <Toast 
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage(null)}
-        />
-      )}
-      {isConfirmationModalVisible && (
+      {/* ----------------------- MODAL Confirmación ----------------------- */}
+      {confirmation.open && (
         <ConfirmationModal
-          message="¿Estás seguro de que quieres eliminar este recolector?"
-          onConfirm={handleDelete}
-          onCancel={() => setIsConfirmationModalVisible(false)}
+          message="¿Eliminar recolector?"
+          onConfirm={() => confirmation.id && deleteMut.mutate(confirmation.id)}
+          onCancel={() => setConfirmation({ open: false, id: null })}
         />
       )}
-      {isEstadisticasModalOpen && (
-        <div className="modal-overlay" onClick={closeEstadisticasModal}>
-          <div className="modal-content max-w-full w-11/12 lg:w-10/12 xl:w-9/12 p-6" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-button" onClick={closeEstadisticasModal}>×</button>
-            <h2 className="text-xl font-bold mb-4">Estadísticas de Recolectores</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Filtrar por Estado:</label>
-                <select
-                  value={estadoFiltro}
-                  onChange={handleEstadoFiltroChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  disabled={estadosLoading}
-                >
-                  <option value="">Todos los estados</option>
-                  {estados.map(estado => (
-                    <option key={estado.codigo_estado} value={estado.codigo_estado}>
-                      {estado.estado}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Filtrar por Municipio:</label>
-                <select
-                  value={municipioFiltro}
-                  onChange={handleMunicipioFiltroChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                >
-                  <option value="">Todos los municipios</option>
-                  {municipiosData.map(municipio => (
-                    <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
-                      {municipio.municipio}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Filtrar por Organización:</label>
-                <select
-                  value={organizacionFiltro}
-                  onChange={handleOrganizacionFiltroChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                >
-                  <option value="">Todas las organizaciones</option>
-                  {organizacionesPoliticasData.map(org => (
-                    <option key={org.id} value={org.nombre}>
-                      {org.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
-            <div className="overflow-x-auto">
-              {fetchEstadisticasQuery.isLoading ? (
-                <div className="text-center p-4">Cargando estadísticas...</div>
-              ) : fetchEstadisticasQuery.isError ? (
-                <div className="text-center p-4 text-red-500">Error al cargar estadísticas</div>
-              ) : (
-                <table className="table-auto w-full mb-4">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-2">ID Recolector</th>
-                      <th className="px-4 py-2">Nombre</th>
-                      <th className="px-4 py-2">Cantidad de Tickets</th>
-                      <th className="px-4 py-2">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estadisticas.length > 0 ? estadisticas.map((stat) => (
-                      <tr key={stat.recolector_id} className={selectedRecolectorId === stat.recolector_id ? 'bg-blue-100' : ''}>
-                        <td className="border px-4 py-2">{stat.recolector_id}</td>
-                        <td className="border px-4 py-2">{stat.nombre}</td>
-                        <td className="border px-4 py-2">{stat.tickets_count}</td>
-                        <td className="border px-4 py-2">
-                          <button 
-                            onClick={() => fetchEstadisticas(stat.recolector_id)}
-                            className="btn btn-sm btn-primary mr-2"
+      {/* ----------------------- MODAL Estadísticas ----------------------- */}
+      {modalStats && (
+        <div className="modal-overlay" onClick={() => setModalStats(false)}>
+          <div className="modal-content max-w-7xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold mb-4">Estadísticas de Recolectores</h2>
+
+            {/* Filtro adicional por estado dentro del modal */}
+            {renderSelect(
+              'estado',
+              estados.map((e) => ({ value: e.codigo_estado.toString(), label: e.estado })),
+            )}
+
+            {loadingStats ? (
+              <div>Cargando...</div>
+            ) : (
+              <table className="table w-full mb-4">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Tickets</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {estadisticas.length ? (
+                    estadisticas.map((s) => (
+                      <tr key={s.recolector_id}>
+                        <td>{s.recolector_id}</td>
+                        <td>{s.nombre}</td>
+                        <td>{s.tickets_count}</td>
+                        <td className="flex gap-1 flex-wrap">
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => openStatsModal(s.recolector_id)}
                           >
-                            Ver Referidos
+                            Referidos
                           </button>
                           <button
-                            onClick={() => downloadReferidosExcel(stat.recolector_id)}
                             className="btn btn-sm btn-secondary"
-                            disabled={isDownloading}
+                            disabled={downloading}
+                            onClick={() => downloadReferidosExcel(s.recolector_id)}
                           >
-                            {isDownloading ? 
-                              <span className="flex items-center">
-                                <span className="mr-2">Descargando...</span>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              </span> 
-                              : 'Descargar Excel'
-                            }
+                            {downloading ? 'Descargando…' : 'Excel'}
                           </button>
                         </td>
                       </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={4} className="border px-4 py-2 text-center">No hay estadísticas disponibles</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {referidosData && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-3">
-                  Referidos de {referidosData.recolector.nombre}
-                  <span className="text-sm text-gray-600 ml-2">
-                    (Total: {referidosData.recolector.total_referidos})
-                  </span>
-                </h3>
-                <div className="overflow-x-auto">
-                  {fetchReferidosQuery.isLoading ? (
-                    <div className="text-center p-4">Cargando referidos...</div>
-                  ) : fetchReferidosQuery.isError ? (
-                    <div className="text-center p-4 text-red-500">Error al cargar referidos</div>
+                    ))
                   ) : (
-                    <table className="table-auto w-full">
+                    <tr>
+                      <td colSpan={4} className="text-center">
+                        Sin datos
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {/* Referidos */}
+            {selectedRecolectorId && referidosData && (
+              <>
+                <h3 className="font-semibold mb-2">
+                  Referidos de {referidosData.recolector.nombre} (Total:{' '}
+                  {referidosData.recolector.total_referidos})
+                </h3>
+                {loadingReferidos ? (
+                  <div>Cargando…</div>
+                ) : (
+                  <div className="overflow-x-auto max-h-72">
+                    <table className="table w-full">
                       <thead>
                         <tr>
-                          <th className="px-4 py-2">Cédula</th>
-                          <th className="px-4 py-2">Nombre</th>
-                          <th className="px-4 py-2">Teléfono</th>
-                          <th className="px-4 py-2">Estado</th>
-                          <th className="px-4 py-2">Municipio</th>
-                          <th className="px-4 py-2">Parroquia</th>
-                          <th className="px-4 py-2">Fecha Registro</th>
+                          {[
+                            'Cédula',
+                            'Nombre',
+                            'Teléfono',
+                            'Estado',
+                            'Municipio',
+                            'Parroquia',
+                            'Fecha',
+                          ].map((h) => (
+                            <th key={h}>{h}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {referidosData.referidos.length > 0 ? referidosData.referidos.map((referido) => (
-                          <tr key={referido.id}>
-                            <td className="border px-4 py-2">{referido.cedula}</td>
-                            <td className="border px-4 py-2">{referido.nombre}</td>
-                            <td className="border px-4 py-2">{referido.telefono}</td>
-                            <td className="border px-4 py-2">{referido.estado}</td>
-                            <td className="border px-4 py-2">{referido.municipio}</td>
-                            <td className="border px-4 py-2">{referido.parroquia}</td>
-                            <td className="border px-4 py-2">{new Date(referido.fecha_registro).toLocaleDateString()}</td>
-                          </tr>
-                        )) : (
+                        {referidosData.referidos.length ? (
+                          referidosData.referidos.map((r) => (
+                            <tr key={r.id}>
+                              <td>{r.cedula}</td>
+                              <td>{r.nombre}</td>
+                              <td>{r.telefono}</td>
+                              <td>{r.estado}</td>
+                              <td>{r.municipio}</td>
+                              <td>{r.parroquia}</td>
+                              <td>{new Date(r.fecha_registro).toLocaleDateString()}</td>
+                            </tr>
+                          ))
+                        ) : (
                           <tr>
-                            <td colSpan={7} className="border px-4 py-2 text-center">No hay referidos disponibles</td>
+                            <td colSpan={7} className="text-center">
+                              Sin referidos
+                            </td>
                           </tr>
                         )}
                       </tbody>
                     </table>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       )}
-      {showMessageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className={`bg-white rounded-lg p-6 max-w-lg w-full shadow-lg ${
-            messageModalConfig.type === 'error' 
-              ? 'border-l-4 border-red-500' 
-              : messageModalConfig.type === 'success'
-                ? 'border-l-4 border-green-500'
-                : 'border-l-4 border-blue-500'
-          }`}>
-            <div className="flex items-start">
-              {messageModalConfig.type === 'error' && (
-                <svg className="w-6 h-6 text-red-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              )}
-              {messageModalConfig.type === 'success' && (
-                <svg className="w-6 h-6 text-green-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              )}
-              {messageModalConfig.type === 'info' && (
-                <svg className="w-6 h-6 text-blue-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              )}
-              <div className="flex-1">
-                <h3 className={`text-lg font-medium ${
-                  messageModalConfig.type === 'error' 
-                    ? 'text-red-800' 
-                    : messageModalConfig.type === 'success'
-                      ? 'text-green-800'
-                      : 'text-blue-800'
-                }`}>
-                  {messageModalConfig.type === 'error' 
-                    ? 'Error' 
-                    : messageModalConfig.type === 'success'
-                      ? 'Éxito'
-                      : 'Información'}
-                </h3>
-                <p className="mt-2 text-sm text-gray-700">{messageModalConfig.message}</p>
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    className={`inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-${
-                      messageModalConfig.type === 'error' 
-                        ? 'red' 
-                        : messageModalConfig.type === 'success'
-                          ? 'green'
-                          : 'blue'
-                    }-600 border border-transparent rounded-md hover:bg-${
-                      messageModalConfig.type === 'error' 
-                        ? 'red' 
-                        : messageModalConfig.type === 'success'
-                          ? 'green'
-                          : 'blue'
-                    }-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-${
-                      messageModalConfig.type === 'error' 
-                        ? 'red' 
-                        : messageModalConfig.type === 'success'
-                          ? 'green'
-                          : 'blue'
-                    }-500`}
-                    onClick={closeMessageModal}
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+
+      {/* ---------------------- MODAL Importación ------------------------- */}
+      {modalImport && (
+        <ImportRecolectoresModal
+          onClose={() => setModalImport(false)}
+          importarMut={importarRecolectoresMut}
+          onFinish={() => qc.invalidateQueries({ queryKey: ['recolectores'] })}
+        />
+      )}
+
+      {/* ------------------------- Toast global --------------------------- */}
+      {toast.msg && (
+        <Toast message={toast.msg} type={toast.type} onClose={() => setToast((t) => ({ ...t, msg: '' }))} />
+      )}
+
+      {/* ---------------- Indicador descarga ---------------- */}
+      {downloading && (
+        <div className="fixed bottom-4 right-4 bg-white p-3 rounded shadow">
+          Descargando… {downloadProgress}%
         </div>
       )}
-      {/* Indicador de progreso de descarga */}
-      {isDownloading && downloadProgress > 0 && (
-        <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50">
-          <h4 className="font-bold mb-2">Descargando archivo</h4>
-          <div className="w-64 h-2 bg-gray-200 rounded-full">
-            <div 
-              className="h-full bg-blue-500 rounded-full transition-all duration-300"
-              style={{ width: `${downloadProgress}%` }}
-            />
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                Modal de importación (separado para claridad)               */
+/* -------------------------------------------------------------------------- */
+const ImportRecolectoresModal: React.FC<{
+  onClose: () => void;
+  importarMut: ReturnType<typeof useImportarRecolectores>;
+  onFinish: () => void;
+}> = ({ onClose, importarMut, onFinish }) => {
+  const [file, setFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await importarMut.mutateAsync(formData);
+      alert(`Importación exitosa: ${res.insertados} insertados, ${res.errores} errores`);
+      onFinish();
+      onClose();
+    } catch (err) {
+      alert(`Error al importar: ${(err as Error).message}`);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h3>Importar Recolectores</h3>
+        <form onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.csv"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="file-input"
+          />
+          <div className="mt-4 flex gap-2 justify-end">
+            <button type="button" className="btn" onClick={onClose}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={!file || importarMut.isPending}>
+              {importarMut.isPending ? 'Importando…' : 'Importar'}
+            </button>
           </div>
-          <div className="text-sm text-gray-600 mt-1">
-            {Math.round(downloadProgress)}% completado
-          </div>
-        </div>
-      )}
-      {/* Modal de importación de recolectores */}
-      {importModalIsOpen && (
-        <div className="modal-overlay" onClick={closeImportModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-button" onClick={closeImportModal}>×</button>
-            <h2>Importar Recolectores</h2>
-            <form onSubmit={handleImportSubmit}>
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  Seleccione un archivo Excel (.xlsx) o CSV (.csv) que contenga los recolectores a importar.
-                  <br />
-                  El archivo debe tener las columnas: <strong>nombre</strong>, <strong>cedula</strong>, <strong>telefono</strong> 
-                  y opcionalmente <strong>es_referido</strong>.
-                </p>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".xlsx,.xls,.csv"
-                  onChange={handleFileChange}
-                  className="w-full p-2 border rounded"
-                />
-                {selectedFile && (
-                  <p className="mt-1 text-sm text-green-600">
-                    Archivo seleccionado: {selectedFile.name}
-                  </p>
-                )}
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button 
-                  type="button" 
-                  onClick={closeImportModal}
-                  className="btn btn-outline"
-                  disabled={isUploading}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
-                  disabled={isUploading || !selectedFile}
-                >
-                  {isUploading ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Importando...
-                    </span>
-                  ) : "Importar"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </div>
     </div>
   );
 };
