@@ -151,6 +151,7 @@ services:
     working_dir: /app
     volumes:
       - ./banempre:/app
+      - ./app/banempre/out:/app/out
     environment:
       - NEXT_PUBLIC_API_URL=https://applottobueno.com/api
       - PORT=3002
@@ -158,7 +159,7 @@ services:
     ports:
       - "3002:3002"
     command: >
-      sh -c "npm install @tailwindcss/typography && npm install && npm run build && npm run start"
+      sh -c "npm install --only=production && npm start"
     networks:
       - lotto-bueno-network
     depends_on:
