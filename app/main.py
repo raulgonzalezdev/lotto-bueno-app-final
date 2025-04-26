@@ -3487,6 +3487,18 @@ async def download_recolector_referidos_excel(
     return await download_excel_recolector_referidos(recolector_id, codigo_estado, db)
 
 
+@app.get("/api/download/excel/recolectores")
+async def download_excel_recolectores(
+    search: Optional[str] = Query(None),
+    estado: Optional[str] = None,
+    municipio: Optional[str] = None,
+    organizacion_politica: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    # Código para filtrar recolectores y generar archivo Excel
+    # Similar a download_excel_recolector_referidos pero para recolectores
+
+
 if __name__ == "__main__":
     import platform
     import uvicorn
