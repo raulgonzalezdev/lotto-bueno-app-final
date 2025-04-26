@@ -150,18 +150,16 @@ services:
 
   banempre:
     image: node:18-alpine
-    working_dir: /app
+    working_dir: /banempre
     volumes:
-      - ./banempre:/app
-      - /app/node_modules
+      - ./banempre:/banempre
     environment:
       - NEXT_PUBLIC_API_URL=https://applottobueno.com/api
-      - PORT=3002
-      - NODE_ENV=production
+      
     ports:
       - "3002:3002"
     command: >
-      sh -c "echo 'legacy-peer-deps=true' > .npmrc && npm install --legacy-peer-deps && npm install --legacy-peer-deps -D @tailwindcss/typography daisyui && npm run build:standalone && npm start"
+       sh -c "npm install --legacy-peer-deps && npm run build:standalone && npm start"
     networks:
       - lotto-bueno-network
     depends_on:
