@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import date, datetime
+from fastapi import Query
 
 class ElectorBase(BaseModel):
     letra_cedula: Optional[str]
@@ -194,3 +195,33 @@ class OrganizacionPoliticaUpdate(BaseModel):
     codigo: Optional[str] = None
     descripcion: Optional[str] = None
     activo: Optional[bool] = None
+
+# Esquemas para Emprendedor
+class EmprendedorBase(BaseModel):
+    cedula: str
+    nombre_apellido: str
+    rif: Optional[str] = None
+    nombre_emprendimiento: str
+    telefono: str
+    estado: Optional[str] = None
+    municipio: Optional[str] = None
+
+class EmprendedorCreate(EmprendedorBase):
+    pass
+
+class EmprendedorUpdate(BaseModel):
+    cedula: Optional[str] = None
+    nombre_apellido: Optional[str] = None
+    rif: Optional[str] = None
+    nombre_emprendimiento: Optional[str] = None
+    telefono: Optional[str] = None
+    estado: Optional[str] = None
+    municipio: Optional[str] = None
+
+class EmprendedorList(EmprendedorBase):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True

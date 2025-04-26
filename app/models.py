@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, Boolean, ForeignKey, Index, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, Date, Boolean, ForeignKey, Index, Text, DateTime, func, TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -118,3 +119,17 @@ class OrganizacionPolitica(Base):
     codigo = Column(String(20), nullable=True)
     descripcion = Column(String(200), nullable=True)
     activo = Column(Boolean, default=True)
+
+class Emprendedor(Base):
+    __tablename__ = "emprendedores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cedula = Column(String(20), nullable=False, index=True)
+    nombre_apellido = Column(String(100), nullable=False)
+    rif = Column(String(50), nullable=True)
+    nombre_emprendimiento = Column(String(100), nullable=False)
+    telefono = Column(String(20), nullable=False, index=True)
+    estado = Column(String(50), nullable=True)
+    municipio = Column(String(50), nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.now(), nullable=True)

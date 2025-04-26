@@ -3600,6 +3600,212 @@ async def download_excel_recolectores(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Crear modelo de respuesta para Emprendedor
+class EmprendedorResponse(BaseModel):
+    total: int
+    items: List[EmprendedorList]
+
+# Endpoints para Emprendedores
+@app.get("/api/emprendedores/", response_model=EmprendedorResponse)
+async def read_emprendedores(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: Optional[str] = None,
+    estado: Optional[str] = None,
+    municipio: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Emprendedor)
+    
+    # Aplicar filtros
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Emprendedor.cedula.ilike(search_pattern),
+                models.Emprendedor.nombre_apellido.ilike(search_pattern),
+                models.Emprendedor.nombre_emprendimiento.ilike(search_pattern),
+                models.Emprendedor.telefono.ilike(search_pattern)
+            )
+        )
+    
+    if estado:
+        query = query.filter(models.Emprendedor.estado == estado)
+    
+    if municipio:
+        query = query.filter(models.Emprendedor.municipio == municipio)
+    
+    total = query.count()
+    emprendedores = query.offset(skip).limit(limit).all()
+    
+    return {"total": total, "items": emprendedores}
+
+@app.get("/api/emprendedores/{emprendedor_id}", response_model=EmprendedorList)
+async def read_emprendedor(emprendedor_id: int, db: Session = Depends(get_db)):
+    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
+    if emprendedor is None:
+        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+    return emprendedor
+
+@app.post("/api/emprendedores/", response_model=EmprendedorList)
+async def create_emprendedor(emprendedor: EmprendedorCreate, db: Session = Depends(get_db)):
+    # Verificar si ya existe un emprendedor con esa cédula
+    db_emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == emprendedor.cedula).first()
+    if db_emprendedor:
+        raise HTTPException(status_code=400, detail="Ya existe un emprendedor con esta cédula")
+    
+    # Crear el nuevo emprendedor
+    db_emprendedor = models.Emprendedor(**emprendedor.dict())
+    db.add(db_emprendedor)
+    db.commit()
+    db.refresh(db_emprendedor)
+    return db_emprendedor
+
+@app.delete("/api/emprendedores/{emprendedor_id}", response_model=dict)
+async def delete_emprendedor(emprendedor_id: int, db: Session = Depends(get_db)):
+    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
+    if emprendedor is None:
+        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+    
+    db.delete(emprendedor)
+    db.commit()
+    return {"message": "Emprendedor eliminado exitosamente"}
+
+@app.patch("/api/emprendedores/{emprendedor_id}", response_model=EmprendedorList)
+async def update_emprendedor(emprendedor_id: int, emprendedor: EmprendedorUpdate, db: Session = Depends(get_db)):
+    db_emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
+    if db_emprendedor is None:
+        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+    
+    # Actualizar campos
+    for key, value in emprendedor.dict(exclude_unset=True).items():
+        setattr(db_emprendedor, key, value)
+    
+    db.commit()
+    db.refresh(db_emprendedor)
+    return db_emprendedor
+
+@app.get("/api/emprendedores/by_cedula/{cedula}", response_model=EmprendedorList)
+async def get_emprendedor_by_cedula(cedula: str, db: Session = Depends(get_db)):
+    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == cedula).first()
+    if emprendedor is None:
+        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+    return emprendedor
+
+@app.get("/api/download/excel/emprendedores")
+async def download_excel_emprendedores(
+    search: Optional[str] = Query(None),
+    estado: Optional[str] = None,
+    municipio: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    # Consulta para obtener emprendedores
+    query = db.query(models.Emprendedor)
+    
+    # Aplicar filtros
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Emprendedor.cedula.ilike(search_pattern),
+                models.Emprendedor.nombre_apellido.ilike(search_pattern),
+                models.Emprendedor.nombre_emprendimiento.ilike(search_pattern),
+                models.Emprendedor.telefono.ilike(search_pattern)
+            )
+        )
+    
+    if estado:
+        query = query.filter(models.Emprendedor.estado == estado)
+    
+    if municipio:
+        query = query.filter(models.Emprendedor.municipio == municipio)
+    
+    emprendedores = query.all()
+    
+    # Crear DataFrame con los datos
+    data = []
+    for emp in emprendedores:
+        data.append({
+            "ID": emp.id,
+            "Cédula": emp.cedula,
+            "Nombre y Apellido": emp.nombre_apellido,
+            "RIF": emp.rif if emp.rif else "",
+            "Nombre del Emprendimiento": emp.nombre_emprendimiento,
+            "Teléfono": emp.telefono,
+            "Estado": emp.estado if emp.estado else "",
+            "Municipio": emp.municipio if emp.municipio else "",
+            "Fecha de Registro": emp.created_at.strftime("%Y-%m-%d %H:%M:%S") if emp.created_at else "",
+            "Última Actualización": emp.updated_at.strftime("%Y-%m-%d %H:%M:%S") if emp.updated_at else ""
+        })
+    
+    # Crear Excel
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Emprendedores', index=False)
+        
+        # Ajustar anchos de columnas
+        worksheet = writer.sheets['Emprendedores']
+        for i, col in enumerate(df.columns):
+            column_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
+            worksheet.set_column(i, i, column_len)
+    
+    output.seek(0)
+    
+    # Generar nombre de archivo
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"emprendedores_{timestamp}.xlsx"
+    
+    # Retornar archivo Excel
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@app.get("/api/emprendedores/get_elector_data/{cedula}", response_model=dict)
+async def get_elector_data_for_emprendedor(cedula: str, db: Session = Depends(get_db)):
+    # Extraer solo números de la cédula
+    numero_cedula = ''.join(filter(str.isdigit, cedula))
+    
+    if not numero_cedula:
+        raise HTTPException(status_code=400, detail="Formato de cédula inválido")
+    
+    # Buscar el elector en la base de datos
+    elector = db.query(models.Elector).filter(models.Elector.numero_cedula == numero_cedula).first()
+    
+    if elector is None:
+        raise HTTPException(status_code=404, detail="Elector no encontrado")
+    
+    # Buscar información geográfica
+    geografico = db.query(models.Geografico).filter(
+        models.Geografico.codigo_estado == elector.codigo_estado,
+        models.Geografico.codigo_municipio == elector.codigo_municipio
+    ).first()
+    
+    estado = ""
+    municipio = ""
+    if geografico:
+        estado = geografico.estado
+        municipio = geografico.municipio
+    
+    # Nombre completo
+    nombre_completo = f"{elector.p_nombre} {elector.s_nombre if elector.s_nombre else ''} {elector.p_apellido} {elector.s_apellido if elector.s_apellido else ''}".strip()
+    nombre_completo = ' '.join(nombre_completo.split())  # Eliminar espacios múltiples
+    
+    return {
+        "nombre_apellido": nombre_completo,
+        "estado": estado,
+        "municipio": municipio
+    }
+
+@app.get("/api/emprendedores/check_cedula/{cedula}", response_model=dict)
+async def check_emprendedor_by_cedula(cedula: str, db: Session = Depends(get_db)):
+    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == cedula).first()
+    return {"exists": emprendedor is not None}
+
+
 if __name__ == "__main__":
     import platform
     import uvicorn
