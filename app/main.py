@@ -16,7 +16,7 @@ from typing import Dict, Any, List, Union, Collection, Tuple, Optional
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta, date
 from io import StringIO, BytesIO
-from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response, status, UploadFile, File, Form, APIRouter, Body
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response, status, UploadFile, File, Form, APIRouter, Body, Path
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 import pandas as pd
@@ -28,7 +28,7 @@ import uvicorn
 import threading
 
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, SecurityScopes
 from werkzeug.security import generate_password_hash, check_password_hash
 from pydantic import BaseModel
 from typing import Optional, List
@@ -51,7 +51,8 @@ from app.models import (
     Recolector,
     Users,
     LineaTelefonica,
-    OrganizacionPolitica
+    OrganizacionPolitica,
+    Emprendedor
 )
 from app.schemas import (
     LineaTelefonicaList,
@@ -75,7 +76,10 @@ from app.schemas import (
     ElectorDetail,
     OrganizacionPoliticaList,
     OrganizacionPoliticaCreate,
-    OrganizacionPoliticaUpdate
+    OrganizacionPoliticaUpdate,
+    EmprendedorList,
+    EmprendedorCreate,
+    EmprendedorUpdate
 )
 from dotenv import load_dotenv
 from whatsapp_chatbot_python import GreenAPIBot, Notification
