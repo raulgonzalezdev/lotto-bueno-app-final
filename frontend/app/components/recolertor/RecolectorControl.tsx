@@ -422,9 +422,8 @@ const RecolectorControl: React.FC = () => {
   // Función para exportar recolectores según los filtros actuales
   const exportarRecolectores = async () => {
     try {
-      // NOTA: No existe un endpoint específico para descargar recolectores en Excel
-      // Creamos una solicitud al API normal de recolectores con limit=9999 para obtener todos
-      let url = `${apiHost}/api/recolectores?limit=9999`;
+      // Construir la URL base con el endpoint correcto
+      let url = `${apiHost}/api/download/excel/recolectores`;
       
       // Agregar parámetros como cadena de consulta
       const params = [];
@@ -453,7 +452,7 @@ const RecolectorControl: React.FC = () => {
       
       // Agregar los parámetros a la URL
       if (params.length > 0) {
-        url += `&${params.join('&')}`;
+        url += `?${params.join('&')}`;
       }
       
       console.log('URL de exportación completa:', url);
@@ -461,7 +460,7 @@ const RecolectorControl: React.FC = () => {
       // Descargar directamente en nueva pestaña
       window.open(url, '_blank');
       
-      fireToast('Consulta iniciada. Por favor, use las herramientas del navegador para exportar a Excel', 'info');
+      fireToast('Descarga iniciada', 'success');
     } catch (err) {
       fireToast(`Error al iniciar descarga: ${(err as Error).message}`, 'error');
     }
