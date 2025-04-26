@@ -405,66 +405,29 @@ const RecolectorControl: React.FC = () => {
     }
   };
 
-  // Función para exportar referidos de un recolector específico
-  const exportarReferidosDetalles = async (recolectorId: number) => {
-    if (!recolectorId || !referidosData) return;
-    
-    setDownloading(true);
-    setDownloadProgress(10);
-    try {
-      const params = new URLSearchParams();
-      if (filters.estado) {
-        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
-        if (estadoObj) {
-          params.append('codigo_estado', filters.estado);
-        }
-      }
-      
-      const res = await fetch(`${apiHost}/api/recolector/referidos-excel/${recolectorId}?${params}`);
-      if (!res.ok) throw new Error('Error descarga');
-
-      setDownloadProgress(80);
-      const blob = await res.blob();
-      setDownloadProgress(100);
-
-      const fileName = `referidos_detalle_${referidosData.recolector.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      fireToast('Descarga completada', 'success');
-    } catch (err) {
-      fireToast(`Error al descargar: ${(err as Error).message}`, 'error');
-    } finally {
-      setDownloading(false);
-      setDownloadProgress(0);
-    }
-  };
-
   // Función para exportar recolectores según los filtros actuales
   const exportarRecolectores = async () => {
     setExporting(true);
     try {
       const params = new URLSearchParams();
       
-      // Agregar filtros actuales
+      // Agregar filtros actuales con el formato correcto
       if (filters.search) params.append('search', filters.search);
       
       if (filters.estado) {
+        // Buscar el objeto de estado para obtener su nombre
         const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
         if (estadoObj) {
+          // Usar directamente el nombre del estado como viene de la API
           params.append('estado', estadoObj.estado);
         }
       }
       
       if (filters.municipio) {
+        // Buscar el objeto de municipio para obtener su nombre
         const municipioObj = municipios.find(m => m.codigo_municipio.toString() === filters.municipio);
         if (municipioObj) {
+          // Usar directamente el nombre del municipio
           params.append('municipio', municipioObj.municipio);
         }
       }
@@ -473,6 +436,8 @@ const RecolectorControl: React.FC = () => {
         params.append('organizacion_politica', filters.organizacion);
       }
 
+      console.log('URL de exportación:', `${apiHost}/api/download/excel/recolectores?${params}`);
+      
       // Verificar si existe el endpoint en el backend
       const res = await fetch(`${apiHost}/api/download/excel/recolectores?${params}`);
       
@@ -481,6 +446,11 @@ const RecolectorControl: React.FC = () => {
       }
       
       const blob = await res.blob();
+      // Verificar que el blob no esté vacío
+      if (blob.size === 0) {
+        throw new Error('El archivo generado está vacío');
+      }
+      
       const fileName = res.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/["']/g, '') || 
                       `recolectores_${new Date().toISOString().slice(0,10)}.xlsx`;
       
@@ -499,6 +469,58 @@ const RecolectorControl: React.FC = () => {
       console.error('Error al exportar:', err);
     } finally {
       setExporting(false);
+    }
+  };
+
+  // Función para exportar referidos de un recolector específico
+  const exportarReferidosDetalles = async (recolectorId: number) => {
+    if (!recolectorId || !referidosData) return;
+    
+    setDownloading(true);
+    setDownloadProgress(10);
+    try {
+      const params = new URLSearchParams();
+      if (filters.estado) {
+        // Buscar el objeto de estado para obtener su nombre
+        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
+        if (estadoObj) {
+          // Usar directamente el nombre del estado como viene de la API
+          params.append('estado', estadoObj.estado);
+        }
+      }
+      
+      console.log('URL de exportación referidos:', `${apiHost}/api/recolector/referidos-excel/${recolectorId}?${params}`);
+      
+      const res = await fetch(`${apiHost}/api/recolector/referidos-excel/${recolectorId}?${params}`);
+      if (!res.ok) throw new Error('Error descarga');
+
+      setDownloadProgress(80);
+      const blob = await res.blob();
+      
+      // Verificar que el blob no esté vacío
+      if (blob.size === 0) {
+        throw new Error('El archivo generado está vacío');
+      }
+      
+      setDownloadProgress(100);
+
+      const fileName = `referidos_detalle_${referidosData.recolector.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      fireToast('Descarga completada', 'success');
+    } catch (err) {
+      fireToast(`Error al descargar: ${(err as Error).message}`, 'error');
+      console.error('Error al exportar referidos:', err);
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(0);
     }
   };
 
