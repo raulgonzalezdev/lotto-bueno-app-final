@@ -186,6 +186,18 @@ export const useCheckRecolectorExistsByCedula = (cedula: string) => {
   });
 };
 
+// Hook para registrar o actualizar un recolector por cédula
+export const useRegistroRecolector = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Recolector, Error, RecolectorCreatePayload>({
+    mutationFn: (payload) => apiClient.post<Recolector>('api/recolectores/registro', payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recolectores'] });
+      queryClient.invalidateQueries({ queryKey: ['recolector'] }); // Invalidar consultas de recolector individual
+    },
+  });
+};
+
 // Hook para obtener un recolector por cédula
 export const useRecolectorByCedula = (cedula: string) => {
   return useQuery<Recolector | null, Error>({

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Toast from '../toast/Toast';
-import { useCreateRecolector, useCheckRecolectorExistsByCedula, useUpdateRecolector, useRecolectorByCedula } from '../../hooks/useRecolectores';
+import { useRegistroRecolector, useCheckRecolectorExistsByCedula, useRecolectorByCedula } from '../../hooks/useRecolectores';
 import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
 import { useOrganizacionesPoliticas } from '../../hooks/useOrganizacionesPoliticas';
@@ -53,8 +53,8 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   const { data: municipios = [], isLoading: isLoadingMunicipios } = useMunicipios(formData.estado);
   const { data: organizacionesPoliticas = [], isLoading: isLoadingOrganizaciones } = useOrganizacionesPoliticas();
   
-  const { mutate: createRecolector, isPending: isLoadingSubmit } = useCreateRecolector();
-  const { mutate: updateRecolector } = useUpdateRecolector();
+  // Reemplazar los hooks de create y update con el nuevo hook de registro
+  const { mutate: registroRecolector, isPending: isLoadingSubmit } = useRegistroRecolector();
   
   // Hook para buscar recolector existente - debe ir primero
   const { data: recolectorExistente, isLoading: isLoadingRecolector } = useRecolectorByCedula(formData.cedula);
@@ -246,67 +246,40 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
       organizacion_politica: formData.organizacion_politica
     };
 
-    if (recolectorExistente) {
-      // Actualizar recolector existente
-      updateRecolector({ recolectorId: recolectorExistente.id, payload: recolectorPayload }, {
-        onSuccess: () => {
-          setToastMessage("Datos del copero actualizados exitosamente");
-          setToastType('success');
-          setRegistrationComplete(true);
-          setIsSubmitting(false);
-          
-          setTimeout(() => {
-            setFormData({ 
-              cedula: "", 
-              operador: "0414", 
-              telefono: "", 
-              email: "default@example.com",
-              estado: ANZOATEGUI_CODIGO,
-              municipio: "",
-              organizacion_politica: "",
-              nombre: ""
-            });
-            setRegistrationComplete(false);
-          }, 5000);
-        },
-        onError: (error: any) => {
-          console.error("Error al actualizar copero:", error);
-          setToastMessage(error.message || "Ocurrió un error inesperado al actualizar.");
-          setToastType('error');
-          setIsSubmitting(false);
-        },
-      });
-    } else {
-      // Crear nuevo recolector
-      createRecolector(recolectorPayload, {
-        onSuccess: (data) => {
-          setToastMessage(`Registro exitoso. Su código de recolector es: ${data.id}`);
-          setToastType('success');
-          setRegistrationComplete(true);
-          setIsSubmitting(false);
-          
-          setTimeout(() => {
-            setFormData({ 
-              cedula: "", 
-              operador: "0414", 
-              telefono: "", 
-              email: "default@example.com",
-              estado: ANZOATEGUI_CODIGO,
-              municipio: "",
-              organizacion_politica: "",
-              nombre: ""
-            });
-            setRegistrationComplete(false);
-          }, 5000);
-        },
-        onError: (error: any) => {
-          console.error("Error al registrar copero:", error);
-          setToastMessage(error.message || "Ocurrió un error inesperado al registrar.");
-          setToastType('error');
-          setIsSubmitting(false);
-        },
-      });
-    }
+    // Usar el nuevo endpoint de registro en lugar de la lógica condicional
+    registroRecolector(recolectorPayload, {
+      onSuccess: (data) => {
+        // Mensaje diferente según si es creación o actualización
+        const mensaje = recolectorExistente 
+          ? "Datos del copero actualizados exitosamente" 
+          : `Registro exitoso. Su código de recolector es: ${data.id}`;
+        
+        setToastMessage(mensaje);
+        setToastType('success');
+        setRegistrationComplete(true);
+        setIsSubmitting(false);
+        
+        setTimeout(() => {
+          setFormData({ 
+            cedula: "", 
+            operador: "0414", 
+            telefono: "", 
+            email: "default@example.com",
+            estado: ANZOATEGUI_CODIGO,
+            municipio: "",
+            organizacion_politica: "",
+            nombre: ""
+          });
+          setRegistrationComplete(false);
+        }, 5000);
+      },
+      onError: (error: any) => {
+        console.error("Error al registrar/actualizar copero:", error);
+        setToastMessage(error.message || "Ocurrió un error inesperado.");
+        setToastType('error');
+        setIsSubmitting(false);
+      },
+    });
   };
 
   const handleVolverClick = () => {

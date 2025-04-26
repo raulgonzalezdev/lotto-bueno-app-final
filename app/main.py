@@ -3435,6 +3435,27 @@ async def delete_organizacion_politica(organizacion_id: int, db: Session = Depen
     return {"detail": "Organización política eliminada correctamente"}
 
 
+@app.post("/api/recolectores/registro", response_model=RecolectorList)
+async def registro_recolector(recolector: RecolectorCreate, db: Session = Depends(get_db)):
+    # Verificar si ya existe un recolector con esa cédula
+    existing_recolector = db.query(Recolector).filter(Recolector.cedula == recolector.cedula).first()
+    
+    if existing_recolector:
+        # Si existe, actualizamos el registro
+        for key, value in recolector.model_dump().items():
+            setattr(existing_recolector, key, value)
+        db.commit()
+        db.refresh(existing_recolector)
+        return to_dict(existing_recolector)
+    else:
+        # Si no existe, creamos uno nuevo
+        db_recolector = Recolector(**recolector.model_dump())
+        db.add(db_recolector)
+        db.commit()
+        db.refresh(db_recolector)
+        return to_dict(db_recolector)
+
+
 if __name__ == "__main__":
     import platform
     import uvicorn
