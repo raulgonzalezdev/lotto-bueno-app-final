@@ -13,7 +13,7 @@ interface NavbarProps {
   APIHost: string | null;
   production: boolean;
   version: string;
-  currentPage: string;
+  currentPage: PageType;
   setCurrentPage: (page: PageType) => void;
   title: string;
   subtitle: string;
@@ -59,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Electores"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"ELECTORES"}
+            setPage="ELECTORES"
           />
           <NavbarButton
             hide={false}
@@ -69,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Tickets"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"TICKETS"}
+            setPage="TICKETS"
           />
           <NavbarButton
             hide={false}
@@ -79,7 +79,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Usuarios"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"USERS"}
+            setPage="USERS"
           />
           <NavbarButton
             hide={false}
@@ -89,7 +89,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Recolectores"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"RECOLECTORES"}
+            setPage="RECOLECTORES"
           />
           <NavbarButton
             hide={false}
@@ -99,22 +99,22 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Emprendedores"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"EMPRENDEDORES"}
+            setPage="EMPRENDEDORES"
           />
-           <NavbarButton
+          <NavbarButton
             hide={false}
             APIHost={APIHost}
-            Icon={FcSalesPerformance }
+            Icon={FcSalesPerformance}
             iconSize={icon_size}
             title="Sortear Ganadors"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"STATUS"}
+            setPage="STATUS"
           /> 
           <div
             className={` ${production ? "h-[0vh]" : "sm:h-[3vh] lg:h-[5vh] mx-1"} hidden sm:block bg-text-alt-verba w-px`}
           ></div>
-           <NavbarButton
+          <NavbarButton
             hide={production}
             APIHost={APIHost}
             Icon={FcSmartphoneTablet}
@@ -122,7 +122,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Lineas Telefonicas"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"ADD"}
+            setPage="ADD"
           />
           <NavbarButton
             hide={production}
@@ -132,7 +132,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Organizaciones Políticas"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"ORGANIZACIONES"}
+            setPage="ORGANIZACIONES"
           />
           <NavbarButton
             hide={production}
@@ -142,7 +142,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Configuracion"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage={"SETTINGS"}
+            setPage="SETTINGS"
           />
           <div
             className={`sm:h-[3vh] lg:h-[5vh] mx-1 hidden sm:block bg-text-alt-verba w-px`}

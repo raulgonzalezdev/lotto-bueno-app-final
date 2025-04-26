@@ -12,7 +12,7 @@ import UserControl from "./components/login/UserControl";
 import TicketControl from "./components/ticket/TicketControl";
 // Corrección de la importación con la ruta correcta, si existe
 // Si no existe, se debe comentar para evitar el error
-// import RecolectorControl from "./components/recolertor/RecolectorControl";
+import RecolectorControl from "./components/recolertor/RecolectorControl";
 import LineaTelefonicaControl from "./components/lineas/LineaTelefonicaControl";
 import SorteoControl from "./components/sorteo/SorteoControl";
 import OrganizacionPoliticaControl from './components/organizacionpolitica/OrganizacionPoliticaControl';
@@ -219,22 +219,26 @@ const Home = () => {
           {isAdmin && (
             <>
               <div className="flex justify-between items-center mb-4">
-                <Navbar
-                  APIHost={process.env.NEXT_PUBLIC_API_URL || null}
-                  production={production}
-                  title={currentCustomizationSettings?.title?.text || 'Admin'}
-                  subtitle={currentCustomizationSettings?.subtitle?.text || 'Panel'}
-                  imageSrc={currentCustomizationSettings?.image?.src || '/lotto.avif'}
-                  version="v1.0.1"
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-                <button 
-                  onClick={handleLogout}
-                  className="btn btn-error btn-sm"
-                >
-                  Cerrar Sesión
-                </button>
+                <div className="flex-grow">
+                  <Navbar
+                    APIHost={process.env.NEXT_PUBLIC_API_URL || null}
+                    production={production}
+                    title={currentCustomizationSettings?.title?.text || 'Admin'}
+                    subtitle={currentCustomizationSettings?.subtitle?.text || 'Panel'}
+                    imageSrc={currentCustomizationSettings?.image?.src || '/lotto.avif'}
+                    version="v1.0.1"
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                  />
+                </div>
+                <div className="ml-4">
+                  <button 
+                    onClick={handleLogout}
+                    className="btn btn-error btn-sm"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
               </div>
 
               {currentPage === "ELECTORES" && (
@@ -267,9 +271,7 @@ const Home = () => {
               )}
               {currentPage === "USERS" && !production && <UserControl />}
               {currentPage === "TICKETS" && !production && <TicketControl />}
-              {/* Comentado por posible error de ruta 
-              {currentPage === "RECOLECTORES" && !production && <RecolectorControl />}
-              */}
+              {currentPage === "RECOLECTORES" && <RecolectorControl />}
               {currentPage === "ADD" && !production && <LineaTelefonicaControl />}
               {currentPage === "ORGANIZACIONES" && !production && <OrganizacionPoliticaControl />}
               {currentPage === "EMPRENDEDORES" && !production && <EmprendedorControl />}
