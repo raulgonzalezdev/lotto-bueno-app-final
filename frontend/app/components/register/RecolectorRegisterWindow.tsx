@@ -235,15 +235,21 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
 
     setIsSubmitting(true);
 
+    // Obtener nombres descriptivos en lugar de códigos
+    const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === formData.estado);
+    const municipioSeleccionado = municipios.find(m => m.codigo_municipio.toString() === formData.municipio);
+    const orgPoliticaSeleccionada = organizacionesPoliticas.find(org => org.id.toString() === formData.organizacion_politica) || 
+                                   organizacionesPoliticas.find(org => org.nombre === formData.organizacion_politica);
+
     const recolectorPayload = {
       nombre: recolectorExistente?.nombre || electorData?.nombre || "",
       cedula: formData.cedula,
       telefono: fullPhoneNumber,
       es_referido: true,
       email: formData.email,
-      estado: formData.estado,
-      municipio: formData.municipio,
-      organizacion_politica: formData.organizacion_politica
+      estado: estadoSeleccionado?.estado || formData.estado,
+      municipio: municipioSeleccionado?.municipio || formData.municipio,
+      organizacion_politica: orgPoliticaSeleccionada?.nombre || formData.organizacion_politica
     };
 
     // Usar el nuevo endpoint de registro en lugar de la lógica condicional

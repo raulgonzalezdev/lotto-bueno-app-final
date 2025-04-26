@@ -386,11 +386,35 @@ const RecolectorControl: React.FC = () => {
   };
 
   const handleCreate = async () => {
-    createRecolectorMutation.mutate(newRecolector);
+    // Buscar valores descriptivos
+    const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === newRecolector.estado);
+    const municipioSeleccionado = municipiosData.find(m => m.codigo_municipio.toString() === newRecolector.municipio);
+    const orgPoliticaSeleccionada = organizacionesPoliticas.find(org => org.codigo === newRecolector.organizacion_politica);
+
+    const recolectorPayload = {
+      ...newRecolector,
+      estado: estadoSeleccionado?.estado || newRecolector.estado,
+      municipio: municipioSeleccionado?.municipio || newRecolector.municipio,
+      organizacion_politica: orgPoliticaSeleccionada?.nombre || newRecolector.organizacion_politica
+    };
+
+    createRecolectorMutation.mutate(recolectorPayload);
   };
 
   const handleUpdate = async (recolector: Recolector) => {
-    updateRecolectorMutation.mutate(recolector);
+    // Buscar valores descriptivos
+    const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === recolector.estado);
+    const municipioSeleccionado = municipiosData.find(m => m.codigo_municipio.toString() === recolector.municipio);
+    const orgPoliticaSeleccionada = organizacionesPoliticas.find(org => org.codigo === recolector.organizacion_politica);
+
+    const recolectorPayload = {
+      ...recolector,
+      estado: estadoSeleccionado?.estado || recolector.estado,
+      municipio: municipioSeleccionado?.municipio || recolector.municipio,
+      organizacion_politica: orgPoliticaSeleccionada?.nombre || recolector.organizacion_politica
+    };
+
+    updateRecolectorMutation.mutate(recolectorPayload);
   };
 
   const openModal = (recolector: Recolector | null = null) => {
@@ -707,39 +731,8 @@ const RecolectorControl: React.FC = () => {
                 recolectores.map((recolector) => {
                   if (!recolector) return null;
                   
-                  // Buscar nombres descriptivos de forma segura
-                  let estadoNombre = recolector.estado || '-';
-                  let municipioNombre = recolector.municipio || '-';
-                  let orgPoliticaNombre = recolector.organizacion_politica || '-';
-                  
-                  try {
-                    // Encontrar el estado correspondiente de forma segura
-                    const estadoObj = estados?.find(e => e && e.codigo_estado && 
-                      e.codigo_estado.toString() === recolector.estado);
-                    if (estadoObj?.estado) estadoNombre = estadoObj.estado;
-                    
-                    // Obtener los municipios del estado del recolector de forma segura
-                    const municipiosDelEstado = recolector.estado && municipiosQueries && 
-                      municipiosQueries[recolector.estado] 
-                        ? municipiosQueries[recolector.estado] 
-                        : [];
-                    
-                    // Encontrar el municipio correspondiente de forma segura
-                    const municipioObj = municipiosDelEstado?.find(
-                      m => m && m.codigo_municipio && 
-                        m.codigo_municipio.toString() === recolector.municipio
-                    );
-                    if (municipioObj?.municipio) municipioNombre = municipioObj.municipio;
-                    
-                    // Encontrar la organización política de forma segura
-                    const orgPolitica = organizacionesPoliticas?.find(
-                      org => org && org.codigo === recolector.organizacion_politica
-                    );
-                    if (orgPolitica?.nombre) orgPoliticaNombre = orgPolitica.nombre;
-                  } catch (error) {
-                    console.error("Error al procesar datos descriptivos:", error);
-                    // Ya tenemos valores por defecto, así que no es necesario hacer nada aquí
-                  }
+                  // Mostrar directamente los valores originales
+                  // Sin intentar buscar o transformar los datos
                   
                   return (
                     <tr key={recolector.id}>
@@ -748,9 +741,9 @@ const RecolectorControl: React.FC = () => {
                       <td>{recolector.cedula || '-'}</td>
                       <td>{recolector.telefono || '-'}</td>
                       <td>{recolector.email || '-'}</td>
-                      <td>{estadoNombre}</td>
-                      <td>{municipioNombre}</td>
-                      <td>{orgPoliticaNombre}</td>
+                      <td>{recolector.estado || '-'}</td>
+                      <td>{recolector.municipio || '-'}</td>
+                      <td>{recolector.organizacion_politica || '-'}</td>
                       <td>{recolector.es_referido ? "Sí" : "No"}</td>
                       <td>
                         <button 
@@ -933,7 +926,7 @@ const RecolectorControl: React.FC = () => {
               >
                 <option value="">Seleccione una organización</option>
                 {organizacionesPoliticas.map(org => (
-                  <option key={org.codigo} value={org.codigo}>
+                  <option key={org.codigo} value={org.nombre}>
                     {org.nombre}
                   </option>
                 ))}
