@@ -130,22 +130,22 @@ const RecolectorControl: React.FC = () => {
   const municipiosQueries = useMemo(() => {
     const queries: { [key: string]: Municipio[] } = {};
     recolectores.forEach(recolector => {
-      if (recolector.estado && !queries[recolector.estado]) {
+      if (recolector?.estado && !queries[recolector.estado]) {
         const { data: municipios = [] } = useMunicipios(recolector.estado);
-        queries[recolector.estado] = municipios;
+        queries[recolector.estado] = municipios || [];
       }
     });
     return queries;
   }, [recolectores]);
 
   // Crear un conjunto único de estados de los recolectores
-  const estadosUnicos = [...new Set(recolectores.map(r => r.estado))];
+  const estadosUnicos = [...new Set(recolectores.filter(r => r?.estado).map(r => r.estado))];
   
   // Crear queries para cada estado único
   estadosUnicos.forEach(estado => {
     if (estado) {
       const { data: municipios = [] } = useMunicipios(estado);
-      municipiosQueries[estado] = municipios;
+      municipiosQueries[estado] = municipios || [];
     }
   });
 
@@ -461,7 +461,7 @@ const RecolectorControl: React.FC = () => {
   };
 
   const downloadReferidosExcel = async (recolectorId: number) => {
-    const apiHost = detectHost();
+    const apiHost = await detectHost();
     if (!apiHost) {
       showMessage('No se pudo detectar el host del API. Verifique la configuración.', 'error');
       return;
@@ -498,7 +498,9 @@ const RecolectorControl: React.FC = () => {
       setDownloadProgress(100);
       
       // Obtener nombre del recolector para personalizar el nombre del archivo
-      const recolectorName = estadisticas.find(stat => stat.recolector_id === recolectorId)?.nombre || 'recolector';
+      const recolectorName = estadisticas && estadisticas.length > 0 
+        ? (estadisticas.find(stat => stat.recolector_id === recolectorId)?.nombre || 'recolector')
+        : 'recolector';
       
       const fileName = `referidos_${recolectorName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
       downloadBlobAsFile(blob, fileName);
@@ -682,20 +684,21 @@ const RecolectorControl: React.FC = () => {
               {recolectores.length > 0 ? (
                 recolectores.map((recolector) => {
                   // Encontrar el estado correspondiente
-                  const estadoObj = estados.find(e => e.codigo_estado.toString() === recolector.estado);
+                  const estadoObj = estados.find(e => e?.codigo_estado?.toString() === recolector?.estado);
                   
                   // Obtener los municipios del estado del recolector
-                  const municipiosDelEstado = recolector.estado ? 
-                    (municipiosQueries[recolector.estado] || []) : [];
+                  const municipiosDelEstado = recolector?.estado && municipiosQueries[recolector.estado] 
+                    ? municipiosQueries[recolector.estado]
+                    : [];
                   
                   // Encontrar el municipio correspondiente
                   const municipioObj = municipiosDelEstado.find(
-                    m => m.codigo_municipio.toString() === recolector.municipio
+                    m => m?.codigo_municipio?.toString() === recolector?.municipio
                   );
 
                   // Encontrar la organización política
                   const orgPolitica = organizacionesPoliticas.find(
-                    org => org.codigo === recolector.organizacion_politica
+                    org => org?.codigo === recolector?.organizacion_politica
                   );
 
                   return (

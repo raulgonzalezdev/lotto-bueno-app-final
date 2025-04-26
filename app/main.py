@@ -3456,6 +3456,29 @@ async def registro_recolector(recolector: RecolectorCreate, db: Session = Depend
         return to_dict(db_recolector)
 
 
+@app.get("/api/recolectores/check_cedula/{cedula}", response_model=dict)
+async def check_recolector_by_cedula(cedula: str, db: Session = Depends(get_db)):
+    recolector = db.query(Recolector).filter(Recolector.cedula == cedula).first()
+    return {"exists": recolector is not None}
+
+
+@app.get("/api/recolectores/by_cedula/{cedula}", response_model=RecolectorList)
+async def get_recolector_by_cedula(cedula: str, db: Session = Depends(get_db)):
+    recolector = db.query(Recolector).filter(Recolector.cedula == cedula).first()
+    if not recolector:
+        raise HTTPException(status_code=404, detail="Recolector no encontrado")
+    return to_dict(recolector)
+
+
+@app.get("/api/recolector/referidos-excel/{recolector_id}")
+async def download_recolector_referidos_excel(
+    recolector_id: int,
+    codigo_estado: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    return await download_excel_recolector_referidos(recolector_id, codigo_estado, db)
+
+
 if __name__ == "__main__":
     import platform
     import uvicorn
