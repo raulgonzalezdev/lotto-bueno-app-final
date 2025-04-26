@@ -141,8 +141,8 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://applottobueno.com}
     ports:
       - "3000:3000"
-   command: >
-      sh -c "npm install --leg acy-peer-deps && npm run build:standalone && npm start"
+    command: >
+      sh -c "npm install --legacy-peer-deps && npm run build:standalone && npm start"
     networks:
       - lotto-bueno-network
     depends_on:
@@ -159,7 +159,7 @@ services:
     ports:
       - "3002:3002"
     command: >
-      sh -c "npm install --leg acy-peer-deps && npm run build:standalone && npm start "
+      sh -c "npm install --legacy-peer-deps && npm run build:standalone && npm start"
     networks:
       - lotto-bueno-network
     depends_on:
