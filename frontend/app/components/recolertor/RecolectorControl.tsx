@@ -330,13 +330,31 @@ const RecolectorControl: React.FC = () => {
 
   useEffect(() => {
     if (fetchRecolectoresQuery.data) {
-      if (Array.isArray(fetchRecolectoresQuery.data.items)) {
-        setRecolectores(fetchRecolectoresQuery.data.items);
-        setTotalPages(Math.ceil(fetchRecolectoresQuery.data.total / recolectoresPerPage));
-      } else if (Array.isArray(fetchRecolectoresQuery.data)) {
-        setRecolectores(fetchRecolectoresQuery.data);
-        setTotalPages(Math.ceil(fetchRecolectoresQuery.data.length / recolectoresPerPage));
+      try {
+        if (fetchRecolectoresQuery.data && typeof fetchRecolectoresQuery.data === 'object' && 'items' in fetchRecolectoresQuery.data && Array.isArray(fetchRecolectoresQuery.data.items)) {
+          // Caso 1: Objeto con propiedad 'items' que es un array
+          setRecolectores(fetchRecolectoresQuery.data.items || []);
+          const total = typeof fetchRecolectoresQuery.data.total === 'number' ? fetchRecolectoresQuery.data.total : fetchRecolectoresQuery.data.items.length;
+          setTotalPages(Math.ceil(total / recolectoresPerPage) || 1);
+        } else if (Array.isArray(fetchRecolectoresQuery.data)) {
+          // Caso 2: Es directamente un array
+          setRecolectores(fetchRecolectoresQuery.data);
+          setTotalPages(Math.ceil(fetchRecolectoresQuery.data.length / recolectoresPerPage) || 1);
+        } else {
+          // Caso 3: No tiene el formato esperado
+          console.error("Formato de respuesta inesperado:", fetchRecolectoresQuery.data);
+          setRecolectores([]);
+          setTotalPages(1);
+        }
+      } catch (error) {
+        console.error("Error al procesar datos de recolectores:", error);
+        setRecolectores([]);
+        setTotalPages(1);
       }
+    } else {
+      // Si no hay datos, inicializar con valores vacíos
+      setRecolectores([]);
+      setTotalPages(1);
     }
   }, [fetchRecolectoresQuery.data, recolectoresPerPage]);
 
