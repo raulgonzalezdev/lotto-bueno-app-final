@@ -99,96 +99,111 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen" style={bgStyle}>
-        <div className="mb-8">
-          <Image 
-            src="/logo bamempre.png" 
-            alt="Banempre - Banco de los Emprendedores"
-            width={300}
-            height={100}
-            priority
-          />
+        <div className="container mx-auto px-4 py-4 flex flex-col">
+          {/* Logo a la izquierda como en la landing */}
+          <div className="flex justify-start mb-10">
+            <Image 
+              src="/logo bamempre.png" 
+              alt="Banempre - Banco de los Emprendedores"
+              width={500}
+              height={105}
+              className="w-64 md:w-auto"
+              priority
+            />
+          </div>
+          <div className="flex-grow flex justify-center items-center">
+            <div className="flex flex-col items-center">
+              <PulseLoader color="#ffffff" loading={true} size={12} speedMultiplier={0.75} />
+              <p className="mt-4 text-white">Cargando dashboard...</p>
+            </div>
+          </div>
         </div>
-        <PulseLoader color="#ffffff" loading={true} size={12} speedMultiplier={0.75} />
-        <p className="mt-4 text-white">Cargando dashboard...</p>
       </div>
     );
   }
 
   if (showLoginForm) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen py-6" style={bgStyle}>
-        <div className="w-full max-w-md overflow-hidden">
-          <div className="p-4 flex justify-center bg-transparent">
+      <div className="flex flex-col min-h-screen" style={bgStyle}>
+        <div className="container mx-auto px-4 py-4 md:py-6 flex flex-col min-h-screen">
+          {/* Logo a la izquierda como en la landing */}
+          <div className="flex justify-start mb-4 md:mb-10">
             <Image 
               src="/logo bamempre.png" 
               alt="Banempre - Banco de los Emprendedores"
-              width={220}
-              height={80}
+              width={500}
+              height={105}
+              className="w-64 md:w-auto"
               priority
             />
           </div>
           
-          <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold text-center mb-6 text-white">Inicio de Sesión Admin</h2>
-            
-            {error && (
-              <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
-                {error}
-              </div>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-white text-sm font-medium mb-2">
-                  Nombre de usuario
-                </label>
-                <input
-                  type="text"
-                  name="username"
-                  value={loginData.username}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              
-              <div className="mb-6">
-                <label className="block text-white text-sm font-medium mb-2">
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={loginData.password}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              
-              <div className="flex flex-col space-y-3">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 text-white font-medium py-2 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
-                >
-                  {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
-                </button>
+          {/* Contenido principal - formulario a la derecha */}
+          <div className="flex-grow flex flex-col md:flex-row md:justify-end items-center md:items-start">
+            <div className="w-full md:w-1/2 lg:w-5/12">
+              <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-6 rounded-lg shadow-lg">
+                <h2 className="text-xl font-bold text-center mb-6 text-white">Inicio de Sesión Admin</h2>
                 
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="bg-gray-600 text-white font-medium py-2 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
-                >
-                  CANCELAR
-                </button>
+                {error && (
+                  <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
+                    {error}
+                  </div>
+                )}
+                
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Nombre de usuario
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={loginData.username}
+                      onChange={handleChange}
+                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={loginData.password}
+                      onChange={handleChange}
+                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="flex flex-col space-y-3">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-blue-600 text-white font-medium py-2 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
+                    >
+                      {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="bg-gray-600 text-white font-medium py-2 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
+                    >
+                      CANCELAR
+                    </button>
+                  </div>
+                </form>
+                
+                <div className="mt-4 text-center text-sm">
+                  <a href={BANEMPRE_URL} className="text-white hover:text-blue-100">
+                    ¿No tienes una cuenta? Regístrate
+                  </a>
+                </div>
               </div>
-            </form>
-            
-            <div className="mt-4 text-center text-sm">
-              <a href={BANEMPRE_URL} className="text-white hover:text-blue-100">
-                ¿No tienes una cuenta? Regístrate
-              </a>
             </div>
           </div>
         </div>

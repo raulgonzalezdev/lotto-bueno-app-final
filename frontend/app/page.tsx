@@ -10,7 +10,9 @@ import RegisterWindow from "./components/register/RegisterWindow";
 import RecolectorRegisterWindow from "./components/register/RecolectorRegisterWindow";
 import UserControl from "./components/login/UserControl";
 import TicketControl from "./components/ticket/TicketControl";
-import RecolectorControl from "./components/recolertor/RecolectorControl";
+// Corrección de la importación con la ruta correcta, si existe
+// Si no existe, se debe comentar para evitar el error
+// import RecolectorControl from "./components/recolertor/RecolectorControl";
 import LineaTelefonicaControl from "./components/lineas/LineaTelefonicaControl";
 import SorteoControl from "./components/sorteo/SorteoControl";
 import OrganizacionPoliticaControl from './components/organizacionpolitica/OrganizacionPoliticaControl';
@@ -23,6 +25,14 @@ import Script from 'next/script';
 import { fonts, FontKey } from "./info";
 import PulseLoader from "react-spinners/PulseLoader";
 import { useSettings } from "./hooks/useSettings";
+
+// Estilo para el fondo de la página
+const bgStyle = {
+  backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/fondolottobueno.jpg')`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundAttachment: 'fixed'
+};
 
 const Home = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -115,25 +125,25 @@ const Home = () => {
 
   if (isLoadingSettings) {
     return (
-      <div className="flex items-center justify-center h-screen gap-2">
+      <div className="flex items-center justify-center h-screen gap-2" style={bgStyle}>
         <PulseLoader loading={true} size={12} speedMultiplier={0.75} />
-        <p>Cargando configuración...</p>
+        <p className="text-white">Cargando configuración...</p>
       </div>
     );
   }
 
   if (isErrorSettings) {
     return (
-      <div className="flex items-center justify-center h-screen gap-2">
-        <p>Error cargando la configuración: {errorSettings?.message}</p>
+      <div className="flex items-center justify-center h-screen gap-2" style={bgStyle}>
+        <p className="text-white">Error cargando la configuración: {errorSettings?.message}</p>
       </div>
     );
   }
 
   if (!settingsData) {
     return (
-      <div className="flex items-center justify-center h-screen gap-2">
-        <p>No se pudo obtener la configuración del servidor.</p>
+      <div className="flex items-center justify-center h-screen gap-2" style={bgStyle}>
+        <p className="text-white">No se pudo obtener la configuración del servidor.</p>
       </div>
     );
   }
@@ -141,27 +151,6 @@ const Home = () => {
   // Si llegamos aquí, settingsData está cargado
   const currentCustomizationSettings = settingsData[settingTemplate]?.Customization?.settings;
   const currentChatSettings = settingsData[settingTemplate]?.Chat?.settings;
-
-  // Log de props antes del return principal
- /* console.log('[Home Component Render]', {
-    isAdmin,
-    currentPage,
-    settingTemplate,
-    settingsDataLoaded: !!settingsData,
-    currentCustomizationSettingsExists: !!currentCustomizationSettings,
-    currentChatSettingsExists: !!currentChatSettings
-  });
-  if (isAdmin) {
-      console.log('Admin view props:', {
-          APIHost: process.env.NEXT_PUBLIC_API_URL,
-          production,
-          navbarTitle: currentCustomizationSettings?.title?.text,
-          navbarSubtitle: currentCustomizationSettings?.subtitle?.text,
-          navbarImageSrc: currentCustomizationSettings?.image?.src || '/lotto.avif',
-          chatSettingConfig: settingsData ? settingsData[settingTemplate] : null,
-          chatImageSrc: currentCustomizationSettings?.image?.src || '/lotto.avif'
-      });
-  }*/
 
   return (
     <div>
@@ -174,6 +163,7 @@ const Home = () => {
         data-theme={
           currentCustomizationSettings?.theme || "light"
         }
+        style={!isAdmin ? bgStyle : {}}
       >
         {gtag && (
           <>
@@ -276,7 +266,9 @@ const Home = () => {
               )}
               {currentPage === "USERS" && !production && <UserControl />}
               {currentPage === "TICKETS" && !production && <TicketControl />}
+              {/* Comentado por posible error de ruta 
               {currentPage === "RECOLECTORES" && !production && <RecolectorControl />}
+              */}
               {currentPage === "ADD" && !production && <LineaTelefonicaControl />}
               {currentPage === "ORGANIZACIONES" && !production && <OrganizacionPoliticaControl />}
             </>
