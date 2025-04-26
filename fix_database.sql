@@ -91,3 +91,43 @@ BEGIN
     END IF;
 END
 $$; 
+
+-- 5. Crear tabla emprendedores si no existe
+CREATE TABLE IF NOT EXISTS emprendedores (
+    id SERIAL PRIMARY KEY,
+    cedula VARCHAR(20) NOT NULL,
+    nombre_apellido VARCHAR(100) NOT NULL,
+    rif VARCHAR(50),
+    nombre_emprendimiento VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    estado VARCHAR(50),
+    municipio VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Crear índices para la tabla emprendedores
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'emprendedores' AND indexname = 'ix_emprendedores_id'
+    ) THEN
+        CREATE INDEX ix_emprendedores_id ON emprendedores (id);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'emprendedores' AND indexname = 'ix_emprendedores_cedula'
+    ) THEN
+        CREATE INDEX ix_emprendedores_cedula ON emprendedores (cedula);
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'emprendedores' AND indexname = 'ix_emprendedores_telefono'
+    ) THEN
+        CREATE INDEX ix_emprendedores_telefono ON emprendedores (telefono);
+    END IF;
+END
+$$; 
