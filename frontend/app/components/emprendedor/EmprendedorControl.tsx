@@ -69,7 +69,7 @@ const EmprendedorControl: React.FC = () => {
   /* ------------------------------ hooks API ----------------------------- */
   const qc = useQueryClient();
   const { data: estados = [] } = useEstados();
-  const { data: municipios = [] } = useMunicipios(filters.estado);
+  const { data: municipios = [] } = useMunicipios(modalEmprendedor.open ? modalEmprendedor.data.estado?.toString() || '' : filters.estado);
 
   /* -------------------- Emprendedores (principal) ------------------------ */
   const { data: emprendedoresResp, isLoading: loadingEmprendedores, isError: errorEmprendedores } = useQuery({
@@ -160,6 +160,14 @@ const EmprendedorControl: React.FC = () => {
       .then(setApiHost)
       .catch(() => setApiHost(process.env.NEXT_PUBLIC_API_URL || ''));
   }, []);
+
+  // Efecto para actualizar el estado de municipios cuando se cambia el estado en el modal
+  useEffect(() => {
+    if (modalEmprendedor.open && modalEmprendedor.data.estado) {
+      // Forzar la recarga de municipios cuando se cambia el estado en el modal
+      qc.invalidateQueries({ queryKey: ['municipios', modalEmprendedor.data.estado.toString()] });
+    }
+  }, [modalEmprendedor.data.estado, modalEmprendedor.open, qc]);
 
   /* -------------------------------------------------------------------------- */
   /*                               Callbacks                                     */
@@ -580,14 +588,14 @@ const EmprendedorControl: React.FC = () => {
                     onChange={(e) =>
                       setModalEmprendedor((m) => ({
                         ...m,
-                        data: { ...m.data, estado: e.target.value, municipio: '' },
+                        data: { ...m.data, estado: e.target.value.toString(), municipio: '' },
                       }))
                     }
                     className="select"
                   >
                     <option value="">Seleccione</option>
                     {estados.map((e) => (
-                      <option key={e.codigo_estado} value={e.codigo_estado}>
+                      <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
                         {e.estado}
                       </option>
                     ))}
@@ -601,18 +609,26 @@ const EmprendedorControl: React.FC = () => {
                     onChange={(e) =>
                       setModalEmprendedor((m) => ({
                         ...m,
-                        data: { ...m.data, municipio: e.target.value },
+                        data: { ...m.data, municipio: e.target.value.toString() },
                       }))
                     }
                     className="select"
                     disabled={!modalEmprendedor.data.estado}
                   >
                     <option value="">Seleccione</option>
-                    {municipios.map((m) => (
-                      <option key={m.codigo_municipio} value={m.codigo_municipio}>
-                        {m.municipio}
-                      </option>
-                    ))}
+                    {municipios
+                      .filter(m => {
+                        // Si no hay estado seleccionado, no filtrar
+                        if (!modalEmprendedor.data.estado) return false;
+                        
+                        // Solo mostrar municipios si tenemos estado seleccionado
+                        return true;
+                      })
+                      .map((m) => (
+                        <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
+                          {m.municipio}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
