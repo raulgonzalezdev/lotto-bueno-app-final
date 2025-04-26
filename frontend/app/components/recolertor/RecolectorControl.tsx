@@ -95,10 +95,27 @@ const RecolectorControl: React.FC = () => {
         skip: ((page - 1) * PER_PAGE).toString(),
         limit: PER_PAGE.toString(),
         ...(filters.search && { search: filters.search }),
-        ...(filters.estado && { estado: filters.estado }),
-        ...(filters.municipio && { municipio: filters.municipio }),
-        ...(filters.organizacion && { organizacion_politica: filters.organizacion }),
       });
+      
+      // Convertir códigos a descripciones para filtrar
+      if (filters.estado) {
+        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
+        if (estadoObj) {
+          params.append('estado', estadoObj.estado);
+        }
+      }
+      
+      if (filters.municipio) {
+        const municipioObj = municipios.find(m => m.codigo_municipio.toString() === filters.municipio);
+        if (municipioObj) {
+          params.append('municipio', municipioObj.municipio);
+        }
+      }
+      
+      if (filters.organizacion) {
+        params.append('organizacion_politica', filters.organizacion);
+      }
+
       const res = await fetch(`${apiHost}/api/recolectores?${params}`);
       if (!res.ok) throw new Error('Error al obtener recolectores');
       return res.json() as Promise<QueryRecolectoresResponse>;
