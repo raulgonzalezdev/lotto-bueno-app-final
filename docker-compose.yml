@@ -155,11 +155,13 @@ services:
       - ./banempre:/banempre
     environment:
       - NEXT_PUBLIC_API_URL=https://applottobueno.com/api
-      - PORT=3002
     ports:
       - "3002:3002"
     command: >
-      sh -c "npm install --legacy-peer-deps && npm run build:standalone && node .next/standalone/server.js"
+      sh -c "npm install --legacy-peer-deps && 
+             npm run build && 
+             npm install -g serve && 
+             serve -s out -p 3002"
     networks:
       - lotto-bueno-network
     depends_on:
