@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  "output": "standalone",
+  output: 'standalone',
   env: {
     HOST: process.env.NEXT_PUBLIC_API_URL
   },
@@ -10,9 +10,6 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true
-  },
-  jest: {
-    enabled: false
   },
   async headers() {
     return [
