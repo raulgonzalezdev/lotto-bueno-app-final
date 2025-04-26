@@ -156,10 +156,35 @@ const RecolectorControl: React.FC = () => {
     enabled: false,
     queryFn: async () => {
       if (!selectedRecolectorId) return null;
-      const params = new URLSearchParams({ ...(filters.estado && { codigo_estado: filters.estado }) });
+      
+      // Construir parámetros con código y nombre del estado
+      const params = new URLSearchParams();
+      if (filters.estado) {
+        // Enviamos el código del estado
+        params.append('codigo_estado', filters.estado);
+        
+        // Buscamos el estado por su código para obtener su nombre
+        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
+        if (estadoObj) {
+          // También enviamos el nombre formateado como aparece en la tabla
+          params.append('estado', `EDO. ${estadoObj.estado.toUpperCase()}`);
+        }
+      }
+      
+      console.log(`API call: Obteniendo referidos para recolector ID: ${selectedRecolectorId}`);
+      console.log('Parámetros:', Object.fromEntries(params.entries()));
+      
       const res = await fetch(`${apiHost}/api/recolectores/${selectedRecolectorId}/referidos?${params}`);
-      if (!res.ok) throw new Error('Error al obtener referidos');
-      return res.json() as Promise<ReferidosData>;
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Error respuesta API:', errorText);
+        throw new Error('Error al obtener referidos');
+      }
+      
+      const data = await res.json();
+      console.log('Datos referidos recibidos:', data);
+      return data as ReferidosData;
     },
   });
 
@@ -321,11 +346,17 @@ const RecolectorControl: React.FC = () => {
       return;
     }
     
+    console.log(`Abriendo modal para recolector ID: ${recolectorId}`);
     setSelectedRecolectorId(recolectorId);
     setModalStats(true);
     
-    // Cargar los referidos directamente
-    await refetchReferidos();
+    try {
+      // Cargar los referidos directamente
+      await refetchReferidos();
+    } catch (error) {
+      console.error('Error al cargar referidos:', error);
+      fireToast('Error al cargar los referidos', 'error');
+    }
   };
 
   const downloadReferidosExcel = async (recolectorId: number) => {
