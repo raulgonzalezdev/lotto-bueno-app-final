@@ -75,32 +75,33 @@ export const useEmprendedores = (params?: {
         if (estado) queryParams.estado = estado;
         if (municipio) queryParams.municipio = municipio;
 
-        const data = await apiClient.get<any>('api/emprendedores/', queryParams);
+        console.log('Llamando API de emprendedores con parámetros:', queryParams);
         
-        // Manejo seguro para cualquier formato de respuesta
-        if (data === null || data === undefined) {
-          console.warn('La API devolvió una respuesta nula o indefinida');
-          return { items: [], total: 0 };
-        }
-        
-        // Si es un objeto con items y total
-        if (typeof data === 'object' && data !== null && 'items' in data && Array.isArray(data.items)) {
+        try {
+          const host = await detectHost();
+          console.log('API Host:', host);
+          const url = `${host}/api/emprendedores/?${new URLSearchParams(queryParams)}`;
+          console.log('URL completa:', url);
+          
+          const response = await fetch(url);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error ${response.status} al obtener emprendedores:`, errorText);
+            throw new Error(`Error ${response.status}: ${errorText}`);
+          }
+          
+          const data = await response.json();
+          console.log('Respuesta de API:', data);
           return {
             items: data.items || [],
             total: typeof data.total === 'number' ? data.total : (data.items?.length || 0)
           };
+        } catch (fetchError) {
+          console.error('Error en fetch:', fetchError);
+          throw fetchError;
         }
-        
-        // Si es un array directamente
-        if (Array.isArray(data)) {
-          return { items: data, total: data.length };
-        }
-        
-        // Último recurso: devolver un objeto vacío
-        console.warn('Formato de respuesta inesperado de la API:', data);
-        return { items: [], total: 0 };
       } catch (error) {
-        console.error('Error al obtener emprendedores:', error);
+        console.error('Error global al obtener emprendedores:', error);
         throw error;
       }
     },

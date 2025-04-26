@@ -16,13 +16,16 @@ from typing import Dict, Any, List, Union, Collection, Tuple, Optional
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta, date
 from io import StringIO, BytesIO
-from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response, status, UploadFile, File, Form, APIRouter, Body, Path
-from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response, status, UploadFile, File, Form, APIRouter, Body, Path, Cookie, BackgroundTasks
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse, HTMLResponse, RedirectResponse
 from sse_starlette.sse import EventSourceResponse
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, contains_eager
+from sqlalchemy import func, case, Integer, cast, and_, or_
+from typing import Optional, List, Dict, Any, Tuple, Union
+from pydantic import BaseModel, EmailStr
 
 import uvicorn
 import threading
@@ -3620,82 +3623,118 @@ async def read_emprendedores(
     municipio: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(models.Emprendedor)
-    
-    # Aplicar filtros
-    if search:
-        search_pattern = f"%{search}%"
-        query = query.filter(
-            or_(
-                models.Emprendedor.cedula.ilike(search_pattern),
-                models.Emprendedor.nombre_apellido.ilike(search_pattern),
-                models.Emprendedor.nombre_emprendimiento.ilike(search_pattern),
-                models.Emprendedor.telefono.ilike(search_pattern)
+    try:
+        query = db.query(models.Emprendedor)
+        
+        # Aplicar filtros
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    models.Emprendedor.cedula.ilike(search_pattern),
+                    models.Emprendedor.nombre_apellido.ilike(search_pattern),
+                    models.Emprendedor.nombre_emprendimiento.ilike(search_pattern),
+                    models.Emprendedor.telefono.ilike(search_pattern)
+                )
             )
-        )
-    
-    if estado:
-        query = query.filter(models.Emprendedor.estado == estado)
-    
-    if municipio:
-        query = query.filter(models.Emprendedor.municipio == municipio)
-    
-    total = query.count()
-    emprendedores = query.offset(skip).limit(limit).all()
-    
-    return {"total": total, "items": emprendedores}
+        
+        if estado:
+            query = query.filter(models.Emprendedor.estado == estado)
+        
+        if municipio:
+            query = query.filter(models.Emprendedor.municipio == municipio)
+        
+        total = query.count()
+        emprendedores = query.offset(skip).limit(limit).all()
+        
+        # Asegurar que la respuesta siempre tenga el formato correcto
+        response_items = [to_dict(emprendedor) for emprendedor in emprendedores] if emprendedores else []
+        return {"total": total, "items": response_items}
+    except Exception as e:
+        # Log del error
+        print(f"Error en read_emprendedores: {str(e)}")
+        # Devolver un resultado vacío en caso de error
+        return {"total": 0, "items": []}
 
 @app.get("/api/emprendedores/{emprendedor_id}", response_model=EmprendedorList)
 async def read_emprendedor(emprendedor_id: int, db: Session = Depends(get_db)):
-    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
-    if emprendedor is None:
-        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
-    return emprendedor
+    try:
+        emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
+        if not emprendedor:
+            raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+        return to_dict(emprendedor)
+    except Exception as e:
+        print(f"Error en read_emprendedor: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/emprendedores/", response_model=EmprendedorList)
 async def create_emprendedor(emprendedor: EmprendedorCreate, db: Session = Depends(get_db)):
-    # Verificar si ya existe un emprendedor con esa cédula
-    db_emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == emprendedor.cedula).first()
-    if db_emprendedor:
-        raise HTTPException(status_code=400, detail="Ya existe un emprendedor con esta cédula")
-    
-    # Crear el nuevo emprendedor
-    db_emprendedor = models.Emprendedor(**emprendedor.dict())
-    db.add(db_emprendedor)
-    db.commit()
-    db.refresh(db_emprendedor)
-    return db_emprendedor
+    try:
+        # Verificar si ya existe un emprendedor con esa cédula
+        db_emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == emprendedor.cedula).first()
+        if db_emprendedor:
+            raise HTTPException(status_code=400, detail="Ya existe un emprendedor con esta cédula")
+        
+        # Crear el nuevo emprendedor
+        db_emprendedor = models.Emprendedor(**emprendedor.dict())
+        db.add(db_emprendedor)
+        db.commit()
+        db.refresh(db_emprendedor)
+        return to_dict(db_emprendedor)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Error en create_emprendedor: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/emprendedores/{emprendedor_id}", response_model=dict)
 async def delete_emprendedor(emprendedor_id: int, db: Session = Depends(get_db)):
-    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
-    if emprendedor is None:
-        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
-    
-    db.delete(emprendedor)
-    db.commit()
-    return {"message": "Emprendedor eliminado exitosamente"}
+    try:
+        emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
+        if emprendedor is None:
+            raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+        
+        db.delete(emprendedor)
+        db.commit()
+        return {"message": "Emprendedor eliminado exitosamente"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Error en delete_emprendedor: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.patch("/api/emprendedores/{emprendedor_id}", response_model=EmprendedorList)
 async def update_emprendedor(emprendedor_id: int, emprendedor: EmprendedorUpdate, db: Session = Depends(get_db)):
-    db_emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
-    if db_emprendedor is None:
-        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
-    
-    # Actualizar campos
-    for key, value in emprendedor.dict(exclude_unset=True).items():
-        setattr(db_emprendedor, key, value)
-    
-    db.commit()
-    db.refresh(db_emprendedor)
-    return db_emprendedor
+    try:
+        db_emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.id == emprendedor_id).first()
+        if db_emprendedor is None:
+            raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+        
+        # Actualizar campos
+        for key, value in emprendedor.dict(exclude_unset=True).items():
+            setattr(db_emprendedor, key, value)
+        
+        db.commit()
+        db.refresh(db_emprendedor)
+        return to_dict(db_emprendedor)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Error en update_emprendedor: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/emprendedores/by_cedula/{cedula}", response_model=EmprendedorList)
 async def get_emprendedor_by_cedula(cedula: str, db: Session = Depends(get_db)):
-    emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == cedula).first()
-    if emprendedor is None:
-        raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
-    return emprendedor
+    try:
+        emprendedor = db.query(models.Emprendedor).filter(models.Emprendedor.cedula == cedula).first()
+        if emprendedor is None:
+            raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
+        return to_dict(emprendedor)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Error en get_emprendedor_by_cedula: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/download/excel/emprendedores")
 async def download_excel_emprendedores(

@@ -274,7 +274,7 @@ const Home = () => {
               {currentPage === "RECOLECTORES" && <RecolectorControl />}
               {currentPage === "ADD" && !production && <LineaTelefonicaControl />}
               {currentPage === "ORGANIZACIONES" && !production && <OrganizacionPoliticaControl />}
-              {currentPage === "EMPRENDEDORES" && !production && <EmprendedorControl />}
+              {currentPage === "EMPRENDEDORES" && <EmprendedorControl />}
             </>
           )}
         </div>
