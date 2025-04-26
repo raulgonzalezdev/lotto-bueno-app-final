@@ -16,6 +16,7 @@ import TicketControl from "./components/ticket/TicketControl";
 import LineaTelefonicaControl from "./components/lineas/LineaTelefonicaControl";
 import SorteoControl from "./components/sorteo/SorteoControl";
 import OrganizacionPoliticaControl from './components/organizacionpolitica/OrganizacionPoliticaControl';
+import EmprendedorControl from './components/emprendedor/EmprendedorControl';
 
 import { Settings } from "./components/Settings/types";
 import { RAGConfig } from "./components/RAG/types";
@@ -271,6 +272,7 @@ const Home = () => {
               */}
               {currentPage === "ADD" && !production && <LineaTelefonicaControl />}
               {currentPage === "ORGANIZACIONES" && !production && <OrganizacionPoliticaControl />}
+              {currentPage === "EMPRENDEDORES" && !production && <EmprendedorControl />}
             </>
           )}
         </div>

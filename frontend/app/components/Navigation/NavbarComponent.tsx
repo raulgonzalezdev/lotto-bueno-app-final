@@ -2,35 +2,33 @@
 /* eslint-disable jsx-a11y/alt-text */
 // Navbar.tsx
 
-import React, { useState, useEffect } from "react";
-import {  IoSettingsSharp, IoPeopleSharp, IoListSharp, IoQrCodeSharp, IoCallSharp } from "react-icons/io5";
-
-import { FcAssistant , FcCollaboration, FcSmartphoneTablet , FcSalesPerformance  } from "react-icons/fc";
+import React from "react";
+import { FcSmartphoneTablet, FcCollaboration, FcAssistant, FcSalesPerformance } from "react-icons/fc";
+import { IoSettingsSharp, IoQrCodeSharp, IoPeopleSharp, IoListSharp } from "react-icons/io5";
 import { LuMenu } from "react-icons/lu";
-
-import NavbarButton from "./NavButton";
 import { PageType } from "../../types/common";
+import NavbarButton from "./NavButton";
 
 interface NavbarProps {
-  imageSrc: string;
-  title: string;
-  subtitle: string;
-  version: string;
-  currentPage: PageType;
   APIHost: string | null;
   production: boolean;
+  version: string;
+  currentPage: string;
   setCurrentPage: (page: PageType) => void;
+  title: string;
+  subtitle: string;
+  imageSrc: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({
-  imageSrc,
-  title,
-  subtitle,
-  APIHost,
-  version,
-  currentPage,
+const Navbar: React.FC<NavbarProps> = ({ 
+  APIHost, 
+  production, 
+  version, 
+  currentPage, 
   setCurrentPage,
-  production,
+  title, 
+  subtitle, 
+  imageSrc,
 }) => {
   const icon_size = 18;
 
@@ -61,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Electores"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="ELECTORES"
+            setPage={"ELECTORES"}
           />
           <NavbarButton
             hide={false}
@@ -71,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Tickets"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="TICKETS"
+            setPage={"TICKETS"}
           />
           <NavbarButton
             hide={false}
@@ -81,7 +79,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Usuarios"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="USERS"
+            setPage={"USERS"}
           />
           <NavbarButton
             hide={false}
@@ -91,7 +89,17 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Recolectores"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="RECOLECTORES"
+            setPage={"RECOLECTORES"}
+          />
+          <NavbarButton
+            hide={false}
+            APIHost={APIHost}
+            Icon={FcAssistant}
+            iconSize={icon_size}
+            title="Emprendedores"
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            setPage={"EMPRENDEDORES"}
           />
            <NavbarButton
             hide={false}
@@ -101,7 +109,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Sortear Ganadors"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="STATUS"
+            setPage={"STATUS"}
           /> 
           <div
             className={` ${production ? "h-[0vh]" : "sm:h-[3vh] lg:h-[5vh] mx-1"} hidden sm:block bg-text-alt-verba w-px`}
@@ -114,7 +122,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Lineas Telefonicas"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="ADD"
+            setPage={"ADD"}
           />
           <NavbarButton
             hide={production}
@@ -124,7 +132,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Organizaciones Políticas"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="ORGANIZACIONES"
+            setPage={"ORGANIZACIONES"}
           />
           <NavbarButton
             hide={production}
@@ -134,7 +142,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Configuracion"
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            setPage="SETTINGS"
+            setPage={"SETTINGS"}
           />
           <div
             className={`sm:h-[3vh] lg:h-[5vh] mx-1 hidden sm:block bg-text-alt-verba w-px`}
@@ -161,6 +169,9 @@ const Navbar: React.FC<NavbarProps> = ({
                     </li>
                     <li onClick={() => setCurrentPage("RECOLECTORES")}>
                       <a>Recolectores</a>
+                    </li>
+                    <li onClick={() => setCurrentPage("EMPRENDEDORES")}>
+                      <a>Emprendedores</a>
                     </li>
                     <li onClick={() => setCurrentPage("STATUS")}>
                       <a>Sorteos</a>

@@ -5,12 +5,13 @@ import Toast from '../toast/Toast';
 import { detectHost } from "../../api";
 import { useLogin } from "../../hooks/useLogin";
 import { useRegister } from "../../hooks/useRegister";
+import { PageType } from "../../types/common";
 
 interface LoginModalProps {
   isVisible: boolean;
   onClose: () => void;
   onAdminLogin: (isAdmin: boolean) => void;
-  setCurrentPage: React.Dispatch<React.SetStateAction<"WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER">>;
+  setCurrentPage: React.Dispatch<React.SetStateAction<PageType>>;
   title: string;
   subtitle: string;
   imageSrc: string;

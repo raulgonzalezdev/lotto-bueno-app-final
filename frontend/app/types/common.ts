@@ -9,4 +9,5 @@ export type PageType =
   | "RECOLECTORES" 
   | "REGISTER" 
   | "REGISTER_RECOLECTOR" 
-  | "ORGANIZACIONES"; 
+  | "ORGANIZACIONES"
+  | "EMPRENDEDORES"; 
