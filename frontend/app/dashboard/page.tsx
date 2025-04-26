@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import PulseLoader from "react-spinners/PulseLoader";
 
+// URL de la landing de Banempre
+const BANEMPRE_URL = "http://banempre.applottobueno.com"; // Ajustar según la URL real
+
 export default function DashboardPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -81,9 +84,21 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCancel = () => {
+    window.location.href = BANEMPRE_URL;
+  };
+
+  // Estilo para el fondo de la página con la imagen de Banempre
+  const bgStyle = {
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('/fondopbamempre.jpg')`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed'
+  };
+
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-indigo-900">
+      <div className="flex flex-col items-center justify-center h-screen" style={bgStyle}>
         <div className="mb-8">
           <Image 
             src="/logo bamempre.png" 
@@ -101,9 +116,9 @@ export default function DashboardPage() {
 
   if (showLoginForm) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-indigo-900 py-6">
-        <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="p-4 flex justify-center bg-white">
+      <div className="flex flex-col items-center justify-center min-h-screen py-6" style={bgStyle}>
+        <div className="w-full max-w-md overflow-hidden">
+          <div className="p-4 flex justify-center bg-transparent">
             <Image 
               src="/logo bamempre.png" 
               alt="Banempre - Banco de los Emprendedores"
@@ -113,8 +128,8 @@ export default function DashboardPage() {
             />
           </div>
           
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-center mb-6">Inicio de Sesión Admin</h2>
+          <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold text-center mb-6 text-white">Inicio de Sesión Admin</h2>
             
             {error && (
               <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
@@ -124,7 +139,7 @@ export default function DashboardPage() {
             
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-medium mb-2">
+                <label className="block text-white text-sm font-medium mb-2">
                   Nombre de usuario
                 </label>
                 <input
@@ -138,7 +153,7 @@ export default function DashboardPage() {
               </div>
               
               <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-medium mb-2">
+                <label className="block text-white text-sm font-medium mb-2">
                   Contraseña
                 </label>
                 <input
@@ -151,28 +166,28 @@ export default function DashboardPage() {
                 />
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col space-y-3">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="bg-blue-600 text-white font-medium py-2 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
                 >
-                  {isSubmitting ? 'Iniciando...' : 'Iniciar Sesión'}
+                  {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
                 </button>
                 
                 <button
                   type="button"
-                  className="text-gray-500 hover:text-gray-700"
-                  onClick={() => router.push('/')}
+                  onClick={handleCancel}
+                  className="bg-gray-600 text-white font-medium py-2 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
                 >
-                  Cancelar
+                  CANCELAR
                 </button>
               </div>
             </form>
             
             <div className="mt-4 text-center text-sm">
-              <a href="/" className="text-blue-600 hover:text-blue-800">
-                ¿No tienes una cuenta? Regístrate gracias
+              <a href={BANEMPRE_URL} className="text-white hover:text-blue-100">
+                ¿No tienes una cuenta? Regístrate
               </a>
             </div>
           </div>
