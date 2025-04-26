@@ -8,6 +8,7 @@ import { useEstados } from "../../hooks/useEstados";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useImportarRecolectores } from "../../hooks/useRecolectores";
 import { useMunicipios } from "../../hooks/useMunicipios";
+import { useOrganizacionesPoliticas } from "../../hooks/useOrganizacionesPoliticas";
 
 interface Municipio {
   codigo_municipio: string;
@@ -15,7 +16,7 @@ interface Municipio {
 }
 
 interface OrganizacionPolitica {
-  codigo: string;
+  id: number;
   nombre: string;
 }
 
@@ -57,21 +58,6 @@ interface ReferidosData {
   referidos: Referido[];
 }
 
-const municipios = [
-  "BOLIVAR",
-  "S. RODRÍGUEZ", 
-  "SOTILLO", 
-  "ANACO", 
-  "GUANIPA"
-];
-
-const organizacionesPoliticas: OrganizacionPolitica[] = [
-  { codigo: "PV", nombre: "Primero Venezuela" },
-  { codigo: "AD", nombre: "Acción Democrática" },
-  { codigo: "COPEI", nombre: "COPEI" },
-  { codigo: "VOL", nombre: "Voluntad Popular" },
-  { codigo: "BR", nombre: "Bandera Roja" }
-];
 
 const RecolectorControl: React.FC = () => {
   const [recolectores, setRecolectores] = useState<Recolector[]>([]);
@@ -126,6 +112,9 @@ const RecolectorControl: React.FC = () => {
   // Fetch Municipios basado en el estado seleccionado para el filtro
   const { data: municipiosData = [], isLoading: municipiosLoading } = useMunicipios(estadoFiltro);
 
+  // Obtener organizaciones políticas dinámicamente
+  const { data: organizacionesPoliticasData = [], isLoading: organizacionesLoading } = useOrganizacionesPoliticas();
+
   // Crear queries para cada estado de los recolectores
   const municipiosQueries = useMemo(() => {
     const queries: { [key: string]: Municipio[] } = {};
@@ -153,29 +142,46 @@ const RecolectorControl: React.FC = () => {
   const fetchRecolectoresQuery = useQuery({
     queryKey: ['recolectores', currentPage, searchTerm, estadoFiltro, municipioFiltro, organizacionFiltro],
     queryFn: async () => {
-      if (!APIHost) return { items: [], total: 0 };
-      
-      const query = new URLSearchParams({
-        skip: ((currentPage - 1) * recolectoresPerPage).toString(),
-        limit: recolectoresPerPage.toString(),
-        ...(searchTerm && { search: searchTerm }),
-        ...(estadoFiltro && { estado: estadoFiltro }),
-        ...(municipioFiltro && { municipio: municipioFiltro }),
-        ...(organizacionFiltro && { organizacion_politica: organizacionFiltro }),
-      }).toString();
+      try {
+        if (!APIHost) {
+          console.log("APIHost no disponible aún, retornando datos vacíos");
+          return { items: [], total: 0 };
+        }
+        
+        const query = new URLSearchParams({
+          skip: ((currentPage - 1) * recolectoresPerPage).toString(),
+          limit: recolectoresPerPage.toString(),
+          ...(searchTerm && { search: searchTerm }),
+          ...(estadoFiltro && { estado: estadoFiltro }),
+          ...(municipioFiltro && { municipio: municipioFiltro }),
+          ...(organizacionFiltro && { organizacion_politica: organizacionFiltro }),
+        }).toString();
 
-      const response = await fetch(`${APIHost}/api/recolectores/?${query}`);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
+        console.log(`Obteniendo recolectores: ${APIHost}/api/recolectores/?${query}`);
+        const response = await fetch(`${APIHost}/api/recolectores/?${query}`);
+        if (!response.ok) {
+          throw new Error(`Error: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log("Datos recibidos:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching recolectores:", error);
+        return { items: [], total: 0 };
       }
-      const data = await response.json();
-      return data;
     },
     enabled: !!APIHost,
+    retry: 1,
+    staleTime: 60000, // 1 minuto
   });
 
-  // Hook para obtener municipios de cada recolector
-  const { data: municipiosRecolector = [] } = useMunicipios(recolectores[0]?.estado || "");
+  // Restauramos el uso de municipiosRecolector de manera segura
+  const { data: municipiosRecolector = [] } = useMunicipios(
+    // Solo intentamos obtener municipios si hay al menos un recolector con estado
+    recolectores && recolectores.length > 0 && recolectores[0]?.estado
+      ? recolectores[0].estado
+      : ""
+  );
 
   // Mutación para crear recolector
   const createRecolectorMutation = useMutation({
@@ -324,20 +330,30 @@ const RecolectorControl: React.FC = () => {
   // Mutation para importar recolectores
   const importarRecolectoresMutation = useImportarRecolectores();
 
+  // Inicializar API host al cargar
   useEffect(() => {
     fetchHost();
   }, []);
 
+  // Efecto para procesar datos de recolectores
   useEffect(() => {
+    console.log("Estado de fetchRecolectoresQuery:", {
+      isLoading: fetchRecolectoresQuery.isLoading,
+      isError: fetchRecolectoresQuery.isError,
+      data: fetchRecolectoresQuery.data
+    });
+    
     if (fetchRecolectoresQuery.data) {
       try {
         if (fetchRecolectoresQuery.data && typeof fetchRecolectoresQuery.data === 'object' && 'items' in fetchRecolectoresQuery.data && Array.isArray(fetchRecolectoresQuery.data.items)) {
           // Caso 1: Objeto con propiedad 'items' que es un array
+          console.log("Procesando respuesta tipo objeto con 'items'");
           setRecolectores(fetchRecolectoresQuery.data.items || []);
           const total = typeof fetchRecolectoresQuery.data.total === 'number' ? fetchRecolectoresQuery.data.total : fetchRecolectoresQuery.data.items.length;
           setTotalPages(Math.ceil(total / recolectoresPerPage) || 1);
         } else if (Array.isArray(fetchRecolectoresQuery.data)) {
           // Caso 2: Es directamente un array
+          console.log("Procesando respuesta tipo array");
           setRecolectores(fetchRecolectoresQuery.data);
           setTotalPages(Math.ceil(fetchRecolectoresQuery.data.length / recolectoresPerPage) || 1);
         } else {
@@ -353,6 +369,7 @@ const RecolectorControl: React.FC = () => {
       }
     } else {
       // Si no hay datos, inicializar con valores vacíos
+      console.log("No hay datos de recolectores, inicializando vacío");
       setRecolectores([]);
       setTotalPages(1);
     }
@@ -372,11 +389,15 @@ const RecolectorControl: React.FC = () => {
 
   const fetchHost = async () => {
     try {
+      console.log("Detectando host...");
       const host = await detectHost();
+      console.log("Host detectado:", host);
       setAPIHost(host);
     } catch (error) {
       console.error("Error detecting host:", error);
-      setAPIHost(process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com');
+      const fallbackHost = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com';
+      console.log("Usando host de respaldo:", fallbackHost);
+      setAPIHost(fallbackHost);
     }
   };
 
@@ -389,7 +410,7 @@ const RecolectorControl: React.FC = () => {
     // Buscar valores descriptivos
     const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === newRecolector.estado);
     const municipioSeleccionado = municipiosData.find(m => m.codigo_municipio.toString() === newRecolector.municipio);
-    const orgPoliticaSeleccionada = organizacionesPoliticas.find(org => org.codigo === newRecolector.organizacion_politica);
+    const orgPoliticaSeleccionada = organizacionesPoliticasData.find(org => org.nombre === newRecolector.organizacion_politica);
 
     const recolectorPayload = {
       ...newRecolector,
@@ -405,7 +426,7 @@ const RecolectorControl: React.FC = () => {
     // Buscar valores descriptivos
     const estadoSeleccionado = estados.find(e => e.codigo_estado.toString() === recolector.estado);
     const municipioSeleccionado = municipiosData.find(m => m.codigo_municipio.toString() === recolector.municipio);
-    const orgPoliticaSeleccionada = organizacionesPoliticas.find(org => org.codigo === recolector.organizacion_politica);
+    const orgPoliticaSeleccionada = organizacionesPoliticasData.find(org => org.nombre === recolector.organizacion_politica);
 
     const recolectorPayload = {
       ...recolector,
@@ -676,8 +697,8 @@ const RecolectorControl: React.FC = () => {
             className="select select-bordered w-full"
           >
             <option value="">Todas las organizaciones</option>
-            {organizacionesPoliticas.map(org => (
-              <option key={org.codigo} value={org.codigo}>
+            {organizacionesPoliticasData.map(org => (
+              <option key={org.id} value={org.nombre}>
                 {org.nombre}
               </option>
             ))}
@@ -732,7 +753,20 @@ const RecolectorControl: React.FC = () => {
                   if (!recolector) return null;
                   
                   // Mostrar directamente los valores originales
-                  // Sin intentar buscar o transformar los datos
+                  // y solo intentar buscar nombres descriptivos si ya tenemos cargados los datos de referencia
+                  let estadoNombre = recolector.estado || '-';
+                  let municipioNombre = recolector.municipio || '-';
+                  let orgPoliticaNombre = recolector.organizacion_politica || '-';
+                  
+                  // Intentamos transformar con seguridad - solo si la data ya está disponible
+                  if (estados && estados.length > 0) {
+                    const estadoObj = estados.find(e => e.codigo_estado && 
+                      e.codigo_estado.toString() === recolector.estado);
+                    
+                    if (estadoObj?.estado) {
+                      estadoNombre = estadoObj.estado;
+                    }
+                  }
                   
                   return (
                     <tr key={recolector.id}>
@@ -741,9 +775,9 @@ const RecolectorControl: React.FC = () => {
                       <td>{recolector.cedula || '-'}</td>
                       <td>{recolector.telefono || '-'}</td>
                       <td>{recolector.email || '-'}</td>
-                      <td>{recolector.estado || '-'}</td>
-                      <td>{recolector.municipio || '-'}</td>
-                      <td>{recolector.organizacion_politica || '-'}</td>
+                      <td>{estadoNombre}</td>
+                      <td>{municipioNombre}</td>
+                      <td>{orgPoliticaNombre}</td>
                       <td>{recolector.es_referido ? "Sí" : "No"}</td>
                       <td>
                         <button 
@@ -925,8 +959,8 @@ const RecolectorControl: React.FC = () => {
                 className="select select-bordered w-full"
               >
                 <option value="">Seleccione una organización</option>
-                {organizacionesPoliticas.map(org => (
-                  <option key={org.codigo} value={org.nombre}>
+                {organizacionesPoliticasData.map(org => (
+                  <option key={org.id} value={org.nombre}>
                     {org.nombre}
                   </option>
                 ))}
@@ -1011,8 +1045,10 @@ const RecolectorControl: React.FC = () => {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 >
                   <option value="">Todos los municipios</option>
-                  {municipios.map(municipio => (
-                    <option key={municipio} value={municipio}>{municipio}</option>
+                  {municipiosData.map(municipio => (
+                    <option key={municipio.codigo_municipio} value={municipio.codigo_municipio}>
+                      {municipio.municipio}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -1025,8 +1061,10 @@ const RecolectorControl: React.FC = () => {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 >
                   <option value="">Todas las organizaciones</option>
-                  {organizacionesPoliticas.map(org => (
-                    <option key={org.codigo} value={org.codigo}>{org.nombre}</option>
+                  {organizacionesPoliticasData.map(org => (
+                    <option key={org.id} value={org.nombre}>
+                      {org.nombre}
+                    </option>
                   ))}
                 </select>
               </div>
