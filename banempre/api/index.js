@@ -28,8 +28,11 @@ export const apiClient = {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
+    // Asegurar que no haya barras duplicadas
+    const url = `${host}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
+    
     try {
-      const response = await fetch(`${host}/${endpoint}`, {
+      const response = await fetch(url, {
         headers,
         // En desarrollo, incluimos credenciales para posibles casos donde la API está en otro dominio
         ...(isDevelopment && { credentials: 'include' })
@@ -73,8 +76,11 @@ export const apiClient = {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
+    // Asegurar que no haya barras duplicadas
+    const url = `${host}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
+    
     try {
-      const response = await fetch(`${host}/${endpoint}`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
@@ -102,7 +108,7 @@ export const apiClient = {
       return response.json();
     } catch (error) {
       // En modo desarrollo, si el endpoint es de autenticación, podemos simular una respuesta
-      if (isDevelopment && endpoint.includes('api/login')) {
+      if (isDevelopment && endpoint === 'login') {
         console.warn('Usando autenticación simulada en modo desarrollo:', error.message);
         return { token: 'dev-token-123', user: { username: 'dev-user' } };
       }
@@ -121,8 +127,11 @@ export const apiClient = {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
+    // Asegurar que no haya barras duplicadas
+    const url = `${host}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
+    
     try {
-      const response = await fetch(`${host}/${endpoint}`, {
+      const response = await fetch(url, {
         method: 'PATCH',
         headers,
         body: JSON.stringify(data),
@@ -165,8 +174,11 @@ export const apiClient = {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
+    // Asegurar que no haya barras duplicadas
+    const url = `${host}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
+    
     try {
-      const response = await fetch(`${host}/${endpoint}`, {
+      const response = await fetch(url, {
         method: 'DELETE',
         headers,
         // En desarrollo, incluimos credenciales para posibles casos donde la API está en otro dominio

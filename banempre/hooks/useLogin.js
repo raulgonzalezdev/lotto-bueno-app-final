@@ -8,8 +8,8 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: async (payload) => {
       console.log('Intentando iniciar sesión');
-      // Usar directamente api/login como endpoint
-      const response = await apiClient.post('api/login', payload);
+      // Usar solo 'login' como endpoint (sin el prefijo api/)
+      const response = await apiClient.post('login', payload);
       return response;
     },
     onSuccess: (data) => {
