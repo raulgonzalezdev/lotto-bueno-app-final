@@ -140,7 +140,8 @@ def setup_prometheus_metrics():
     def requests_by_path_and_status(metric_name: str = "http_requests_by_path_status"):
         def instrumentation(info: Info):
             if info.response is not None:
-                info.instrumentation.counter(
+                # Acceso correcto al contador de métricas
+                info.request.metrics.counter(
                     metric_name,
                     "Number of requests by path and status",
                     labels={"path": info.request.url.path, "status": str(info.response.status_code), "method": info.request.method}
@@ -171,11 +172,7 @@ origins = [
      "https://t.me",
      "https://lottobueno.com",
      "https://banempre.online",
-     "https://www.banempre.online",
-     "https://lottobueno.com",
-     "https://www.lottobueno.com",
-     "https://lottobueno.com",
-     "https://www.lottobueno.com",
+     "https://www.banempre.online"
      
    
 ]
@@ -187,6 +184,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Eliminar cualquier middleware adicional o encabezados CORS específicos
+# que podrían estar causando duplicación
 
 # Asignar valores por defecto si las variables de entorno no están definidas
 POSTGRES_DB = os.getenv("POSTGRES_DB", "lottobueno")
