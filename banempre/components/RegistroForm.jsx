@@ -37,7 +37,13 @@ export default function RegistroForm() {
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com/api';
-      const response = await fetch(`${apiUrl}/emprendedores/get_elector_data/${cedula}`);
+      const response = await fetch(`${apiUrl}/emprendedores/get_elector_data/${cedula}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -103,6 +109,7 @@ export default function RegistroForm() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com/api';
       const response = await fetch(`${apiUrl}/emprendedores`, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
         },

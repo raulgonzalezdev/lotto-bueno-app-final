@@ -39,10 +39,15 @@ export default function DashboardPage() {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setLoginData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    console.log(`Campo ${name} actualizado a: ${value.length} caracteres`);
+    
+    setLoginData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -173,9 +178,17 @@ export default function DashboardPage() {
                       type="password"
                       name="password"
                       value={loginData.password}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        console.log(`Contraseña actualizada: ${newValue.length} caracteres`);
+                        setLoginData({
+                          ...loginData,
+                          password: newValue
+                        });
+                      }}
                       className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
+                      autoComplete="current-password"
                     />
                   </div>
                   

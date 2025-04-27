@@ -140,8 +140,8 @@ def setup_prometheus_metrics():
     def requests_by_path_and_status(metric_name: str = "http_requests_by_path_status"):
         def instrumentation(info: Info):
             if info.response is not None:
-                # Acceso correcto al contador de métricas
-                info.request.metrics.counter(
+                # Usar el contador global en lugar de acceder a info.request.metrics que no existe
+                info.metrics.counter(
                     metric_name,
                     "Number of requests by path and status",
                     labels={"path": info.request.url.path, "status": str(info.response.status_code), "method": info.request.method}
