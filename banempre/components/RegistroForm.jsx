@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
-import { useElectorDataForEmprendedor, useCreateEmprendedor } from '../hooks/useEmprededores';
+import { useElectorDataForEmprendedor, useCreateEmprendedor } from '../hooks/useEmprendedores';
 import Toast from './Toast';
 import Modal from './Modal';
 

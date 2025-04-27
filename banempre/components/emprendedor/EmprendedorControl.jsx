@@ -7,6 +7,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../context/AuthContext';
+import { FiDownload, FiFilter, FiRefreshCw } from 'react-icons/fi';
+import { utils, writeFile } from 'xlsx';
+import { formatDate } from '../../utils/formatUtils';
 
 import Toast from '../Toast';
 import ConfirmationModal from '../confirmation/ConfirmationModal';
@@ -21,7 +24,26 @@ import {
   useEmprendedorByCedula,
   useElectorDataForEmprendedor,
   useEmprendedores
-} from '../../hooks/useEmprededores';
+} from '../../hooks/useEmprendedores';
+import { TableSkeleton } from '../common/TableSkeleton';
+import { Pagination } from '../common/Pagination';
+
+// Hook personalizado para detectar tamaño de pantalla
+const useMediaQuery = (maxWidth) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidth}px)`);
+    setMatches(mediaQuery.matches);
+
+    const handler = (e) => setMatches(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, [maxWidth]);
+
+  return matches;
+};
 
 /* -------------------------------------------------------------------------- */
 /*                               Componente                                   */
@@ -46,26 +68,42 @@ const EmprendedorControl = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /* ------------------------- filtros y paginación ----------------------- */
-  const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
-
-  const [filters, setFilters] = useState({
-    search: '', estado: '', municipio: ''
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEstado, setSelectedEstado] = useState('');
+  const [selectedMunicipio, setSelectedMunicipio] = useState('');
+  const [emprendedoresPerPage, setEmprendedoresPerPage] = useState(10);
+  
+  // Detectar dispositivos móviles
+  const isMobile = useMediaQuery(768);
 
   /* ------------------------------ hooks API ----------------------------- */
   const qc = useQueryClient();
   const { data: estados = [] } = useEstados();
-  const { data: municipios = [] } = useMunicipios(modalEmprendedor.open ? modalEmprendedor.data.estado?.toString() || '' : filters.estado);
+  const { data: municipios = [] } = useMunicipios(selectedEstado);
 
   /* -------------------- Emprendedores (principal) ------------------------ */
-  const { data: emprendedoresResp, isLoading: loadingEmprendedores, isError: errorEmprendedores } = useEmprendedores({
-    currentPage: page,
-    emprendedoresPerPage: PER_PAGE,
-    searchTerm: filters.search || undefined,
-    estado: filters.estado || undefined,
-    municipio: filters.municipio || undefined
+  const { data: emprendedoresData, isLoading, isError, refetch } = useEmprendedores({
+    currentPage,
+    emprendedoresPerPage,
+    searchTerm,
+    estado: selectedEstado,
+    municipio: selectedMunicipio
   });
+
+  // Efecto para depurar la respuesta de los emprendedores
+  useEffect(() => {
+    if (emprendedoresData) {
+      console.log('Datos de emprendedores recibidos:', emprendedoresData);
+    }
+  }, [emprendedoresData]);
+
+  // Efecto para depurar los estados disponibles
+  useEffect(() => {
+    if (estados.length > 0) {
+      console.log('Estados disponibles:', estados);
+    }
+  }, [estados]);
 
   /* --------------------------- Mutaciones ------------------------------- */
   const createMut = useCreateEmprendedor();
@@ -92,6 +130,39 @@ const EmprendedorControl = () => {
     router.push('/dashboard');
   };
 
+  // Manejar cambio en la búsqueda
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  // Manejar cambio en el estado seleccionado
+  const handleEstadoChange = (e) => {
+    const newEstado = e.target.value;
+    setSelectedEstado(newEstado);
+    // Resetear municipio cuando cambia el estado
+    setSelectedMunicipio('');
+    
+    console.log('Estado seleccionado:', newEstado);
+    // Comprobar si hay datos de estado
+    if (estados) {
+      const estadoObj = estados.find(e => e.codigo_estado.toString() === newEstado);
+      console.log('Estado encontrado:', estadoObj);
+    }
+  };
+  
+  // Manejar cambio en el municipio seleccionado
+  const handleMunicipioChange = (e) => {
+    const newMunicipio = e.target.value;
+    setSelectedMunicipio(newMunicipio);
+    
+    console.log('Municipio seleccionado:', newMunicipio);
+    // Comprobar si hay datos de municipio
+    if (municipios) {
+      const municipioObj = municipios.find(m => m.codigo_municipio.toString() === newMunicipio);
+      console.log('Municipio encontrado:', municipioObj);
+    }
+  };
+
   const [cedulaInput, setCedulaInput] = useState('');
   const [showFullForm, setShowFullForm] = useState(false);
 
@@ -110,29 +181,49 @@ const EmprendedorControl = () => {
     }
     
     if (emprendedorData) {
+      // Buscar el código de estado por nombre, teniendo en cuenta el formato "EDO. ESTADO"
+      const estadoObj = estados.find(e => e.estado === emprendedorData.estado);
+      // Buscar el código de municipio por nombre, teniendo en cuenta el formato "MP. MUNICIPIO"
+      const municipioObj = municipios.find(m => m.municipio === emprendedorData.municipio);
+      
       setModalEmprendedor({
         open: true,
         editing: true,
         data: {
           ...emprendedorData,
-          estado: estados.find(e => e.estado === emprendedorData.estado)?.codigo_estado.toString() || '',
-          municipio: municipios.find(m => m.municipio === emprendedorData.municipio)?.codigo_municipio.toString() || '',
+          estado: estadoObj?.codigo_estado.toString() || '',
+          municipio: municipioObj?.codigo_municipio.toString() || '',
         }
+      });
+      console.log('Datos para editar emprendedor:', {
+        ...emprendedorData,
+        estadoObj,
+        municipioObj
       });
       setShowFullForm(true);
     } else if (electorData) {
+      // Buscar el código de estado por nombre, teniendo en cuenta el formato "EDO. ESTADO"
+      const estadoObj = estados.find(e => e.estado === electorData.estado);
+      // Buscar el código de municipio por nombre, teniendo en cuenta el formato "MP. MUNICIPIO"
+      const municipioObj = municipios.find(m => m.municipio === electorData.municipio);
+      
       setModalEmprendedor({
         open: true,
         editing: false,
         data: {
           nombre_apellido: electorData.nombre_apellido,
           cedula: cedulaInput,
-          estado: estados.find(e => e.estado === electorData.estado)?.codigo_estado.toString() || '',
-          municipio: municipios.find(m => m.municipio === electorData.municipio)?.codigo_municipio.toString() || '',
+          estado: estadoObj?.codigo_estado.toString() || '',
+          municipio: municipioObj?.codigo_municipio.toString() || '',
           telefono: '',
           nombre_emprendimiento: '',
           rif: ''
         }
+      });
+      console.log('Datos para nuevo emprendedor desde elector:', {
+        nombre_apellido: electorData.nombre_apellido,
+        estadoObj,
+        municipioObj
       });
       setShowFullForm(true);
     } else {
@@ -192,63 +283,87 @@ const EmprendedorControl = () => {
     }
   };
 
-  // Función para exportar emprendedores según los filtros actuales
-  const exportarEmprendedores = async () => {
-    try {
-      setExporting(true);
-      
-      const estadoObj = filters.estado ? estados.find(e => e.codigo_estado.toString() === filters.estado) : null;
-      const municipioObj = filters.municipio ? municipios.find(m => m.codigo_municipio.toString() === filters.municipio) : null;
-      
-      const searchParams = new URLSearchParams();
-      if (filters.search) searchParams.append('search', filters.search);
-      if (estadoObj) searchParams.append('estado', estadoObj.estado);
-      if (municipioObj) searchParams.append('municipio', municipioObj.municipio);
-      
-      // Usar ventana para abrir la URL de descarga
-      const host = await import('../../api').then(mod => mod.detectHost());
-      window.open(`${host}/api/download/excel/emprendedores?${searchParams.toString()}`, '_blank');
-      
-      fireToast('Descarga iniciada', 'success');
-    } catch (err) {
-      fireToast(`Error al iniciar descarga: ${err.message}`, 'error');
-    } finally {
-      setExporting(false);
+  // Exportar a Excel
+  const exportToExcel = () => {
+    // Formatear los datos para Excel
+    const dataForExcel = emprendedoresData?.items.map(emp => ({
+      'Cédula': emp.cedula,
+      'Nombre y Apellido': emp.nombre_apellido,
+      'Emprendimiento': emp.nombre_emprendimiento,
+      'RIF': emp.rif,
+      'Teléfono': emp.telefono,
+      'Estado': emp.estado?.replace('EDO. ', ''),
+      'Municipio': emp.municipio?.replace('MP. ', ''),
+      'Fecha de Registro': formatDate(emp.created_at)
+    })) || [];
+    
+    // Crear libro de Excel
+    const wb = utils.book_new();
+    const ws = utils.json_to_sheet(dataForExcel);
+    
+    // Ajustar anchos de columna
+    const columnWidths = [
+      { wch: 12 }, // Cédula
+      { wch: 25 }, // Nombre y Apellido
+      { wch: 25 }, // Emprendimiento
+      { wch: 15 }, // RIF
+      { wch: 15 }, // Teléfono
+      { wch: 20 }, // Estado
+      { wch: 20 }, // Municipio
+      { wch: 20 }  // Fecha
+    ];
+    
+    ws['!cols'] = columnWidths;
+    
+    // Generar nombre del archivo según filtros
+    let fileName = 'Emprendedores';
+    
+    if (selectedEstado && estados) {
+      const estado = estados.find(e => e.codigo_estado.toString() === selectedEstado);
+      if (estado) {
+        fileName += `_${estado.estado.replace('EDO. ', '')}`;
+      }
     }
+    
+    if (selectedMunicipio && municipios) {
+      const municipio = municipios.find(m => m.codigo_municipio.toString() === selectedMunicipio);
+      if (municipio) {
+        fileName += `_${municipio.municipio.replace('MP. ', '')}`;
+      }
+    }
+    
+    if (searchTerm) {
+      fileName += `_Busqueda_${searchTerm}`;
+    }
+    
+    fileName += `.xlsx`;
+    
+    // Agregar hoja y descargar
+    utils.book_append_sheet(wb, ws, 'Emprendedores');
+    writeFile(wb, fileName);
   };
 
   /* -------------------------------------------------------------------------- */
   /*                              Render helpers                                 */
   /* -------------------------------------------------------------------------- */
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil((emprendedoresResp?.total ?? 0) / PER_PAGE)),
-    [emprendedoresResp?.total],
+    () => Math.max(1, Math.ceil((emprendedoresData?.total ?? 0) / emprendedoresPerPage)),
+    [emprendedoresData?.total, emprendedoresPerPage],
   );
 
-  const renderSelect = (
-    name,
-    items,
-    extra,
-  ) => (
-    <select
-      name={name}
-      value={filters[name]}
-      onChange={(e) => {
-        const { value } = e.target;
-        setFilters((f) => ({ ...f, [name]: value, ...(name === 'estado' ? { municipio: '' } : {}) }));
-        setPage(1);
-      }}
-      className="select select-bordered w-full bg-white text-gray-800 border-golden"
-      {...extra}
-    >
-      <option value="">Todos</option>
-      {items.map(({ value, label }) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
-  );
+  // Obtener nombre completo del estado seleccionado
+  const selectedEstadoNombre = useMemo(() => {
+    if (!selectedEstado || !estados) return '';
+    const estado = estados.find(e => e.codigo_estado.toString() === selectedEstado);
+    return estado ? estado.estado : '';
+  }, [selectedEstado, estados]);
+  
+  // Obtener nombre completo del municipio seleccionado
+  const selectedMunicipioNombre = useMemo(() => {
+    if (!selectedMunicipio || !municipios) return '';
+    const municipio = municipios.find(m => m.codigo_municipio.toString() === selectedMunicipio);
+    return municipio ? municipio.municipio : '';
+  }, [selectedMunicipio, municipios]);
 
   /* -------------------------------------------------------------------------- */
   /*                                   UI                                       */
@@ -324,7 +439,7 @@ const EmprendedorControl = () => {
               Nuevo Emprendedor
             </button>
             <button 
-              onClick={exportarEmprendedores} 
+              onClick={exportToExcel} 
               className="btn bg-golden hover:bg-golden-dark text-white border-0" 
               disabled={exporting}
             >
@@ -338,40 +453,61 @@ const EmprendedorControl = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Búsqueda</label>
-                <input
-                  name="search"
-                  placeholder="Buscar por nombre, cédula..."
-                  value={filters.search}
-                  onChange={(e) => {
-                    setFilters((f) => ({ ...f, search: e.target.value }));
-                    setPage(1);
-                  }}
-                  className="input input-bordered w-full bg-white border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="search"
+                    placeholder="Buscar por nombre, cédula..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="input input-bordered w-full bg-white border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
+                  />
+                  <FiFilter className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                {renderSelect(
-                  'estado',
-                  estados.map((e) => ({ value: e.codigo_estado.toString(), label: e.estado })),
-                )}
+                <select
+                  name="estado"
+                  value={selectedEstado}
+                  onChange={handleEstadoChange}
+                  className="select select-bordered w-full bg-white text-gray-800 border-golden"
+                >
+                  <option value="">Todos</option>
+                  {estados.map((e) => (
+                    <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
+                      {e.estado}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Municipio</label>
-                {renderSelect(
-                  'municipio',
-                  municipios.map((m) => ({ value: m.codigo_municipio.toString(), label: m.municipio })),
-                  { disabled: !filters.estado },
-                )}
+                <select
+                  name="municipio"
+                  value={selectedMunicipio}
+                  onChange={handleMunicipioChange}
+                  className="select select-bordered w-full bg-white text-gray-800 border-golden"
+                  disabled={!selectedEstado}
+                >
+                  <option value="">Todos</option>
+                  {municipios.map((m) => (
+                    <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
+                      {m.municipio}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex items-end">
                 <button
                   onClick={() => {
-                    setFilters({ search: '', estado: '', municipio: '' });
-                    setPage(1);
+                    setSearchTerm('');
+                    setSelectedEstado('');
+                    setSelectedMunicipio('');
+                    setCurrentPage(1);
                   }}
                   className="btn btn-outline border-gray-300 hover:bg-gray-100 hover:border-gray-400 text-gray-700 w-full"
                 >
@@ -381,14 +517,36 @@ const EmprendedorControl = () => {
             </div>
           </div>
 
+          {/* Filtros activos */}
+          {(selectedEstadoNombre || selectedMunicipioNombre || searchTerm) && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="text-sm text-gray-600">Filtros activos:</span>
+              
+              {selectedEstadoNombre && (
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-800">
+                  Estado: {selectedEstadoNombre}
+                </span>
+              )}
+              
+              {selectedMunicipioNombre && (
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-800">
+                  Municipio: {selectedMunicipioNombre}
+                </span>
+              )}
+              
+              {searchTerm && (
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-800">
+                  Búsqueda: {searchTerm}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Tabla de emprendedores */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {loadingEmprendedores ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-golden mx-auto"></div>
-                <p className="mt-2 text-gray-600">Cargando...</p>
-              </div>
-            ) : errorEmprendedores ? (
+            {isLoading ? (
+              <TableSkeleton columns={6} rows={5} />
+            ) : isError ? (
               <div className="p-8 text-center text-red-500">Error al cargar los datos. Intente nuevamente.</div>
             ) : (
               <div className="overflow-x-auto">
@@ -408,8 +566,8 @@ const EmprendedorControl = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {emprendedoresResp?.items?.length ? (
-                      emprendedoresResp.items.map((e) => (
+                    {emprendedoresData?.items && emprendedoresData.items.length > 0 ? (
+                      emprendedoresData.items.map((e) => (
                         <tr key={e.id} className="hover:bg-gray-50 border-b border-gray-200">
                           <td className="px-4 py-3">{e.id}</td>
                           <td className="px-4 py-3">{e.cedula}</td>
@@ -442,6 +600,7 @@ const EmprendedorControl = () => {
                       <tr>
                         <td colSpan={10} className="text-center py-8 text-gray-500">
                           No hay emprendedores que coincidan con los criterios de búsqueda
+                          {emprendedoresData ? ` (Total: ${emprendedoresData.total || 0})` : ''}
                         </td>
                       </tr>
                     )}
@@ -456,22 +615,22 @@ const EmprendedorControl = () => {
             {['«', '‹'].map((s, i) => (
               <button
                 key={s}
-                onClick={() => setPage((p) => Math.max(1, p - (i === 0 ? p - 1 : 1)))}
-                className={`btn border-gray-300 ${page === 1 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                disabled={page === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - (i === 0 ? p - 1 : 1)))}
+                className={`btn border-gray-300 ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                disabled={currentPage === 1}
               >
                 {s}
               </button>
             ))}
             <span className="btn bg-golden text-white hover:bg-golden-dark">
-              Página {page} de {totalPages}
+              Página {currentPage} de {totalPages}
             </span>
             {['›', '»'].map((s, i) => (
               <button
                 key={s}
-                onClick={() => setPage((p) => Math.min(totalPages, p + (i === 1 ? totalPages - p : 1)))}
-                className={`btn border-gray-300 ${page === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                disabled={page === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + (i === 1 ? totalPages - p : 1)))}
+                className={`btn border-gray-300 ${currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                disabled={currentPage === totalPages}
               >
                 {s}
               </button>

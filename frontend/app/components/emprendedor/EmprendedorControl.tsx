@@ -18,7 +18,7 @@ import {
   useDeleteEmprendedor,
   useEmprendedorByCedula,
   useElectorDataForEmprendedor
-} from '../../hooks/useEmprededores';
+} from '../../hooks/useEmprendedores';
 
 /* -------------------------------------------------------------------------- */
 /*                                 Tipos                                      */
