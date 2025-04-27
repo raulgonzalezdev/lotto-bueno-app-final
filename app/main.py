@@ -173,10 +173,10 @@ origins = [
      "https://lottobueno.com",
      "https://banempre.online",
      "https://www.banempre.online"
-     
-   
 ]
 
+# Configuración centralizada de CORS para toda la aplicación.
+# IMPORTANTE: No configurar encabezados CORS adicionales en nginx para evitar duplicidades.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

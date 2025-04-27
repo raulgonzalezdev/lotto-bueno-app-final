@@ -6,7 +6,7 @@ import Image from "next/image";
 import PulseLoader from "react-spinners/PulseLoader";
 
 // URL de la landing de Banempre
-const BANEMPRE_URL = "http://banempre.applottobueno.com"; // Ajustar según la URL real
+const BANEMPRE_URL = "https://banempre.online"; // Ajustar según la URL real
 
 export default function DashboardPage() {
   const router = useRouter();
