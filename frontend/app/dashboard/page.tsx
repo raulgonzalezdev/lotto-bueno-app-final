@@ -52,6 +52,14 @@ export default function DashboardPage() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    console.log("Form submitted with:", loginData);
+    
+    if (!loginData.username || !loginData.password) {
+      setError("Por favor, complete todos los campos");
+      return;
+    }
+    
     setIsSubmitting(true);
     setError("");
 
@@ -155,7 +163,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-4">
                     <label className="block text-white text-sm font-medium mb-2">
                       Nombre de usuario
@@ -167,6 +175,7 @@ export default function DashboardPage() {
                       onChange={handleChange}
                       className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
+                      autoComplete="username"
                     />
                   </div>
                   
