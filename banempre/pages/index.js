@@ -1,10 +1,13 @@
 import Head from 'next/head';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 import RegistroForm from '../components/RegistroForm';
 
 export default function Home() {
+  const router = useRouter();
+  
   const goToDashboard = () => {
-    window.location.href = 'https://applottobueno.com/dashboard';
+    router.push('/dashboard');
   };
 
   return (
@@ -19,7 +22,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4 md:py-6 flex flex-col min-h-screen">
           {/* Logo en la esquina superior izquierda */}
           <div className="flex justify-start mb-4 md:mb-10">
-            <a href="https://applottobueno.com/dashboard">
+            <a href="#" onClick={(e) => { e.preventDefault(); goToDashboard(); }}>
               <Image
                 src="/logo bamempre.png"
                 alt="Banempre - Banco de los Emprendedores"

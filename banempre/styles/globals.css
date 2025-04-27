@@ -8,6 +8,10 @@
   --background-end-rgb: 255, 255, 255;
   --color-primary: #4354A6; /* Color azul Banempre */
   --color-secondary: #F5AF00; /* Color amarillo/dorado Banempre */
+  --golden: #CD9600;
+  --golden-dark: #A87800;
+  --golden-light: #FFE0A3;
+  --blue-banempre: #1E40AF;
 }
 
 body {
@@ -80,6 +84,27 @@ body {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(67, 84, 166, 0.2);
+}
+
+/* Clases de colores personalizados */
+.bg-golden {
+  background-color: var(--golden);
+}
+
+.bg-golden-dark {
+  background-color: var(--golden-dark);
+}
+
+.bg-golden-light {
+  background-color: var(--golden-light);
+}
+
+.text-golden {
+  color: var(--golden);
+}
+
+.border-golden {
+  border-color: var(--golden);
 }
 
 @media (max-width: 768px) {
