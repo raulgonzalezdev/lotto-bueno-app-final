@@ -206,7 +206,7 @@ API_URL_BASE = os.getenv("API_URL_BASE", f"https://7103.api.greenapi.com/waInsta
 API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
-COMPANY_PHONE_CONTACT = os.getenv("COMPANY_PHONE_CONTACT", "17867234220")
+COMPANY_PHONE_CONTACT = os.getenv("COMPANY_PHONE_CONTACT", "584262831867")
 SECRET_KEY = os.getenv("SECRET_KEY", "J-yMKNjjVaUJUj-vC-cAun_qlyXH68p55er0WIlgFuo")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
@@ -798,10 +798,10 @@ def send_contact(chat_id: int, db: Session = Depends(get_db)):
             phone_contact = random.choice(phone_contacts)[0]
         else:
             # Usar la variable de ambiente si no hay números disponibles
-            phone_contact = os.getenv("COMPANY_PHONE_CONTACT", "17867234220")
+            phone_contact = os.getenv("COMPANY_PHONE_CONTACT", "584262831867")
     except Exception as e:
         # Usar la variable de ambiente en caso de cualquier error
-        phone_contact = os.getenv("COMPANY_PHONE_CONTACT", "17867234220")
+        phone_contact = os.getenv("COMPANY_PHONE_CONTACT", "584262831867")
 
     contact_request = ContactRequest(
         chat_id=chat_id,

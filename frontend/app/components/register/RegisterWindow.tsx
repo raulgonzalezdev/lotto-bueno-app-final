@@ -46,7 +46,7 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
   const whatsappIframeRef = useRef<HTMLIFrameElement>(null);
   const telegramIframeRef = useRef<HTMLIFrameElement>(null);
   
-  const companyPhoneContact = process.env.COMPANY_PHONE_CONTACT || '17867234220';
+  const companyPhoneContact = process.env.COMPANY_PHONE_CONTACT || '584262831867';
   const telegramBotUsername = process.env.TELEGRAM_BOT_USERNAME || 'Applottobueno_bot';
 
   const { 

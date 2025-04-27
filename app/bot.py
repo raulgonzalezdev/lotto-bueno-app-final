@@ -767,7 +767,7 @@ def handle_registro_promotor(
                                 "https://wa.me/", ""
                             )
                         else:
-                            company_whatsapp = "17867234220"
+                            company_whatsapp = "584262831867"
 
                         # CORREGIDO: El mensaje debe contener la información del usuario registrado
                         ticket_info_message = (

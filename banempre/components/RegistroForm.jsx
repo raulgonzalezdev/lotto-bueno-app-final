@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useElectorDataForEmprendedor, useCreateEmprendedor } from '../hooks/useEmprededores';
 import Toast from './Toast';
+import Modal from './Modal';
 
 // Función debounce para retrasar la búsqueda
 const debounce = (func, wait) => {
@@ -33,6 +34,8 @@ export default function RegistroForm() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [registroExitoso, setRegistroExitoso] = useState(false);
+  const [datosRegistro, setDatosRegistro] = useState(null);
 
   // Usamos el hook para crear emprendedores
   const createEmprendedor = useCreateEmprendedor();
@@ -88,6 +91,28 @@ export default function RegistroForm() {
     }
   }, [electorData]);
 
+  // Función para limpiar el formulario
+  const limpiarFormulario = () => {
+    setFormData({
+      cedula: '',
+      nombre_apellido: '',
+      rif: '',
+      nombre_emprendimiento: '',
+      telefono: '',
+      estado: '',
+      municipio: ''
+    });
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  // Función para cerrar el modal y limpiar el formulario
+  const handleCloseModal = () => {
+    setRegistroExitoso(false);
+    setDatosRegistro(null);
+    limpiarFormulario();
+  };
+
   const validarFormulario = () => {
     // Resetear mensaje de error
     setErrorMessage('');
@@ -127,7 +152,7 @@ export default function RegistroForm() {
     
     try {
       // Usamos la mutación de React Query para crear el emprendedor
-      await createEmprendedor.mutateAsync({
+      const resultado = await createEmprendedor.mutateAsync({
         cedula: formData.cedula,
         nombre_apellido: formData.nombre_apellido,
         rif: formData.rif,
@@ -137,32 +162,23 @@ export default function RegistroForm() {
         municipio: formData.municipio
       });
       
-      // Mostrar mensaje de éxito
-      setSuccessMessage('¡Registro exitoso! Gracias por registrar tu emprendimiento.');
-      showToast('¡Registro exitoso!', 'success');
-      
-      // Limpiar el formulario
-      setFormData({
-        cedula: '',
-        nombre_apellido: '',
-        rif: '',
-        nombre_emprendimiento: '',
-        telefono: '',
-        estado: '',
-        municipio: ''
+      // Guardar los datos del registro para mostrarlos en el modal
+      setDatosRegistro({
+        ...formData,
+        id: resultado?.id
       });
       
-      // Opcionalmente, redirigir después de un tiempo
-      setTimeout(() => {
-        window.location.href = 'https://applottobueno.com/dashboard';
-      }, 3000);
+      // Mostrar modal de registro exitoso
+      setRegistroExitoso(true);
+      showToast('¡Registro exitoso!', 'success');
+      
     } catch (error) {
       console.error('Error al enviar el formulario:', error);
       
       // Capturar el mensaje específico de error
       if (error.message.includes('Ya existe un emprendedor con esta cédula')) {
-        setErrorMessage('Ya existe un emprendedor registrado con esta cédula');
-        showToast('Ya existe un emprendedor registrado con esta cédula', 'error');
+        setErrorMessage('Ya estás registrado en nuestro sistema');
+        showToast('Ya estás registrado en nuestro sistema', 'info');
       } else {
         setErrorMessage(error.message || 'Error al procesar la solicitud. Intente nuevamente.');
         showToast('Error al procesar la solicitud', 'error');
@@ -294,6 +310,44 @@ export default function RegistroForm() {
           onClose={() => setToast({ message: '', type: 'info' })} 
         />
       )}
+
+      {/* Modal de registro exitoso */}
+      <Modal
+        isOpen={registroExitoso}
+        onClose={handleCloseModal}
+        title="¡Registro Exitoso!"
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          
+          <h4 className="text-lg font-semibold mb-2">¡Bienvenido a Banempre!</h4>
+          
+          <p className="mb-3">
+            Gracias por registrar tu emprendimiento con nosotros. Hemos registrado los siguientes datos:
+          </p>
+          
+          {datosRegistro && (
+            <div className="bg-gray-50 p-3 rounded-lg text-left mb-4">
+              <p><strong>Nombre:</strong> {datosRegistro.nombre_apellido}</p>
+              <p><strong>Emprendimiento:</strong> {datosRegistro.nombre_emprendimiento}</p>
+              <p><strong>Teléfono:</strong> {datosRegistro.telefono}</p>
+            </div>
+          )}
+          
+          <p className="text-blue-600 font-medium">
+            Próximamente serás contactado por un agente a través del número telefónico que proporcionaste.
+          </p>
+          
+          <p className="mt-3 text-gray-600">
+            Te informaremos sobre los recaudos necesarios para la obtención de beneficios, 
+            planes disponibles y toda la información que necesitas para impulsar tu emprendimiento.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 } 

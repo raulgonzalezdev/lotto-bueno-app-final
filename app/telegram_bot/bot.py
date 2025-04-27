@@ -36,7 +36,7 @@ TELEGRAM_TOKEN = os.getenv("API_TELEGRAM_TOKEN", "8187061957:AAEKVKWfBKuECSC7G63
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
-WHATSAPP_URL = os.getenv("WHATSAPP_URL", "https://wa.me/17867234220")
+WHATSAPP_URL = os.getenv("WHATSAPP_URL", "https://wa.me/584262831867")
 
 # Tiempo de inactividad en segundos (1 minuto)
 INACTIVITY_TIMEOUT = 60
