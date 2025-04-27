@@ -137,25 +137,25 @@ export default function DashboardPage() {
   if (showLoginForm) {
     return (
       <div className="min-h-screen flex flex-col" style={bgStyle}>
-        {/* Header con logo */}
-        <div className="p-4 flex justify-center">
+        {/* Header con logo más pequeño */}
+        <div className="p-3 flex justify-center">
           <Image 
             src="/logo bamempre.png" 
             alt="Banempre - Banco de los Emprendedores"
-            width={240}
-            height={50}
-            className="w-48"
+            width={180}
+            height={40}
+            className="w-36"
             priority
           />
         </div>
         
-        {/* Formulario principal */}
+        {/* Formulario centrado */}
         <div className="flex-grow flex items-center justify-center px-4">
           <div 
             style={{ backgroundColor: 'rgba(205, 150, 0, 0.90)' }} 
-            className="w-full max-w-md py-6 px-5 rounded-lg"
+            className="w-full max-w-sm py-5 px-4 rounded-lg"
           >
-            <h2 className="text-xl font-bold text-center mb-5 text-white">
+            <h2 className="text-lg font-bold text-center mb-4 text-white">
               Inicio de Sesión Admin
             </h2>
             
