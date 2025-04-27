@@ -89,7 +89,7 @@ COPY ./banempre/.env ./
 COPY ./banempre /banempre
 
 # Instala dependencias incluyendo @tailwindcss/typography
-RUN npm install --legacy-peer-deps && npm install @tailwindcss/typography --legacy-peer-deps
+RUN npm install --force or --legacy-peer-deps
 
 # Construye la aplicación banempre
 RUN npm run build:standalone
