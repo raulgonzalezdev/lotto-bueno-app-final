@@ -6,7 +6,7 @@ export const useEstados = () => {
     queryKey: ['estados'],
     queryFn: async () => {
       try {
-        const data = await apiClient.get('api/estados');
+        const data = await apiClient.get('estados');
         
         if (Array.isArray(data)) {
           return data.sort((a, b) => 

@@ -10,7 +10,7 @@ export const useMunicipios = (estadoId) => {
       
       try {
         // Cambiar la ruta para incluir "api" al inicio y usar encodeURIComponent
-        const data = await apiClient.get(`api/municipios/${encodeURIComponent(estadoId)}`);
+        const data = await apiClient.get(`municipios/${encodeURIComponent(estadoId)}`);
         
         // Verificar que los datos sean un array y ordenarlos
         if (Array.isArray(data)) {
