@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
+import { useElectorDataForEmprendedor, useCreateEmprendedor } from '../hooks/useEmprededores';
 
 // Función debounce para retrasar la búsqueda
 const debounce = (func, wait) => {
@@ -17,7 +18,7 @@ const debounce = (func, wait) => {
 
 export default function RegistroForm() {
   const router = useRouter();
-  const { token, loading } = useAuth();
+  const { token, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     cedula: '',
     nombre_apellido: '',
@@ -28,54 +29,27 @@ export default function RegistroForm() {
     municipio: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [electorData, setElectorData] = useState(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Usamos el hook para crear emprendedores
+  const createEmprendedor = useCreateEmprendedor();
+
+  // Usamos el hook modificado para obtener datos de elector
+  const { 
+    data: electorData, 
+    isLoading: isSearchingElector, 
+    error: electorError 
+  } = useElectorDataForEmprendedor(formData.cedula);
 
   // Implementar la función de búsqueda con debounce
   const debouncedSearch = useCallback(
     debounce((cedula) => {
-      buscarElector(cedula);
+      // La búsqueda ahora se maneja automáticamente por el hook useElectorDataForEmprendedor
+      console.log("Buscando elector con cédula:", cedula);
     }, 800),
     []
   );
-
-  const buscarElector = async (cedula) => {
-    setIsSearching(true);
-    setErrorMessage('');
-    
-    try {
-      // Usamos la API local
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://banempre.online/api';
-      const response = await fetch(`${apiUrl}/emprendedores/get_elector_data/${cedula}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setElectorData(data);
-        
-        // Autocompletar con los datos del elector
-        setFormData(prev => ({
-          ...prev,
-          nombre_apellido: data.nombre_apellido || prev.nombre_apellido,
-          estado: data.estado || prev.estado,
-          municipio: data.municipio || prev.municipio
-        }));
-      } else {
-        console.log('Elector no encontrado, pero se permitirá el registro manual');
-        setElectorData(null);
-      }
-    } catch (error) {
-      console.error('Error al buscar elector:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -89,6 +63,18 @@ export default function RegistroForm() {
       debouncedSearch(value);
     }
   };
+
+  // Actualizar datos del formulario cuando se encuentra información del elector
+  useEffect(() => {
+    if (electorData) {
+      setFormData(prev => ({
+        ...prev,
+        nombre_apellido: electorData.nombre_apellido || prev.nombre_apellido,
+        estado: electorData.estado || prev.estado,
+        municipio: electorData.municipio || prev.municipio
+      }));
+    }
+  }, [electorData]);
 
   const validarFormulario = () => {
     // Resetear mensaje de error
@@ -128,48 +114,35 @@ export default function RegistroForm() {
     setErrorMessage('');
     
     try {
-      // Usamos la API local
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://banempre.online/api';
-      const response = await fetch(`${apiUrl}/emprendedores`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          cedula: formData.cedula,
-          nombre_apellido: formData.nombre_apellido,
-          rif: formData.rif,
-          nombre_emprendimiento: formData.nombre_emprendimiento,
-          telefono: formData.telefono,
-          estado: formData.estado,
-          municipio: formData.municipio
-        }),
+      // Usamos la mutación de React Query para crear el emprendedor
+      await createEmprendedor.mutateAsync({
+        cedula: formData.cedula,
+        nombre_apellido: formData.nombre_apellido,
+        rif: formData.rif,
+        nombre_emprendimiento: formData.nombre_emprendimiento,
+        telefono: formData.telefono,
+        estado: formData.estado,
+        municipio: formData.municipio
       });
       
-      if (response.ok) {
-        // Mostrar mensaje de éxito
-        setSuccessMessage('¡Registro exitoso! Gracias por registrar tu emprendimiento.');
-        
-        // Limpiar el formulario
-        setFormData({
-          cedula: '',
-          nombre_apellido: '',
-          rif: '',
-          nombre_emprendimiento: '',
-          telefono: '',
-          estado: '',
-          municipio: ''
-        });
-        
-        // Opcionalmente, redirigir después de un tiempo
-        setTimeout(() => {
-          window.location.href = 'https://applottobueno.com/dashboard';
-        }, 3000);
-      } else {
-        const errorData = await response.json();
-        setErrorMessage(errorData.detail || 'Error al registrar el emprendimiento');
-      }
+      // Mostrar mensaje de éxito
+      setSuccessMessage('¡Registro exitoso! Gracias por registrar tu emprendimiento.');
+      
+      // Limpiar el formulario
+      setFormData({
+        cedula: '',
+        nombre_apellido: '',
+        rif: '',
+        nombre_emprendimiento: '',
+        telefono: '',
+        estado: '',
+        municipio: ''
+      });
+      
+      // Opcionalmente, redirigir después de un tiempo
+      setTimeout(() => {
+        window.location.href = 'https://applottobueno.com/dashboard';
+      }, 3000);
     } catch (error) {
       console.error('Error al enviar el formulario:', error);
       setErrorMessage('Error al procesar la solicitud. Intente nuevamente.');
@@ -185,13 +158,13 @@ export default function RegistroForm() {
         ...prev,
         cedula: router.query.cedula
       }));
-      buscarElector(router.query.cedula);
+      // La búsqueda ahora se maneja automáticamente por el hook useElectorDataForEmprendedor
     }
   }, [router.query]);
 
   return (
     <div className="form-container">
-      {loading ? (
+      {authLoading ? (
         <div className="text-center py-4">
           <p className="text-white">Cargando...</p>
         </div>
@@ -223,7 +196,7 @@ export default function RegistroForm() {
                   className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
                   required
                 />
-                {isSearching && (
+                {isSearchingElector && (
                   <span className="ml-2 text-white animate-spin">⟳</span>
                 )}
               </div>
@@ -282,10 +255,10 @@ export default function RegistroForm() {
             <div className="text-center">
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || createEmprendedor.isPending}
                 className="bg-blue-600 text-white font-medium py-2 px-6 md:px-8 rounded-full hover:bg-blue-700 transition-colors w-full disabled:opacity-50"
               >
-                {isSubmitting ? 'Procesando...' : 'REGISTRAR'}
+                {isSubmitting || createEmprendedor.isPending ? 'Procesando...' : 'REGISTRAR'}
               </button>
             </div>
           </form>
