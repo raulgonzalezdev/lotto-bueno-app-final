@@ -1,8 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '../context/AuthContext';
+
+// Función debounce para retrasar la búsqueda
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
 
 export default function RegistroForm() {
   const router = useRouter();
+  const { token, loading } = useAuth();
   const [formData, setFormData] = useState({
     cedula: '',
     nombre_apellido: '',
@@ -18,18 +33,13 @@ export default function RegistroForm() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Si el campo modificado es la cédula y tiene al menos 6 caracteres, buscar en el registro
-    if (name === 'cedula' && value.length >= 6) {
-      buscarElector(value);
-    }
-  };
+  // Implementar la función de búsqueda con debounce
+  const debouncedSearch = useCallback(
+    debounce((cedula) => {
+      buscarElector(cedula);
+    }, 800),
+    []
+  );
 
   const buscarElector = async (cedula) => {
     setIsSearching(true);
@@ -64,6 +74,19 @@ export default function RegistroForm() {
       console.error('Error al buscar elector:', error);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Si el campo modificado es la cédula y tiene al menos 7 caracteres, iniciar búsqueda con debounce
+    if (name === 'cedula' && value.length >= 7) {
+      debouncedSearch(value);
     }
   };
 
@@ -111,6 +134,7 @@ export default function RegistroForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           cedula: formData.cedula,
@@ -167,98 +191,106 @@ export default function RegistroForm() {
 
   return (
     <div className="form-container">
-      <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white text-center">REGISTRA TU EMPRENDIMIENTO</h2>
-      
-      {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-          {successMessage}
+      {loading ? (
+        <div className="text-center py-4">
+          <p className="text-white">Cargando...</p>
         </div>
-      )}
-      
-      {errorMessage && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-          {errorMessage}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-        <div className="mb-2 md:mb-3">
-          <label className="block mb-1 text-white text-sm md:text-base">Cédula de Identidad:</label>
-          <div className="flex items-center">
-            <input
-              type="text"
-              name="cedula"
-              value={formData.cedula}
-              onChange={handleChange}
-              className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
-              required
-            />
-            {isSearching && (
-              <span className="ml-2 text-white animate-spin">⟳</span>
-            )}
-          </div>
-          {electorData && (
-            <p className="text-xs text-green-300 mt-1">Información encontrada en la base de datos</p>
+      ) : (
+        <>
+          <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white text-center">REGISTRA TU EMPRENDIMIENTO</h2>
+          
+          {successMessage && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+              {successMessage}
+            </div>
           )}
-        </div>
+          
+          {errorMessage && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+              {errorMessage}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+            <div className="mb-2 md:mb-3">
+              <label className="block mb-1 text-white text-sm md:text-base">Cédula de Identidad:</label>
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  name="cedula"
+                  value={formData.cedula}
+                  onChange={handleChange}
+                  className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
+                  required
+                />
+                {isSearching && (
+                  <span className="ml-2 text-white animate-spin">⟳</span>
+                )}
+              </div>
+              {electorData && (
+                <p className="text-xs text-green-300 mt-1">Información encontrada en la base de datos</p>
+              )}
+            </div>
 
-        <div className="mb-2 md:mb-3">
-          <label className="block mb-1 text-white text-sm md:text-base">Nombre y Apellido:</label>
-          <input
-            type="text"
-            name="nombre_apellido"
-            value={formData.nombre_apellido}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
-            required
-          />
-        </div>
+            <div className="mb-2 md:mb-3">
+              <label className="block mb-1 text-white text-sm md:text-base">Nombre y Apellido:</label>
+              <input
+                type="text"
+                name="nombre_apellido"
+                value={formData.nombre_apellido}
+                onChange={handleChange}
+                className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
+                required
+              />
+            </div>
 
-        <div className="mb-2 md:mb-3">
-          <label className="block mb-1 text-white text-sm md:text-base">RIF (Si posee):</label>
-          <input
-            type="text"
-            name="rif"
-            value={formData.rif}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
-          />
-        </div>
+            <div className="mb-2 md:mb-3">
+              <label className="block mb-1 text-white text-sm md:text-base">RIF (Si posee):</label>
+              <input
+                type="text"
+                name="rif"
+                value={formData.rif}
+                onChange={handleChange}
+                className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
+              />
+            </div>
 
-        <div className="mb-2 md:mb-3">
-          <label className="block mb-1 text-white text-sm md:text-base">Nombre del Emprendimiento:</label>
-          <input
-            type="text"
-            name="nombre_emprendimiento"
-            value={formData.nombre_emprendimiento}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
-            required
-          />
-        </div>
+            <div className="mb-2 md:mb-3">
+              <label className="block mb-1 text-white text-sm md:text-base">Nombre del Emprendimiento:</label>
+              <input
+                type="text"
+                name="nombre_emprendimiento"
+                value={formData.nombre_emprendimiento}
+                onChange={handleChange}
+                className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
+                required
+              />
+            </div>
 
-        <div className="mb-3 md:mb-4">
-          <label className="block mb-1 text-white text-sm md:text-base">Número Telefónico:</label>
-          <input
-            type="tel"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
-            required
-          />
-        </div>
+            <div className="mb-3 md:mb-4">
+              <label className="block mb-1 text-white text-sm md:text-base">Número Telefónico:</label>
+              <input
+                type="tel"
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                className="w-full p-2 rounded bg-white text-black text-sm md:text-base"
+                required
+              />
+            </div>
 
-        <div className="text-center">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="bg-blue-600 text-white font-medium py-2 px-6 md:px-8 rounded-full hover:bg-blue-700 transition-colors w-full disabled:opacity-50"
-          >
-            {isSubmitting ? 'Procesando...' : 'REGISTRAR'}
-          </button>
-        </div>
-      </form>
+            <div className="text-center">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-blue-600 text-white font-medium py-2 px-6 md:px-8 rounded-full hover:bg-blue-700 transition-colors w-full disabled:opacity-50"
+              >
+                {isSubmitting ? 'Procesando...' : 'REGISTRAR'}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
     </div>
   );
 } 
