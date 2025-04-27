@@ -64,10 +64,8 @@ export const useEmprendedores = (params = {}) => {
   const queryClient = useQueryClient();
   const { token } = useAuth();
   
-  const queryKey = ['emprendedores', currentPage, emprendedoresPerPage, searchTerm, estado, municipio];
-
   return useQuery({
-    queryKey: queryKey,
+    queryKey: ['emprendedores', currentPage, emprendedoresPerPage, searchTerm, estado, municipio],
     queryFn: async () => {
       try {
         const queryParams = {
@@ -76,66 +74,116 @@ export const useEmprendedores = (params = {}) => {
         };
         
         if (searchTerm) queryParams.search = searchTerm;
-        if (estado) queryParams.estado = estado;
-        if (municipio) queryParams.municipio = municipio;
-
-        console.log('Llamando API de emprendedores con parámetros:', queryParams);
         
-        try {
-          const host = await apiClient.detectHost();
-          console.log('API Host:', host);
-          const url = `emprendedores/?${new URLSearchParams(queryParams)}`;
+        // Si estado y municipio son IDs, necesitamos convertirlos a nombres
+        if (estado) {
+          // Intentar obtener los estados de la caché
+          const estadosCache = queryClient.getQueryData(['estados']);
           
-          const response = await apiClient.get(url, token);
-          console.log('Respuesta de API:', response);
-          return {
-            items: response.items || [],
-            total: typeof response.total === 'number' ? response.total : (response.items?.length || 0)
-          };
-        } catch (fetchError) {
-          console.error('Error en fetch:', fetchError);
+          if (estadosCache) {
+            // Buscar el estado por su código
+            const estadoObj = estadosCache.find(e => e.codigo_estado.toString() === estado);
+            if (estadoObj) {
+              // Usar el nombre del estado en lugar del código
+              queryParams.estado = estadoObj.estado;
+            } else {
+              // Si no se encuentra, usar el ID directamente
+              queryParams.estado = estado;
+            }
+          } else {
+            queryParams.estado = estado;
+          }
+        }
+        
+        if (municipio) {
+          // Intentar obtener los municipios de la caché
+          const municipiosCache = queryClient.getQueryData(['municipios', estado]);
           
-          // Si estamos en desarrollo, devolvemos datos simulados
-          if (isDevelopment) {
-            console.warn('Usando datos simulados para emprendedores en desarrollo');
-            
-            // Filtramos los datos de prueba según los criterios de búsqueda
-            let filteredData = [...mockEmprendedores];
-            
-            if (searchTerm) {
-              const term = searchTerm.toLowerCase();
-              filteredData = filteredData.filter(e => 
-                e.nombre_apellido.toLowerCase().includes(term) ||
-                e.nombre_emprendimiento.toLowerCase().includes(term) ||
-                e.cedula.includes(term)
-              );
+          if (municipiosCache) {
+            // Buscar el municipio por su código
+            const municipioObj = municipiosCache.find(m => m.codigo_municipio.toString() === municipio);
+            if (municipioObj) {
+              // Usar el nombre del municipio en lugar del código
+              queryParams.municipio = municipioObj.municipio;
+            } else {
+              // Si no se encuentra, usar el ID directamente
+              queryParams.municipio = municipio;
             }
-            
-            if (estado) {
-              filteredData = filteredData.filter(e => e.estado === estado);
-            }
-            
-            if (municipio) {
-              filteredData = filteredData.filter(e => e.municipio === municipio);
-            }
-            
-            return {
-              items: filteredData.slice((currentPage - 1) * emprendedoresPerPage, currentPage * emprendedoresPerPage),
-              total: filteredData.length
-            };
+          } else {
+            queryParams.municipio = municipio;
+          }
+        }
+        
+        const host = await apiClient.detectHost();
+        const url = `emprendedores/?${new URLSearchParams(queryParams)}`;
+        
+        const response = await apiClient.get(url, token);
+        return {
+          items: response.items || [],
+          total: typeof response.total === 'number' ? response.total : (response.items?.length || 0)
+        };
+      } catch (fetchError) {
+        console.error('Error en fetch:', fetchError);
+        
+        // Si estamos en desarrollo, devolvemos datos simulados
+        if (isDevelopment) {
+          // Filtramos los datos de prueba según los criterios de búsqueda
+          let filteredData = [...mockEmprendedores];
+          
+          if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filteredData = filteredData.filter(e => 
+              e.nombre_apellido.toLowerCase().includes(term) ||
+              e.nombre_emprendimiento.toLowerCase().includes(term) ||
+              e.cedula.includes(term)
+            );
           }
           
-          throw fetchError;
-        }
-      } catch (error) {
-        console.error('Error global al obtener emprendedores:', error);
-        if (isDevelopment) {
+          if (estado) {
+            // Para el filtrado en modo desarrollo, convertimos el código a nombre si es posible
+            const estadosCache = queryClient.getQueryData(['estados']);
+            let estadoNombre = estado;
+            
+            if (estadosCache) {
+              const estadoObj = estadosCache.find(e => e.codigo_estado.toString() === estado);
+              if (estadoObj) {
+                estadoNombre = estadoObj.estado;
+              }
+            }
+            
+            filteredData = filteredData.filter(e => 
+              e.estado === estadoNombre || 
+              e.estado.includes(estadoNombre) || 
+              estadoNombre.includes(e.estado)
+            );
+          }
+          
+          if (municipio) {
+            // Para el filtrado en modo desarrollo, convertimos el código a nombre si es posible
+            const municipiosCache = queryClient.getQueryData(['municipios', estado]);
+            let municipioNombre = municipio;
+            
+            if (municipiosCache) {
+              const municipioObj = municipiosCache.find(m => m.codigo_municipio.toString() === municipio);
+              if (municipioObj) {
+                municipioNombre = municipioObj.municipio;
+              }
+            }
+            
+            filteredData = filteredData.filter(e => 
+              e.municipio === municipioNombre || 
+              e.municipio.includes(municipioNombre) || 
+              municipioNombre.includes(e.municipio)
+            );
+          }
+          
           return {
-            items: mockEmprendedores,
-            total: mockEmprendedores.length
+            items: filteredData.slice((currentPage - 1) * emprendedoresPerPage, currentPage * emprendedoresPerPage),
+            total: filteredData.length
           };
         }
-        throw error;
+        
+        throw fetchError;
       }
     },
     placeholderData: (oldData) => oldData || { items: [], total: 0 },

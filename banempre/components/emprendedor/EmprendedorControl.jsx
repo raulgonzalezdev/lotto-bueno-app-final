@@ -82,20 +82,6 @@ const EmprendedorControl = () => {
   const { data: estados = [] } = useEstados();
   const { data: municipios = [] } = useMunicipios(selectedEstado);
 
-  // Efecto para depurar las respuestas de estados
-  useEffect(() => {
-    if (estados && estados.length > 0) {
-      console.log('Estados cargados:', estados);
-    }
-  }, [estados]);
-
-  // Efecto para depurar las respuestas de municipios
-  useEffect(() => {
-    if (municipios && municipios.length > 0) {
-      console.log('Municipios cargados para estado', selectedEstado, ':', municipios);
-    }
-  }, [municipios, selectedEstado]);
-
   /* -------------------- Emprendedores (principal) ------------------------ */
   const { data: emprendedoresData, isLoading, isError, refetch } = useEmprendedores({
     currentPage,
@@ -104,13 +90,6 @@ const EmprendedorControl = () => {
     estado: selectedEstado,
     municipio: selectedMunicipio
   });
-
-  // Efecto para depurar la respuesta de los emprendedores
-  useEffect(() => {
-    if (emprendedoresData) {
-      console.log('Datos de emprendedores recibidos:', emprendedoresData);
-    }
-  }, [emprendedoresData]);
 
   /* --------------------------- Mutaciones ------------------------------- */
   const createMut = useCreateEmprendedor();
@@ -148,26 +127,12 @@ const EmprendedorControl = () => {
     setSelectedEstado(newEstado);
     // Resetear municipio cuando cambia el estado
     setSelectedMunicipio('');
-    
-    console.log('Estado seleccionado:', newEstado);
-    // Comprobar si hay datos de estado
-    if (estados) {
-      const estadoObj = estados.find(e => e.codigo_estado.toString() === newEstado);
-      console.log('Estado encontrado:', estadoObj);
-    }
   };
   
   // Manejar cambio en el municipio seleccionado
   const handleMunicipioChange = (e) => {
     const newMunicipio = e.target.value;
     setSelectedMunicipio(newMunicipio);
-    
-    console.log('Municipio seleccionado:', newMunicipio);
-    // Comprobar si hay datos de municipio
-    if (municipios) {
-      const municipioObj = municipios.find(m => m.codigo_municipio.toString() === newMunicipio);
-      console.log('Municipio encontrado:', municipioObj);
-    }
   };
 
   const [cedulaInput, setCedulaInput] = useState('');
@@ -238,9 +203,6 @@ const EmprendedorControl = () => {
         }
       }
       
-      console.log('Estado encontrado para emprendedor:', estadoObj);
-      console.log('Municipio encontrado para emprendedor:', municipioObj);
-      
       setModalEmprendedor({
         open: true,
         editing: true,
@@ -295,9 +257,6 @@ const EmprendedorControl = () => {
           }
         }
       }
-      
-      console.log('Estado encontrado para elector:', estadoObj);
-      console.log('Municipio encontrado para elector:', municipioObj);
       
       setModalEmprendedor({
         open: true,
@@ -372,11 +331,6 @@ const EmprendedorControl = () => {
           }
         }
       }
-      
-      // Registrar lo que encontramos para depuración
-      console.log('Abriendo modal para editar emprendedor:', emp);
-      console.log('Estado encontrado:', estadoObj);
-      console.log('Municipio encontrado:', municipioObj);
       
       setModalEmprendedor({ 
         open: true, 
