@@ -136,94 +136,97 @@ export default function DashboardPage() {
 
   if (showLoginForm) {
     return (
-      <div className="flex flex-col min-h-screen" style={bgStyle}>
-        <div className="container mx-auto px-2 sm:px-4 py-4 md:py-6 flex flex-col min-h-screen">
-          {/* Logo a la izquierda como en la landing */}
-          <div className="flex justify-center md:justify-start mb-4 md:mb-10">
-            <Image 
-              src="/logo bamempre.png" 
-              alt="Banempre - Banco de los Emprendedores"
-              width={500}
-              height={105}
-              className="w-52 md:w-auto"
-              priority
-            />
-          </div>
-          
-          {/* Contenido principal - formulario centrado en móvil y más ancho */}
-          <div className="flex-grow flex justify-center items-center">
-            <div className="w-full md:w-3/4 lg:w-2/3 xl:w-1/2 max-w-2xl">
-              <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-4 sm:p-6 rounded-lg shadow-lg w-full">
-                <h2 className="text-xl font-bold text-center mb-4 sm:mb-6 text-white">Inicio de Sesión Admin</h2>
-                
-                {error && (
-                  <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
-                    {error}
-                  </div>
-                )}
-                
-                <form onSubmit={handleSubmit} noValidate>
-                  <div className="mb-3 sm:mb-4">
-                    <label className="block text-white text-sm font-medium mb-1 sm:mb-2">
-                      Nombre de usuario
-                    </label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={loginData.username}
-                      onChange={handleChange}
-                      className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                      autoComplete="username"
-                    />
-                  </div>
-                  
-                  <div className="mb-4 sm:mb-6">
-                    <label className="block text-white text-sm font-medium mb-1 sm:mb-2">
-                      Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={loginData.password}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        setLoginData({
-                          ...loginData,
-                          password: newValue
-                        });
-                      }}
-                      className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  
-                  <div className="flex flex-col space-y-3">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="bg-blue-600 text-white font-medium py-2 sm:py-3 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
-                    >
-                      {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="bg-gray-600 text-white font-medium py-2 sm:py-3 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
-                    >
-                      CANCELAR
-                    </button>
-                  </div>
-                </form>
-                
-                <div className="mt-4 text-center text-sm">
-                  <a href={BANEMPRE_URL} className="text-white hover:text-blue-100">
-                    ¿No tienes una cuenta? Regístrate
-                  </a>
-                </div>
+      <div className="min-h-screen flex flex-col" style={bgStyle}>
+        {/* Header con logo */}
+        <div className="p-4 flex justify-center">
+          <Image 
+            src="/logo bamempre.png" 
+            alt="Banempre - Banco de los Emprendedores"
+            width={240}
+            height={50}
+            className="w-48"
+            priority
+          />
+        </div>
+        
+        {/* Formulario principal */}
+        <div className="flex-grow flex items-center justify-center px-4">
+          <div 
+            style={{ backgroundColor: 'rgba(205, 150, 0, 0.90)' }} 
+            className="w-full max-w-md py-6 px-5 rounded-lg"
+          >
+            <h2 className="text-xl font-bold text-center mb-5 text-white">
+              Inicio de Sesión Admin
+            </h2>
+            
+            {error && (
+              <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
+                {error}
               </div>
+            )}
+            
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              <div>
+                <label className="block text-white text-sm font-medium mb-1">
+                  Nombre de usuario
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={loginData.username}
+                  onChange={handleChange}
+                  className="w-full p-2.5 border border-gray-300 rounded text-gray-900"
+                  required
+                  autoComplete="username"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-white text-sm font-medium mb-1">
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={loginData.password}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLoginData({
+                      ...loginData,
+                      password: newValue
+                    });
+                  }}
+                  className="w-full p-2.5 border border-gray-300 rounded text-gray-900"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-full hover:bg-blue-700"
+                >
+                  {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
+                </button>
+              </div>
+              
+              <div>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="w-full bg-gray-600 text-white font-medium py-2.5 rounded-full hover:bg-gray-700"
+                >
+                  CANCELAR
+                </button>
+              </div>
+            </form>
+            
+            <div className="mt-4 text-center">
+              <a href={BANEMPRE_URL} className="text-white hover:text-blue-100 text-sm">
+                ¿No tienes una cuenta? Regístrate
+              </a>
             </div>
           </div>
         </div>
