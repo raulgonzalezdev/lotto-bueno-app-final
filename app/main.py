@@ -168,11 +168,13 @@ origins = [
     "https://applottobueno.com",
     "https://www.applottobueno.com",
     "https://7103.api.greenapi.com",
-     "https://wa.me",
-     "https://t.me",
-     "https://lottobueno.com",
-     "https://banempre.online",
-     "https://www.banempre.online"
+    "https://wa.me",
+    "https://t.me",
+    "https://lottobueno.com",
+    "https://banempre.online",
+    "https://www.banempre.online",
+    "http://localhost:3000",
+    "http://localhost:3002"
 ]
 
 # Configuración centralizada de CORS para toda la aplicación.
@@ -183,6 +185,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=86400  # 24 horas
 )
 
 # Eliminar cualquier middleware adicional o encabezados CORS específicos

@@ -173,7 +173,7 @@ export default function DashboardPage() {
                       name="username"
                       value={loginData.username}
                       onChange={handleChange}
-                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       required
                       autoComplete="username"
                     />
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                           password: newValue
                         });
                       }}
-                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       required
                       autoComplete="current-password"
                     />

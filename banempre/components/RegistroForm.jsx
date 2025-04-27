@@ -42,7 +42,8 @@ export default function RegistroForm() {
         mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        credentials: 'include'
       });
       
       if (response.ok) {
@@ -113,6 +114,7 @@ export default function RegistroForm() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           cedula: formData.cedula,
           nombre_apellido: formData.nombre_apellido,
