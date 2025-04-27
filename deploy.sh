@@ -1,9 +1,11 @@
 #!/bin/bash
 
 echo "Creating necessary .env files..."
-echo "NEXT_PUBLIC_API_URL=https://applottobueno.com/api
+echo "NEXT_PUBLIC_API_URL=https://banempre.online/api
 PORT=3002
-NODE_ENV=production" > banempre/.env
+NODE_ENV=production
+WEBSITE_URL=https://banempre.online
+TELEGRAM_CHANNEL=https://t.me/applottobueno" > banempre/.env
 
 echo "Building Docker images and starting containers..."
 

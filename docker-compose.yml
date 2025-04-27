@@ -154,7 +154,11 @@ services:
     volumes:
       - ./banempre:/banempre
     environment:
-      - NEXT_PUBLIC_API_URL=https://applottobueno.com/api
+      - NEXT_PUBLIC_API_URL=https://banempre.online/api
+      - PORT=3002
+      - NODE_ENV=${NODE_ENV:-production}
+      - WEBSITE_URL=${WEBSITE_URL:-https://banempre.online}
+      - TELEGRAM_CHANNEL=${TELEGRAM_CHANNEL:-https://t.me/applottobueno}
     ports:
       - "3002:3002"
     command: >

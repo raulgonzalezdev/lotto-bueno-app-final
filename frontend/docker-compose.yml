@@ -11,6 +11,40 @@ services:
     networks:
       - app-network
 
+  api:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"  # Puerto diferente para evitar conflictos
+    env_file:
+      - .env.banempre  # Archivo de entorno específico para banempre
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../app:/app  # Montar el código de la app
+
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=lottobueno
+      - POSTGRES_USER=lottobueno
+      - POSTGRES_PASSWORD=lottobueno
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6380:6379"
+    networks:
+      - app-network
+
   nginx:
     build:
       context: .
@@ -19,9 +53,13 @@ services:
       - "80:80"
     depends_on:
       - nextjs
+      - api
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres_data:

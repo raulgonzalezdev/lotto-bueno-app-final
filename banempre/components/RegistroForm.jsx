@@ -36,14 +36,13 @@ export default function RegistroForm() {
     setErrorMessage('');
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com/api';
+      // Usamos la API local
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://banempre.online/api';
       const response = await fetch(`${apiUrl}/emprendedores/get_elector_data/${cedula}`, {
         method: 'GET',
-        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
-        },
-        credentials: 'include'
+        }
       });
       
       if (response.ok) {
@@ -106,15 +105,13 @@ export default function RegistroForm() {
     setErrorMessage('');
     
     try {
-      // Enviar datos al API
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com/api';
+      // Usamos la API local
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://banempre.online/api';
       const response = await fetch(`${apiUrl}/emprendedores`, {
         method: 'POST',
-        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
           cedula: formData.cedula,
           nombre_apellido: formData.nombre_apellido,
