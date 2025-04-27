@@ -23,9 +23,9 @@ export default function Home() {
               <Image
                 src="/logo bamempre.png"
                 alt="Banempre - Banco de los Emprendedores"
-                width={500}
-                height={105}
-                className="w-94 md:w-94"
+                width={330}
+                height={70}
+                className="w-64 md:w-72"
                 priority
               />
             </a>
