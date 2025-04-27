@@ -137,24 +137,24 @@ export default function DashboardPage() {
   if (showLoginForm) {
     return (
       <div className="flex flex-col min-h-screen" style={bgStyle}>
-        <div className="container mx-auto px-4 py-4 md:py-6 flex flex-col min-h-screen">
+        <div className="container mx-auto px-2 sm:px-4 py-4 md:py-6 flex flex-col min-h-screen">
           {/* Logo a la izquierda como en la landing */}
-          <div className="flex justify-start mb-4 md:mb-10">
+          <div className="flex justify-center md:justify-start mb-4 md:mb-10">
             <Image 
               src="/logo bamempre.png" 
               alt="Banempre - Banco de los Emprendedores"
               width={500}
               height={105}
-              className="w-64 md:w-auto"
+              className="w-52 md:w-auto"
               priority
             />
           </div>
           
-          {/* Contenido principal - formulario centrado en móvil, a la derecha en desktop */}
-          <div className="flex-grow flex flex-col md:flex-row md:justify-end items-center">
-            <div className="w-full md:w-1/2 lg:w-5/12 max-w-md">
-              <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-6 rounded-lg shadow-lg w-full">
-                <h2 className="text-xl font-bold text-center mb-6 text-white">Inicio de Sesión Admin</h2>
+          {/* Contenido principal - formulario centrado en móvil y más ancho */}
+          <div className="flex-grow flex justify-center items-center">
+            <div className="w-full md:w-3/4 lg:w-2/3 xl:w-1/2 max-w-2xl">
+              <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-4 sm:p-6 rounded-lg shadow-lg w-full">
+                <h2 className="text-xl font-bold text-center mb-4 sm:mb-6 text-white">Inicio de Sesión Admin</h2>
                 
                 {error && (
                   <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
@@ -163,8 +163,8 @@ export default function DashboardPage() {
                 )}
                 
                 <form onSubmit={handleSubmit} noValidate>
-                  <div className="mb-4">
-                    <label className="block text-white text-sm font-medium mb-2">
+                  <div className="mb-3 sm:mb-4">
+                    <label className="block text-white text-sm font-medium mb-1 sm:mb-2">
                       Nombre de usuario
                     </label>
                     <input
@@ -172,14 +172,14 @@ export default function DashboardPage() {
                       name="username"
                       value={loginData.username}
                       onChange={handleChange}
-                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       required
                       autoComplete="username"
                     />
                   </div>
                   
-                  <div className="mb-6">
-                    <label className="block text-white text-sm font-medium mb-2">
+                  <div className="mb-4 sm:mb-6">
+                    <label className="block text-white text-sm font-medium mb-1 sm:mb-2">
                       Contraseña
                     </label>
                     <input
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                           password: newValue
                         });
                       }}
-                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      className="w-full p-2 sm:p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       required
                       autoComplete="current-password"
                     />
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-blue-600 text-white font-medium py-3 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
+                      className="bg-blue-600 text-white font-medium py-2 sm:py-3 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
                     >
                       {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
                     </button>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={handleCancel}
-                      className="bg-gray-600 text-white font-medium py-3 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
+                      className="bg-gray-600 text-white font-medium py-2 sm:py-3 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
                     >
                       CANCELAR
                     </button>
