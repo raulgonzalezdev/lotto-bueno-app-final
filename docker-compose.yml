@@ -162,10 +162,7 @@ services:
     ports:
       - "3002:3002"
     command: >
-      sh -c "npm install --legacy-peer-deps && 
-             npm run build && 
-             npm install -g serve && 
-             serve -s out -p 3002"
+      sh -c "npm install --legacy-peer-deps && npm run build:standalone && npm start"
     networks:
       - lotto-bueno-network
     depends_on:
