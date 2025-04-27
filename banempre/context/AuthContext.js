@@ -38,16 +38,20 @@ export function AuthProvider({ children }) {
         password 
       });
       
-      if (response && response.token) {
+      // La API devuelve access_token, no token
+      if (response && response.access_token) {
         // Guardar el token en el estado y localStorage
-        setToken(response.token);
-        localStorage.setItem('banempre_token', response.token);
+        setToken(response.access_token);
+        localStorage.setItem('banempre_token', response.access_token);
         
-        // Si hay información del usuario, guardarla también
-        if (response.user) {
-          setUser(response.user);
-          localStorage.setItem('banempre_user', JSON.stringify(response.user));
-        }
+        // Crear objeto de usuario con la información disponible
+        const userData = { 
+          username, 
+          isAdmin: response.isAdmin || false 
+        };
+        
+        setUser(userData);
+        localStorage.setItem('banempre_user', JSON.stringify(userData));
         
         return true;
       }
