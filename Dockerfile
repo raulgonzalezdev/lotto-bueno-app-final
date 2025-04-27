@@ -68,3 +68,34 @@ EXPOSE 3000
 
 # Comando para iniciar la aplicación Next.js
 CMD ["npm", "run", "start"]
+
+# Etapa 4: Configuración de la aplicación banempre
+FROM node:18-alpine as banempre
+
+# Argumento de build para la URL de la API
+ARG NEXT_PUBLIC_API_URL
+# Establecer la variable de entorno DENTRO del build
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://banempre.online/api}
+ENV PORT=3002
+ENV NODE_ENV=production
+ENV WEBSITE_URL=${WEBSITE_URL:-https://banempre.online}
+ENV TELEGRAM_CHANNEL=${TELEGRAM_CHANNEL:-https://t.me/applottobueno}
+
+WORKDIR /banempre
+
+# Copia los archivos de configuración de banempre y el código fuente
+COPY ./banempre/package.json ./banempre/package-lock.json* ./
+COPY ./banempre/.env ./
+COPY ./banempre /banempre
+
+# Instala dependencias incluyendo @tailwindcss/typography
+RUN npm install --legacy-peer-deps && npm install @tailwindcss/typography --legacy-peer-deps
+
+# Construye la aplicación banempre
+RUN npm run build:standalone
+
+# Expone el puerto que usa la aplicación banempre
+EXPOSE 3002
+
+# Comando para iniciar la aplicación
+CMD ["npm", "run", "start"]
