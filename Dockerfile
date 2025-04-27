@@ -88,8 +88,8 @@ COPY ./banempre/package.json ./banempre/package-lock.json* ./
 COPY ./banempre/.env ./
 COPY ./banempre /banempre
 
-# Instala dependencias incluyendo @tailwindcss/typography
-RUN npm install --force or --legacy-peer-deps
+# Instala dependencias sin plugins problemáticos
+RUN npm install --legacy-peer-deps
 
 # Construye la aplicación banempre
 RUN npm run build:standalone
