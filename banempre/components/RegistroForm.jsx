@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useElectorDataForEmprendedor, useCreateEmprendedor } from '../hooks/useEmprededores';
+import Toast from './Toast';
 
 // Función debounce para retrasar la búsqueda
 const debounce = (func, wait) => {
@@ -31,6 +32,7 @@ export default function RegistroForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [toast, setToast] = useState({ message: '', type: 'info' });
 
   // Usamos el hook para crear emprendedores
   const createEmprendedor = useCreateEmprendedor();
@@ -41,6 +43,11 @@ export default function RegistroForm() {
     isLoading: isSearchingElector, 
     error: electorError 
   } = useElectorDataForEmprendedor(formData.cedula);
+
+  // Función para mostrar toast
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+  };
 
   // Implementar la función de búsqueda con debounce
   const debouncedSearch = useCallback(
@@ -57,6 +64,11 @@ export default function RegistroForm() {
       ...prev,
       [name]: value
     }));
+
+    // Limpiar mensajes de error al cambiar la cédula
+    if (name === 'cedula') {
+      setErrorMessage('');
+    }
 
     // Si el campo modificado es la cédula y tiene al menos 7 caracteres, iniciar búsqueda con debounce
     if (name === 'cedula' && value.length >= 7) {
@@ -127,6 +139,7 @@ export default function RegistroForm() {
       
       // Mostrar mensaje de éxito
       setSuccessMessage('¡Registro exitoso! Gracias por registrar tu emprendimiento.');
+      showToast('¡Registro exitoso!', 'success');
       
       // Limpiar el formulario
       setFormData({
@@ -145,7 +158,15 @@ export default function RegistroForm() {
       }, 3000);
     } catch (error) {
       console.error('Error al enviar el formulario:', error);
-      setErrorMessage('Error al procesar la solicitud. Intente nuevamente.');
+      
+      // Capturar el mensaje específico de error
+      if (error.message.includes('Ya existe un emprendedor con esta cédula')) {
+        setErrorMessage('Ya existe un emprendedor registrado con esta cédula');
+        showToast('Ya existe un emprendedor registrado con esta cédula', 'error');
+      } else {
+        setErrorMessage(error.message || 'Error al procesar la solicitud. Intente nuevamente.');
+        showToast('Error al procesar la solicitud', 'error');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -263,6 +284,15 @@ export default function RegistroForm() {
             </div>
           </form>
         </>
+      )}
+      
+      {/* Toast para notificaciones */}
+      {toast.message && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast({ message: '', type: 'info' })} 
+        />
       )}
     </div>
   );

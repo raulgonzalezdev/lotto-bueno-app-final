@@ -34,7 +34,19 @@ export const apiClient = {
     });
     
     if (!response.ok) {
-      console.error('Error en respuesta:', await response.text());
+      // Intentar obtener el mensaje de error de la respuesta
+      try {
+        const errorData = await response.json();
+        // Si hay un objeto de error con detalle, lanzamos ese mensaje específico
+        if (errorData && errorData.detail) {
+          throw new Error(errorData.detail);
+        }
+      } catch (jsonError) {
+        // Si no podemos analizar la respuesta como JSON, lanzamos el error original
+        console.error('Error en respuesta:', response.statusText);
+      }
+      
+      // Si llegamos aquí, no hemos lanzado un error específico, así que lanzamos el genérico
       throw new Error(`Error en solicitud POST: ${response.statusText}`);
     }
     
@@ -58,6 +70,17 @@ export const apiClient = {
     });
     
     if (!response.ok) {
+      // Intentar obtener el mensaje de error de la respuesta
+      try {
+        const errorData = await response.json();
+        // Si hay un objeto de error con detalle, lanzamos ese mensaje específico
+        if (errorData && errorData.detail) {
+          throw new Error(errorData.detail);
+        }
+      } catch (jsonError) {
+        // Si no podemos analizar la respuesta como JSON, lanzamos el error original
+      }
+      
       throw new Error(`Error en solicitud PATCH: ${response.statusText}`);
     }
     
@@ -78,6 +101,17 @@ export const apiClient = {
     });
     
     if (!response.ok) {
+      // Intentar obtener el mensaje de error de la respuesta
+      try {
+        const errorData = await response.json();
+        // Si hay un objeto de error con detalle, lanzamos ese mensaje específico
+        if (errorData && errorData.detail) {
+          throw new Error(errorData.detail);
+        }
+      } catch (jsonError) {
+        // Si no podemos analizar la respuesta como JSON, lanzamos el error original
+      }
+      
       throw new Error(`Error en solicitud DELETE: ${response.statusText}`);
     }
     
