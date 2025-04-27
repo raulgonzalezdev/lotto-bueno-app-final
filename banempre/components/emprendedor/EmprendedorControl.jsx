@@ -82,6 +82,20 @@ const EmprendedorControl = () => {
   const { data: estados = [] } = useEstados();
   const { data: municipios = [] } = useMunicipios(selectedEstado);
 
+  // Efecto para depurar las respuestas de estados
+  useEffect(() => {
+    if (estados && estados.length > 0) {
+      console.log('Estados cargados:', estados);
+    }
+  }, [estados]);
+
+  // Efecto para depurar las respuestas de municipios
+  useEffect(() => {
+    if (municipios && municipios.length > 0) {
+      console.log('Municipios cargados para estado', selectedEstado, ':', municipios);
+    }
+  }, [municipios, selectedEstado]);
+
   /* -------------------- Emprendedores (principal) ------------------------ */
   const { data: emprendedoresData, isLoading, isError, refetch } = useEmprendedores({
     currentPage,
@@ -97,13 +111,6 @@ const EmprendedorControl = () => {
       console.log('Datos de emprendedores recibidos:', emprendedoresData);
     }
   }, [emprendedoresData]);
-
-  // Efecto para depurar los estados disponibles
-  useEffect(() => {
-    if (estados.length > 0) {
-      console.log('Estados disponibles:', estados);
-    }
-  }, [estados]);
 
   /* --------------------------- Mutaciones ------------------------------- */
   const createMut = useCreateEmprendedor();
@@ -182,9 +189,57 @@ const EmprendedorControl = () => {
     
     if (emprendedorData) {
       // Buscar el código de estado por nombre, teniendo en cuenta el formato "EDO. ESTADO"
-      const estadoObj = estados.find(e => e.estado === emprendedorData.estado);
-      // Buscar el código de municipio por nombre, teniendo en cuenta el formato "MP. MUNICIPIO"
-      const municipioObj = municipios.find(m => m.municipio === emprendedorData.municipio);
+      let estadoObj = estados.find(e => e.estado === emprendedorData.estado);
+      
+      // Si no encontramos coincidencia exacta, intentamos con una búsqueda más flexible
+      if (!estadoObj) {
+        // Normalizamos los nombres para la comparación (quitar EDO., espacios, etc.)
+        const normalizedEstadoEmprendedor = emprendedorData.estado?.replace('EDO. ', '').trim().toUpperCase();
+        estadoObj = estados.find(e => {
+          const normalizedEstado = e.estado.replace('EDO. ', '').trim().toUpperCase();
+          return normalizedEstado === normalizedEstadoEmprendedor;
+        });
+      }
+      
+      // Si todavía no encontramos coincidencia, intentamos con el primer estado que incluya parte del nombre
+      if (!estadoObj && emprendedorData.estado) {
+        const estadoName = emprendedorData.estado.replace('EDO. ', '').trim().toUpperCase();
+        estadoObj = estados.find(e => 
+          e.estado.toUpperCase().includes(estadoName) || 
+          estadoName.includes(e.estado.replace('EDO. ', '').trim().toUpperCase())
+        );
+      }
+      
+      // Para los municipios, aplicamos la misma lógica
+      let municipioObj = null;
+      
+      if (estadoObj) {
+        const municipiosDelEstado = municipios;
+        
+        // Búsqueda exacta primero
+        municipioObj = municipiosDelEstado.find(m => m.municipio === emprendedorData.municipio);
+        
+        // Si no hay coincidencia exacta, intentamos con una búsqueda flexible
+        if (!municipioObj && emprendedorData.municipio) {
+          const normalizedMunicipioEmprendedor = emprendedorData.municipio.replace('MP. ', '').trim().toUpperCase();
+          municipioObj = municipiosDelEstado.find(m => {
+            const normalizedMunicipio = m.municipio.replace('MP. ', '').trim().toUpperCase();
+            return normalizedMunicipio === normalizedMunicipioEmprendedor;
+          });
+          
+          // Si todavía no hay coincidencia, buscamos por inclusión parcial
+          if (!municipioObj) {
+            const municipioName = emprendedorData.municipio.replace('MP. ', '').trim().toUpperCase();
+            municipioObj = municipiosDelEstado.find(m => 
+              m.municipio.toUpperCase().includes(municipioName) || 
+              municipioName.includes(m.municipio.replace('MP. ', '').trim().toUpperCase())
+            );
+          }
+        }
+      }
+      
+      console.log('Estado encontrado para emprendedor:', estadoObj);
+      console.log('Municipio encontrado para emprendedor:', municipioObj);
       
       setModalEmprendedor({
         open: true,
@@ -195,17 +250,54 @@ const EmprendedorControl = () => {
           municipio: municipioObj?.codigo_municipio.toString() || '',
         }
       });
-      console.log('Datos para editar emprendedor:', {
-        ...emprendedorData,
-        estadoObj,
-        municipioObj
-      });
       setShowFullForm(true);
     } else if (electorData) {
-      // Buscar el código de estado por nombre, teniendo en cuenta el formato "EDO. ESTADO"
-      const estadoObj = estados.find(e => e.estado === electorData.estado);
-      // Buscar el código de municipio por nombre, teniendo en cuenta el formato "MP. MUNICIPIO"
-      const municipioObj = municipios.find(m => m.municipio === electorData.municipio);
+      // Buscar el código de estado por nombre, aplicando la misma lógica que arriba
+      let estadoObj = estados.find(e => e.estado === electorData.estado);
+      
+      if (!estadoObj) {
+        const normalizedEstadoElector = electorData.estado?.replace('EDO. ', '').trim().toUpperCase();
+        estadoObj = estados.find(e => {
+          const normalizedEstado = e.estado.replace('EDO. ', '').trim().toUpperCase();
+          return normalizedEstado === normalizedEstadoElector;
+        });
+        
+        if (!estadoObj && electorData.estado) {
+          const estadoName = electorData.estado.replace('EDO. ', '').trim().toUpperCase();
+          estadoObj = estados.find(e => 
+            e.estado.toUpperCase().includes(estadoName) || 
+            estadoName.includes(e.estado.replace('EDO. ', '').trim().toUpperCase())
+          );
+        }
+      }
+      
+      // Para municipios, misma lógica
+      let municipioObj = null;
+      
+      if (estadoObj) {
+        const municipiosDelEstado = municipios;
+        
+        municipioObj = municipiosDelEstado.find(m => m.municipio === electorData.municipio);
+        
+        if (!municipioObj && electorData.municipio) {
+          const normalizedMunicipioElector = electorData.municipio.replace('MP. ', '').trim().toUpperCase();
+          municipioObj = municipiosDelEstado.find(m => {
+            const normalizedMunicipio = m.municipio.replace('MP. ', '').trim().toUpperCase();
+            return normalizedMunicipio === normalizedMunicipioElector;
+          });
+          
+          if (!municipioObj) {
+            const municipioName = electorData.municipio.replace('MP. ', '').trim().toUpperCase();
+            municipioObj = municipiosDelEstado.find(m => 
+              m.municipio.toUpperCase().includes(municipioName) || 
+              municipioName.includes(m.municipio.replace('MP. ', '').trim().toUpperCase())
+            );
+          }
+        }
+      }
+      
+      console.log('Estado encontrado para elector:', estadoObj);
+      console.log('Municipio encontrado para elector:', municipioObj);
       
       setModalEmprendedor({
         open: true,
@@ -220,11 +312,6 @@ const EmprendedorControl = () => {
           rif: ''
         }
       });
-      console.log('Datos para nuevo emprendedor desde elector:', {
-        nombre_apellido: electorData.nombre_apellido,
-        estadoObj,
-        municipioObj
-      });
       setShowFullForm(true);
     } else {
       fireToast('Esta cédula no está registrada en el sistema', 'error');
@@ -233,13 +320,71 @@ const EmprendedorControl = () => {
 
   const openEmprendedorModal = (emp) => {
     if (emp) {
+      // Buscar el código de estado por nombre, utilizando una búsqueda flexible
+      let estadoObj;
+      let municipioObj;
+
+      // Si emp.estado existe, buscar coincidencias
+      if (emp.estado) {
+        // Primero intentamos una coincidencia exacta
+        estadoObj = estados.find(e => e.estado === emp.estado);
+        
+        // Si no hay coincidencia exacta, intentamos normalizar y comparar
+        if (!estadoObj) {
+          const normalizedEstadoEmp = emp.estado.replace('EDO. ', '').trim().toUpperCase();
+          estadoObj = estados.find(e => {
+            const normalizedEstado = e.estado.replace('EDO. ', '').trim().toUpperCase();
+            return normalizedEstado === normalizedEstadoEmp;
+          });
+          
+          // Si todavía no hay coincidencia, buscamos por inclusión
+          if (!estadoObj) {
+            estadoObj = estados.find(e => 
+              e.estado.toUpperCase().includes(normalizedEstadoEmp) || 
+              normalizedEstadoEmp.includes(e.estado.replace('EDO. ', '').trim().toUpperCase())
+            );
+          }
+        }
+      }
+      
+      // Si tenemos un estado y emp.municipio existe, buscamos municipios
+      if (estadoObj && emp.municipio) {
+        // Cargamos municipios del estado seleccionado
+        const municipiosDelEstado = municipios;
+        
+        // Intentamos coincidencia exacta primero
+        municipioObj = municipiosDelEstado.find(m => m.municipio === emp.municipio);
+        
+        // Si no hay coincidencia exacta, normalizamos y comparamos
+        if (!municipioObj) {
+          const normalizedMunicipioEmp = emp.municipio.replace('MP. ', '').trim().toUpperCase();
+          municipioObj = municipiosDelEstado.find(m => {
+            const normalizedMunicipio = m.municipio.replace('MP. ', '').trim().toUpperCase();
+            return normalizedMunicipio === normalizedMunicipioEmp;
+          });
+          
+          // Si todavía no hay coincidencia, buscamos por inclusión
+          if (!municipioObj) {
+            municipioObj = municipiosDelEstado.find(m => 
+              m.municipio.toUpperCase().includes(normalizedMunicipioEmp) || 
+              normalizedMunicipioEmp.includes(m.municipio.replace('MP. ', '').trim().toUpperCase())
+            );
+          }
+        }
+      }
+      
+      // Registrar lo que encontramos para depuración
+      console.log('Abriendo modal para editar emprendedor:', emp);
+      console.log('Estado encontrado:', estadoObj);
+      console.log('Municipio encontrado:', municipioObj);
+      
       setModalEmprendedor({ 
         open: true, 
         editing: true, 
         data: {
           ...emp,
-          estado: estados.find(e => e.estado === emp.estado)?.codigo_estado.toString() || '',
-          municipio: municipios.find(m => m.municipio === emp.municipio)?.codigo_municipio.toString() || '',
+          estado: estadoObj?.codigo_estado.toString() || '',
+          municipio: municipioObj?.codigo_municipio.toString() || '',
         } 
       });
       setShowFullForm(true);
@@ -475,11 +620,15 @@ const EmprendedorControl = () => {
                   className="select select-bordered w-full bg-white text-gray-800 border-golden"
                 >
                   <option value="">Todos</option>
-                  {estados.map((e) => (
-                    <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
-                      {e.estado}
-                    </option>
-                  ))}
+                  {estados && estados.length > 0 ? (
+                    estados.map((e) => (
+                      <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
+                        {e.estado}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>Cargando estados...</option>
+                  )}
                 </select>
               </div>
 
@@ -493,11 +642,15 @@ const EmprendedorControl = () => {
                   disabled={!selectedEstado}
                 >
                   <option value="">Todos</option>
-                  {municipios.map((m) => (
-                    <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
-                      {m.municipio}
-                    </option>
-                  ))}
+                  {selectedEstado && municipios && municipios.length > 0 ? (
+                    municipios.map((m) => (
+                      <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
+                        {m.municipio}
+                      </option>
+                    ))
+                  ) : selectedEstado ? (
+                    <option value="" disabled>Cargando municipios...</option>
+                  ) : null}
                 </select>
               </div>
 
@@ -763,11 +916,15 @@ const EmprendedorControl = () => {
                         className="select w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
                       >
                         <option value="">Seleccione</option>
-                        {estados.map((e) => (
-                          <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
-                            {e.estado}
-                          </option>
-                        ))}
+                        {estados && estados.length > 0 ? (
+                          estados.map((e) => (
+                            <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
+                              {e.estado}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>Cargando estados...</option>
+                        )}
                       </select>
                     </div>
 
@@ -785,19 +942,15 @@ const EmprendedorControl = () => {
                         disabled={!modalEmprendedor.data.estado}
                       >
                         <option value="">Seleccione</option>
-                        {municipios
-                          .filter(m => {
-                            // Si no hay estado seleccionado, no filtrar
-                            if (!modalEmprendedor.data.estado) return false;
-                            
-                            // Solo mostrar municipios si tenemos estado seleccionado
-                            return true;
-                          })
-                          .map((m) => (
+                        {modalEmprendedor.data.estado && municipios && municipios.length > 0 ? (
+                          municipios.map((m) => (
                             <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
                               {m.municipio}
                             </option>
-                          ))}
+                          ))
+                        ) : modalEmprendedor.data.estado ? (
+                          <option value="" disabled>Cargando municipios...</option>
+                        ) : null}
                       </select>
                     </div>
                   </div>

@@ -9,9 +9,28 @@ export const useMunicipios = (estadoId) => {
       if (!estadoId) return [];
       
       try {
-        const response = await apiClient.get(`/municipios/${estadoId}`);
-        return response.data;
+        // Cambiar la ruta para incluir "api" al inicio y usar encodeURIComponent
+        const data = await apiClient.get(`api/municipios/${encodeURIComponent(estadoId)}`);
+        
+        // Verificar que los datos sean un array y ordenarlos
+        if (Array.isArray(data)) {
+          return data.sort((a, b) => 
+            a.municipio.localeCompare(b.municipio, 'es', { sensitivity: 'base' })
+          );
+        }
+        
+        // Si la respuesta incluye data como propiedad, intentar usarla
+        if (data && Array.isArray(data.data)) {
+          return data.data.sort((a, b) => 
+            a.municipio.localeCompare(b.municipio, 'es', { sensitivity: 'base' })
+          );
+        }
+        
+        // Si no hay datos válidos, devolver array vacío
+        return [];
       } catch (error) {
+        console.error(`Error al obtener municipios para estado ${estadoId}:`, error);
+        
         // En modo desarrollo, devolver datos de ejemplo
         if (process.env.NODE_ENV === 'development') {
           // Datos de ejemplo según el estado
@@ -36,7 +55,12 @@ export const useMunicipios = (estadoId) => {
           };
           
           // Devolver municipios del estado seleccionado o un array vacío
-          return municipiosPorEstado[estadoId] || [];
+          const municipiosMock = municipiosPorEstado[estadoId] || [];
+          
+          // Ordenar también los datos mock
+          return municipiosMock.sort((a, b) => 
+            a.municipio.localeCompare(b.municipio, 'es', { sensitivity: 'base' })
+          );
         }
         throw error;
       }

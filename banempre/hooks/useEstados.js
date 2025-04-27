@@ -6,12 +6,26 @@ export const useEstados = () => {
     queryKey: ['estados'],
     queryFn: async () => {
       try {
-        const response = await apiClient.get('/estados');
-        return response.data;
+        const data = await apiClient.get('api/estados');
+        
+        if (Array.isArray(data)) {
+          return data.sort((a, b) => 
+            a.estado.localeCompare(b.estado, 'es', { sensitivity: 'base' })
+          );
+        }
+        
+        if (data && Array.isArray(data.data)) {
+          return data.data.sort((a, b) => 
+            a.estado.localeCompare(b.estado, 'es', { sensitivity: 'base' })
+          );
+        }
+        
+        return [];
       } catch (error) {
-        // En modo desarrollo, devolver datos de ejemplo
+        console.error('Error al obtener estados:', error);
+        
         if (process.env.NODE_ENV === 'development') {
-          return [
+          const mockEstados = [
             { codigo_estado: 1, estado: 'Amazonas' },
             { codigo_estado: 2, estado: 'Anzoátegui' },
             { codigo_estado: 3, estado: 'Apure' },
@@ -37,6 +51,10 @@ export const useEstados = () => {
             { codigo_estado: 23, estado: 'Zulia' },
             { codigo_estado: 24, estado: 'Distrito Capital' }
           ];
+          
+          return mockEstados.sort((a, b) => 
+            a.estado.localeCompare(b.estado, 'es', { sensitivity: 'base' })
+          );
         }
         throw error;
       }
