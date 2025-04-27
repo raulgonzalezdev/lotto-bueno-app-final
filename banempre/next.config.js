@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',
+  output: 'standalone',
   env: {
     HOST: process.env.NEXT_PUBLIC_API_URL
   },

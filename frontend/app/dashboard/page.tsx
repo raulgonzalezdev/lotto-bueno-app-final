@@ -39,7 +39,6 @@ export default function DashboardPage() {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    console.log(`Campo ${name} actualizado a: ${value.length} caracteres`);
     
     setLoginData((prev) => {
       const updated = {
@@ -53,7 +52,7 @@ export default function DashboardPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    console.log("Form submitted with:", loginData);
+   
     
     if (!loginData.username || !loginData.password) {
       setError("Por favor, complete todos los campos");
@@ -66,7 +65,7 @@ export default function DashboardPage() {
     try {
       // Intentar autenticar contra la API
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://applottobueno.com/api';
-      const response = await fetch(`${apiUrl}/login`, {
+      const response = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,10 +150,10 @@ export default function DashboardPage() {
             />
           </div>
           
-          {/* Contenido principal - formulario a la derecha */}
-          <div className="flex-grow flex flex-col md:flex-row md:justify-end items-center md:items-start">
-            <div className="w-full md:w-1/2 lg:w-5/12">
-              <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-6 rounded-lg shadow-lg">
+          {/* Contenido principal - formulario centrado en móvil, a la derecha en desktop */}
+          <div className="flex-grow flex flex-col md:flex-row md:justify-end items-center">
+            <div className="w-full md:w-1/2 lg:w-5/12 max-w-md">
+              <div style={{ backgroundColor: 'rgba(205, 150, 0, 0.85)' }} className="p-6 rounded-lg shadow-lg w-full">
                 <h2 className="text-xl font-bold text-center mb-6 text-white">Inicio de Sesión Admin</h2>
                 
                 {error && (
@@ -189,7 +188,6 @@ export default function DashboardPage() {
                       value={loginData.password}
                       onChange={(e) => {
                         const newValue = e.target.value;
-                        console.log(`Contraseña actualizada: ${newValue.length} caracteres`);
                         setLoginData({
                           ...loginData,
                           password: newValue
@@ -205,7 +203,7 @@ export default function DashboardPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-blue-600 text-white font-medium py-2 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
+                      className="bg-blue-600 text-white font-medium py-3 px-6 rounded-full hover:bg-blue-700 transition-colors w-full"
                     >
                       {isSubmitting ? 'Iniciando...' : 'INICIAR SESIÓN'}
                     </button>
@@ -213,7 +211,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={handleCancel}
-                      className="bg-gray-600 text-white font-medium py-2 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
+                      className="bg-gray-600 text-white font-medium py-3 px-6 rounded-full hover:bg-gray-700 transition-colors w-full"
                     >
                       CANCELAR
                     </button>
