@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
       setLoading(true);
       
       // Hacer la solicitud POST al endpoint de login
-      const response = await apiClient.post('auth/login/', { 
+      const response = await apiClient.post('api/login', { 
         username, 
         password 
       });

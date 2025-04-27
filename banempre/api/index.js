@@ -102,7 +102,7 @@ export const apiClient = {
       return response.json();
     } catch (error) {
       // En modo desarrollo, si el endpoint es de autenticación, podemos simular una respuesta
-      if (isDevelopment && endpoint.includes('auth/login')) {
+      if (isDevelopment && endpoint.includes('api/login')) {
         console.warn('Usando autenticación simulada en modo desarrollo:', error.message);
         return { token: 'dev-token-123', user: { username: 'dev-user' } };
       }
