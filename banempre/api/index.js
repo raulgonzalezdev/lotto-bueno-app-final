@@ -30,7 +30,7 @@ export const apiClient = {
     
     // Asegurar que no haya barras duplicadas
     const url = `${host}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
-    console.log(`Haciendo GET a: ${url}`);
+    //console.log(`Haciendo GET a: ${url}`);
     
     try {
       const response = await fetch(url, {
@@ -55,7 +55,7 @@ export const apiClient = {
       }
       
       const data = await response.json();
-      console.log(`Respuesta de ${url}:`, data);
+      //console.log(`Respuesta de ${url}:`, data);
       return data;
     } catch (error) {
       // En modo desarrollo, podemos retornar datos ficticios si hay error de conexión

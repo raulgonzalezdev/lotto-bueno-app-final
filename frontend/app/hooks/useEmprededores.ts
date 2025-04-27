@@ -91,7 +91,7 @@ export const useEmprendedores = (params?: {
           }
           
           const data = await response.json();
-          console.log('Respuesta de API:', data);
+          //console.log('Respuesta de API:', data);
           return {
             items: data.items || [],
             total: typeof data.total === 'number' ? data.total : (data.items?.length || 0)
