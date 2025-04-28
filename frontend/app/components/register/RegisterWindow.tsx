@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import LoginModal from '../login/Login';
 import Toast from '../toast/Toast';
 import ConfirmationModal from '../confirmation/ConfirmationModal';
@@ -42,6 +43,7 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
   const [showMessengerView, setShowMessengerView] = useState<'none' | 'whatsapp' | 'telegram'>('none');
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const router = useRouter();
   
   // Referencias para los iframes
   const whatsappIframeRef = useRef<HTMLIFrameElement>(null);
