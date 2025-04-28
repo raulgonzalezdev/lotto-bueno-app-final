@@ -23,11 +23,12 @@ interface RegisterWindowProps {
   title: string;
   subtitle: string;
   imageSrc: string;
-  setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER" | "REGISTER_RECOLECTOR" | "ORGANIZACIONES") => void;
+  setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER" | "REGISTER_RECOLECTOR" | "ORGANIZACIONES" | "EMPRENDEDORES") => void;
   onAdminLogin: (admin: boolean) => void;
+  hideAdminLogin?: boolean;
 }
 
-const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageSrc, setCurrentPage, onAdminLogin }) => {
+const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageSrc, setCurrentPage, onAdminLogin, hideAdminLogin }) => {
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isQRModalVisible, setIsQRModalVisible] = useState(false);
   const [qrCode, setQRCode] = useState<string | null>(null);
@@ -437,16 +438,19 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
         )}
 
         <div className="mt-4 text-center">
-          <button onClick={handleOpenLoginModal} className="text-blue-500 hover:underline">
-            Ir al Dashboard
-          </button>
+          {!hideAdminLogin && (
+            <button onClick={handleOpenLoginModal} className="text-blue-500 hover:underline">
+              Ir al Dashboard
+            </button>
+          )}
           
-          {/* Separador */}
-          <div className="my-4 flex items-center justify-center">
-            <div className="border-t border-gray-300 flex-grow"></div>
-            <span className="px-3 text-gray-500 bg-transparent text-sm">O</span>
-            <div className="border-t border-gray-300 flex-grow"></div>
-          </div>
+          {!hideAdminLogin && (
+            <div className="my-4 flex items-center justify-center">
+              <div className="border-t border-gray-300 flex-grow"></div>
+              <span className="px-3 text-gray-500 bg-transparent text-sm">O</span>
+              <div className="border-t border-gray-300 flex-grow"></div>
+            </div>
+          )}
           
           {/* Widget de Telegram - Comentado por solicitud */}
           {/* 

@@ -13,12 +13,14 @@ import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
 import { useElectorSimpleByCedula } from '../../hooks/useElectores';
 import { 
+  useEmprendedores,
   useCreateEmprendedor,
   useUpdateEmprendedor,
   useDeleteEmprendedor,
+  useCheckEmprendedorExistsByCedula,
   useEmprendedorByCedula,
   useElectorDataForEmprendedor
-} from '../../hooks/useEmprendedores';
+} from '../../hooks/useEmprededores';
 
 /* -------------------------------------------------------------------------- */
 /*                                 Tipos                                      */
@@ -72,87 +74,85 @@ const EmprendedorControl: React.FC = () => {
   const { data: municipios = [] } = useMunicipios(modalEmprendedor.open ? modalEmprendedor.data.estado?.toString() || '' : filters.estado);
 
   /* -------------------- Emprendedores (principal) ------------------------ */
-  const { data: emprendedoresResp, isLoading: loadingEmprendedores, isError: errorEmprendedores } = useQuery({
-    queryKey: ['emprendedores', page, filters],
-    enabled: Boolean(apiHost),
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        skip: ((page - 1) * PER_PAGE).toString(),
-        limit: PER_PAGE.toString(),
-        ...(filters.search && { search: filters.search }),
-      });
-      
-      // Convertir códigos a descripciones para filtrar
-      if (filters.estado) {
-        const estadoObj = estados.find(e => e.codigo_estado.toString() === filters.estado);
-        if (estadoObj) {
-          params.append('estado', estadoObj.estado);
-        }
-      }
-      
-      if (filters.municipio) {
-        const municipioObj = municipios.find(m => m.codigo_municipio.toString() === filters.municipio);
-        if (municipioObj) {
-          params.append('municipio', municipioObj.municipio);
-        }
-      }
-
-      const res = await fetch(`${apiHost}/api/emprendedores?${params}`);
-      if (!res.ok) throw new Error('Error al obtener emprendedores');
-      return res.json() as Promise<QueryEmprendedoresResponse>;
-    },
-    staleTime: 60_000,
+  const { data: emprendedoresResp, isLoading: loadingEmprendedores, isError: errorEmprendedores } = useEmprendedores({
+    currentPage: page,
+    emprendedoresPerPage: PER_PAGE,
+    searchTerm: filters.search,
+    estado: filters.estado ? estados.find(e => e.codigo_estado.toString() === filters.estado)?.estado : '',
+    municipio: filters.municipio ? municipios.find(m => m.codigo_municipio.toString() === filters.municipio)?.municipio : ''
   });
-
+  
   /* --------------------------- Mutaciones ------------------------------- */
-  const createMut = useMutation({
-    mutationFn: async (payload: Partial<Emprendedor>) => {
-      const res = await fetch(`${apiHost}/api/emprendedores`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(res.statusText);
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['emprendedores'] });
-      closeEmprendedorModal();
-      fireToast('Emprendedor creado', 'success');
-    },
-    onError: () => fireToast('Error al crear emprendedor', 'error'),
-  });
+  const createMutation = useCreateEmprendedor();
+  const updateMutation = useUpdateEmprendedor();
+  const deleteMutation = useDeleteEmprendedor();
 
-  const updateMut = useMutation({
-    mutationFn: async (payload: Emprendedor) => {
-      const res = await fetch(`${apiHost}/api/emprendedores/${payload.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+  // Funciones con callbacks para manejar éxito y error
+  const createMut = {
+    mutate: (payload: Partial<Emprendedor>) => {
+      // Asegurarse de que el payload cumple con los requisitos de EmprendedorCreatePayload
+      if (!payload.cedula || !payload.nombre_apellido || !payload.nombre_emprendimiento || !payload.telefono) {
+        fireToast('Faltan datos obligatorios', 'error');
+        return;
+      }
+      
+      const validPayload = {
+        cedula: payload.cedula,
+        nombre_apellido: payload.nombre_apellido,
+        nombre_emprendimiento: payload.nombre_emprendimiento,
+        telefono: payload.telefono,
+        rif: payload.rif,
+        estado: payload.estado,
+        municipio: payload.municipio
+      };
+      
+      createMutation.mutate(validPayload, {
+        onSuccess: () => {
+          closeEmprendedorModal();
+          fireToast('Emprendedor creado', 'success');
+        },
+        onError: () => fireToast('Error al crear emprendedor', 'error')
       });
-      if (!res.ok) throw new Error(res.statusText);
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['emprendedores'] });
-      closeEmprendedorModal();
-      fireToast('Emprendedor actualizado', 'success');
-    },
-    onError: () => fireToast('Error al actualizar emprendedor', 'error'),
-  });
+    }
+  };
 
-  const deleteMut = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await fetch(`${apiHost}/api/emprendedores/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(res.statusText);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['emprendedores'] });
-      setConfirmation({ open: false, id: null });
-      fireToast('Emprendedor eliminado', 'success');
-    },
-    onError: () => fireToast('Error al eliminar emprendedor', 'error'),
-  });
+  const updateMut = {
+    mutate: (payload: Emprendedor) => {
+      // Extraer los campos que pueden cambiar para el UpdatePayload
+      const updatePayload = {
+        cedula: payload.cedula,
+        nombre_apellido: payload.nombre_apellido,
+        rif: payload.rif,
+        nombre_emprendimiento: payload.nombre_emprendimiento,
+        telefono: payload.telefono,
+        estado: payload.estado,
+        municipio: payload.municipio
+      };
+      
+      updateMutation.mutate({ 
+        emprendedorId: payload.id, 
+        payload: updatePayload 
+      }, {
+        onSuccess: () => {
+          closeEmprendedorModal();
+          fireToast('Emprendedor actualizado', 'success');
+        },
+        onError: () => fireToast('Error al actualizar emprendedor', 'error')
+      });
+    }
+  };
+
+  const deleteMut = {
+    mutate: (id: number) => {
+      deleteMutation.mutate(id, {
+        onSuccess: () => {
+          setConfirmation({ open: false, id: null });
+          fireToast('Emprendedor eliminado', 'success');
+        },
+        onError: () => fireToast('Error al eliminar emprendedor', 'error')
+      });
+    }
+  };
 
   /* ------------------------- Efectos iniciales -------------------------- */
   useEffect(() => {

@@ -26,6 +26,7 @@ import Script from 'next/script';
 import { fonts, FontKey } from "./info";
 import PulseLoader from "react-spinners/PulseLoader";
 import { useSettings } from "./hooks/useSettings";
+import Link from 'next/link';
 
 // Estilo para el fondo de la página
 const bgStyle = {
@@ -189,12 +190,25 @@ const Home = () => {
 
         <div>
           {!isAdmin && currentPage === "WELCOME" && (
-            <WelcomeComponent 
-              title={baseSetting?.[settingTemplate]?.Customization?.settings?.title?.text || "Bienvenido"}
-              subtitle={baseSetting?.[settingTemplate]?.Customization?.settings?.subtitle?.text || "Registrate para participar"}
-              imageSrc={baseSetting?.[settingTemplate]?.Customization?.settings?.image?.src || '/lotto.avif'}
-              setCurrentPage={setCurrentPage}
-            />
+            <div>
+              <WelcomeComponent 
+                title={baseSetting?.[settingTemplate]?.Customization?.settings?.title?.text || "Bienvenido"}
+                subtitle={baseSetting?.[settingTemplate]?.Customization?.settings?.subtitle?.text || "Registrate para participar"}
+                imageSrc={baseSetting?.[settingTemplate]?.Customization?.settings?.image?.src || '/lotto.avif'}
+                setCurrentPage={setCurrentPage}
+              />
+              <div className="text-center mt-4 text-white">
+                <p>También puedes acceder directamente:</p>
+                <div className="mt-2 flex justify-center gap-4">
+                  <Link href="/registro" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                    Registro Directo
+                  </Link>
+                  <Link href="/registro-recolector" className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                    Registro de COPERO
+                  </Link>
+                </div>
+              </div>
+            </div>
           )}
 
           {!isAdmin && currentPage === "REGISTER" && (

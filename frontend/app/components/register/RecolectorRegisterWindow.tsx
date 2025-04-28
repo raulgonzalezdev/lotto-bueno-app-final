@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Toast from '../toast/Toast';
+import LoginModal from '../login/Login';
 import { useRegistroRecolector, useCheckRecolectorExistsByCedula, useRecolectorByCedula } from '../../hooks/useRecolectores';
 import { useEstados } from '../../hooks/useEstados';
 import { useMunicipios } from '../../hooks/useMunicipios';
@@ -12,7 +13,8 @@ interface RecolectorRegisterWindowProps {
   title: string;
   subtitle: string;
   imageSrc: string;
-  setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER" | "REGISTER_RECOLECTOR" | "ORGANIZACIONES") => void;
+  setCurrentPage: (page: "WELCOME" | "ELECTORES" | "TICKETS" | "STATUS" | "ADD" | "SETTINGS" | "USERS" | "RECOLECTORES" | "REGISTER" | "REGISTER_RECOLECTOR" | "ORGANIZACIONES" | "EMPRENDEDORES") => void;
+  onAdminLogin?: (isAdmin: boolean) => void;
 }
 
 // Código DANE para Anzoátegui (esto debe coincidir con el valor correcto en su sistema)
@@ -22,8 +24,10 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   title, 
   subtitle, 
   imageSrc, 
-  setCurrentPage 
+  setCurrentPage,
+  onAdminLogin = () => {} // Valor por defecto si no se proporciona
 }) => {
+  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [formData, setFormData] = useState({ 
     cedula: "", 
     operador: "0414", 
@@ -292,6 +296,14 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     setCurrentPage('WELCOME');
   }
 
+  const handleOpenLoginModal = () => {
+    setIsLoginModalVisible(true);
+  };
+
+  const handleCloseLoginModal = () => {
+    setIsLoginModalVisible(false);
+  };
+
   // Modificar los estilos de los inputs y selects
   const inputClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 ${errors.cedula ? 'border-red-500' : ''}`;
   const selectClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 ${errors.estado ? 'border-red-500' : ''}`;
@@ -480,6 +492,24 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
             </button>
           </div>
         </div>
+        
+        {/* Enlaces al dashboard */}
+        <div className="mt-6 text-center">
+          <button onClick={handleOpenLoginModal} className="text-blue-500 hover:underline">
+            Ir al Dashboard
+          </button>
+        </div>
+        
+        {/* Modal de login */}
+        <LoginModal
+          isVisible={isLoginModalVisible}
+          onClose={handleCloseLoginModal}
+          onAdminLogin={onAdminLogin}
+          setCurrentPage={setCurrentPage}
+          title={title}
+          subtitle={subtitle}
+          imageSrc={imageSrc}
+        />
         
         {/* Toast notification */}
         {toastMessage && <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />}

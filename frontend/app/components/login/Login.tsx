@@ -11,7 +11,7 @@ interface LoginModalProps {
   isVisible: boolean;
   onClose: () => void;
   onAdminLogin: (isAdmin: boolean) => void;
-  setCurrentPage: React.Dispatch<React.SetStateAction<PageType>>;
+  setCurrentPage: React.Dispatch<React.SetStateAction<PageType>> | ((page: PageType) => void);
   title: string;
   subtitle: string;
   imageSrc: string;

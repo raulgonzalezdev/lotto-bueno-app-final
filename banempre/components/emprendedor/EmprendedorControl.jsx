@@ -529,33 +529,33 @@ const EmprendedorControl = () => {
         <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 border-golden pb-2">Control de Emprendedores</h2>
 
-          {/* Acciones principales */}
+      {/* Acciones principales */}
           <div className="flex flex-wrap gap-2 mb-6">
             <button 
               onClick={() => openEmprendedorModal()} 
               className="btn bg-blue-600 hover:bg-blue-700 text-white border-0"
             >
-              Nuevo Emprendedor
-            </button>
-            <button 
+          Nuevo Emprendedor
+        </button>
+        <button 
               onClick={exportToExcel} 
               className="btn bg-golden hover:bg-golden-dark text-white border-0" 
-              disabled={exporting}
-            >
-              {exporting ? 'Exportando...' : 'Exportar Excel'}
-            </button>
-          </div>
+          disabled={exporting}
+        >
+          {exporting ? 'Exportando...' : 'Exportar Excel'}
+        </button>
+      </div>
 
-          {/* Filtros */}
+      {/* Filtros */}
           <div className="bg-white p-4 rounded-lg shadow-md mb-6">
             <h3 className="text-lg font-semibold mb-3 text-gray-700">Filtros</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Búsqueda</label>
                 <div className="relative">
-                  <input
+        <input
                     type="text"
-                    name="search"
+          name="search"
                     placeholder="Buscar por nombre, cédula..."
                     value={searchTerm}
                     onChange={handleSearchChange}
@@ -609,8 +609,8 @@ const EmprendedorControl = () => {
               </div>
 
               <div className="flex items-end">
-                <button
-                  onClick={() => {
+        <button
+          onClick={() => {
                     setSearchTerm('');
                     setSelectedEstado('');
                     setSelectedMunicipio('');
@@ -619,8 +619,8 @@ const EmprendedorControl = () => {
                   className="btn btn-outline border-gray-300 hover:bg-gray-100 hover:border-gray-400 text-gray-700 w-full"
                 >
                   Limpiar Filtros
-                </button>
-              </div>
+        </button>
+      </div>
             </div>
           </div>
 
@@ -649,15 +649,15 @@ const EmprendedorControl = () => {
             </div>
           )}
 
-          {/* Tabla de emprendedores */}
+      {/* Tabla de emprendedores */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {isLoading ? (
               <TableSkeleton columns={6} rows={5} />
             ) : isError ? (
               <div className="p-8 text-center text-red-500">Error al cargar los datos. Intente nuevamente.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="table w-full">
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="table w-full">
                   <thead className="bg-golden-light text-gray-800">
                     <tr>
                       <th className="px-4 py-3">ID</th>
@@ -670,9 +670,9 @@ const EmprendedorControl = () => {
                       <th className="px-4 py-3">Municipio</th>
                       <th className="px-4 py-3">Registro</th>
                       <th className="px-4 py-3">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              </tr>
+            </thead>
+            <tbody>
                     {emprendedoresData?.items && emprendedoresData.items.length > 0 ? (
                       emprendedoresData.items.map((e) => (
                         <tr key={e.id} className="hover:bg-gray-50 border-b border-gray-200">
@@ -691,58 +691,58 @@ const EmprendedorControl = () => {
                                 onClick={() => openEmprendedorModal(e)} 
                                 className="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-0"
                               >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => setConfirmation({ open: true, id: e.id })}
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => setConfirmation({ open: true, id: e.id })}
                                 className="btn btn-sm bg-red-600 hover:bg-red-700 text-white border-0"
-                              >
-                                Eliminar
-                              </button>
+                      >
+                        Eliminar
+                      </button>
                             </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
                         <td colSpan={10} className="text-center py-8 text-gray-500">
                           No hay emprendedores que coincidan con los criterios de búsqueda
                           {emprendedoresData ? ` (Total: ${emprendedoresData.total || 0})` : ''}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
           </div>
 
-          {/* Paginación */}
+      {/* Paginación */}
           <div className="flex justify-center gap-2 mt-6">
-            {['«', '‹'].map((s, i) => (
-              <button
-                key={s}
+        {['«', '‹'].map((s, i) => (
+          <button
+            key={s}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - (i === 0 ? p - 1 : 1)))}
                 className={`btn border-gray-300 ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                 disabled={currentPage === 1}
-              >
-                {s}
-              </button>
-            ))}
+          >
+            {s}
+          </button>
+        ))}
             <span className="btn bg-golden text-white hover:bg-golden-dark">
               Página {currentPage} de {totalPages}
-            </span>
-            {['›', '»'].map((s, i) => (
-              <button
-                key={s}
+        </span>
+        {['›', '»'].map((s, i) => (
+          <button
+            key={s}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + (i === 1 ? totalPages - p : 1)))}
                 className={`btn border-gray-300 ${currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                 disabled={currentPage === totalPages}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          >
+            {s}
+          </button>
+        ))}
+      </div>
         </div>
       </main>
 
@@ -760,37 +760,37 @@ const EmprendedorControl = () => {
                 {modalEmprendedor.editing ? 'Editar' : 'Crear'} Emprendedor
               </h3>
 
-              {!showFullForm ? (
-                <div>
-                  <div className="form-control mt-2">
+            {!showFullForm ? (
+              <div>
+                <div className="form-control mt-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Cédula</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={cedulaInput}
-                        onChange={(e) => setCedulaInput(e.target.value)}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={cedulaInput}
+                      onChange={(e) => setCedulaInput(e.target.value)}
                         className="input flex-1 border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                        placeholder="Ingrese la cédula"
-                      />
-                      <button 
-                        onClick={buscarPorCedula} 
+                      placeholder="Ingrese la cédula"
+                    />
+                    <button 
+                      onClick={buscarPorCedula} 
                         className="btn bg-blue-600 hover:bg-blue-700 text-white border-0"
-                        disabled={loadingEmprendedor || loadingElector || cedulaInput.length < 6}
-                      >
-                        {loadingEmprendedor || loadingElector ? (
-                          <span className="animate-spin">⟳</span>
-                        ) : (
-                          'Buscar'
-                        )}
-                      </button>
-                    </div>
-                    {loadingEmprendedor || loadingElector ? (
-                      <p className="text-sm text-gray-500 mt-2">Buscando...</p>
-                    ) : cedulaInput.length >= 6 && !emprendedorData && !electorData ? (
-                      <p className="text-sm text-red-500 mt-2">Esta cédula no está registrada en el sistema</p>
-                    ) : null}
+                      disabled={loadingEmprendedor || loadingElector || cedulaInput.length < 6}
+                    >
+                      {loadingEmprendedor || loadingElector ? (
+                        <span className="animate-spin">⟳</span>
+                      ) : (
+                        'Buscar'
+                      )}
+                    </button>
                   </div>
-                  
+                  {loadingEmprendedor || loadingElector ? (
+                    <p className="text-sm text-gray-500 mt-2">Buscando...</p>
+                  ) : cedulaInput.length >= 6 && !emprendedorData && !electorData ? (
+                    <p className="text-sm text-red-500 mt-2">Esta cédula no está registrada en el sistema</p>
+                  ) : null}
+                </div>
+                
                   <div className="mt-6 flex justify-end">
                     <button 
                       onClick={closeEmprendedorModal} 
@@ -799,115 +799,115 @@ const EmprendedorControl = () => {
                       Cancelar
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div>
+              </div>
+            ) : (
+              <div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Cédula</label>
-                      <input
-                        type="text"
-                        value={modalEmprendedor.data.cedula?.toString() ?? ''}
-                        onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, cedula: e.target.value } }))}
+                  <input
+                    type="text"
+                    value={modalEmprendedor.data.cedula?.toString() ?? ''}
+                    onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, cedula: e.target.value } }))}
                         className="input w-full border-gray-300 bg-gray-100"
-                        disabled={true} // Cédula no se puede editar una vez buscada
-                      />
-                    </div>
-                    
+                    disabled={true} // Cédula no se puede editar una vez buscada
+                  />
+                </div>
+                
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nombre y Apellido</label>
-                      <input
-                        type="text"
-                        value={modalEmprendedor.data.nombre_apellido?.toString() ?? ''}
-                        onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, nombre_apellido: e.target.value } }))}
+                  <input
+                    type="text"
+                    value={modalEmprendedor.data.nombre_apellido?.toString() ?? ''}
+                    onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, nombre_apellido: e.target.value } }))}
                         className={`input w-full ${Boolean(electorData) ? 'bg-gray-100' : 'border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden'}`}
-                        disabled={Boolean(electorData)} // No editable si viene de elector
-                      />
-                    </div>
-                    
+                    disabled={Boolean(electorData)} // No editable si viene de elector
+                  />
+                </div>
+                
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">RIF</label>
-                      <input
-                        type="text"
-                        value={modalEmprendedor.data.rif?.toString() ?? ''}
-                        onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, rif: e.target.value } }))}
+                  <input
+                    type="text"
+                    value={modalEmprendedor.data.rif?.toString() ?? ''}
+                    onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, rif: e.target.value } }))}
                         className="input w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                      />
-                    </div>
-                    
+                  />
+                </div>
+                
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Emprendimiento <span className="text-red-600">*</span></label>
-                      <input
-                        type="text"
-                        value={modalEmprendedor.data.nombre_emprendimiento?.toString() ?? ''}
-                        onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, nombre_emprendimiento: e.target.value } }))}
+                  <input
+                    type="text"
+                    value={modalEmprendedor.data.nombre_emprendimiento?.toString() ?? ''}
+                    onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, nombre_emprendimiento: e.target.value } }))}
                         className="input w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                        required
-                      />
-                    </div>
-                    
+                    required
+                  />
+                </div>
+                
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono <span className="text-red-600">*</span></label>
-                      <input
-                        type="text"
-                        value={modalEmprendedor.data.telefono?.toString() ?? ''}
-                        onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, telefono: e.target.value } }))}
+                  <input
+                    type="text"
+                    value={modalEmprendedor.data.telefono?.toString() ?? ''}
+                    onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, telefono: e.target.value } }))}
                         className="input w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                        required
-                      />
-                    </div>
+                    required
+                  />
+                </div>
 
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                      <select
-                        value={modalEmprendedor.data.estado ?? ''}
-                        onChange={(e) =>
-                          setModalEmprendedor((m) => ({
-                            ...m,
-                            data: { ...m.data, estado: e.target.value.toString(), municipio: '' },
-                          }))
-                        }
+                  <select
+                    value={modalEmprendedor.data.estado ?? ''}
+                    onChange={(e) =>
+                      setModalEmprendedor((m) => ({
+                        ...m,
+                        data: { ...m.data, estado: e.target.value.toString(), municipio: '' },
+                      }))
+                    }
                         className="select w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                      >
-                        <option value="">Seleccione</option>
+                  >
+                    <option value="">Seleccione</option>
                         {estados && estados.length > 0 ? (
                           estados.map((e) => (
-                            <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
-                              {e.estado}
-                            </option>
+                      <option key={e.codigo_estado} value={e.codigo_estado.toString()}>
+                        {e.estado}
+                      </option>
                           ))
                         ) : (
                           <option value="" disabled>Cargando estados...</option>
                         )}
-                      </select>
-                    </div>
+                  </select>
+                </div>
 
                     <div className="form-control">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Municipio</label>
-                      <select
-                        value={modalEmprendedor.data.municipio ?? ''}
-                        onChange={(e) =>
-                          setModalEmprendedor((m) => ({
-                            ...m,
-                            data: { ...m.data, municipio: e.target.value.toString() },
-                          }))
-                        }
+                  <select
+                    value={modalEmprendedor.data.municipio ?? ''}
+                    onChange={(e) =>
+                      setModalEmprendedor((m) => ({
+                        ...m,
+                        data: { ...m.data, municipio: e.target.value.toString() },
+                      }))
+                    }
                         className="select w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden"
-                        disabled={!modalEmprendedor.data.estado}
-                      >
-                        <option value="">Seleccione</option>
+                    disabled={!modalEmprendedor.data.estado}
+                  >
+                    <option value="">Seleccione</option>
                         {modalEmprendedor.data.estado && municipios && municipios.length > 0 ? (
                           municipios.map((m) => (
-                            <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
-                              {m.municipio}
-                            </option>
+                        <option key={m.codigo_municipio} value={m.codigo_municipio.toString()}>
+                          {m.municipio}
+                        </option>
                           ))
                         ) : modalEmprendedor.data.estado ? (
                           <option value="" disabled>Cargando municipios...</option>
                         ) : null}
-                      </select>
+                  </select>
                     </div>
-                  </div>
+                </div>
 
                   <div className="mt-6 flex justify-end space-x-3">
                     <button 
@@ -916,16 +916,16 @@ const EmprendedorControl = () => {
                     >
                       Cancelar
                     </button>
-                    <button 
-                      onClick={handleSaveEmprendedor} 
+                <button 
+                  onClick={handleSaveEmprendedor} 
                       className="btn bg-golden hover:bg-golden-dark text-white border-0"
-                      disabled={!modalEmprendedor.data.nombre_apellido || !modalEmprendedor.data.nombre_emprendimiento || !modalEmprendedor.data.telefono}
-                    >
-                      {modalEmprendedor.editing ? 'Actualizar' : 'Crear'}
-                    </button>
+                  disabled={!modalEmprendedor.data.nombre_apellido || !modalEmprendedor.data.nombre_emprendimiento || !modalEmprendedor.data.telefono}
+                >
+                  {modalEmprendedor.editing ? 'Actualizar' : 'Crear'}
+                </button>
                   </div>
-                </div>
-              )}
+              </div>
+            )}
             </div>
           </div>
         </div>
