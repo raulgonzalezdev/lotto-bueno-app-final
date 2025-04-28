@@ -45,8 +45,20 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
   };
 
   const handleAdminLogin = (isAdmin: boolean) => {
+    console.log("WelcomeComponent - handleAdminLogin called with isAdmin:", isAdmin);
     if (isAdmin) {
+      // Guardar la sesión en localStorage aquí también
+      localStorage.setItem('session', JSON.stringify({
+        isAdmin: true,
+        lastPage: 'ELECTORES'
+      }));
+      
       setCurrentPage('ELECTORES');
+      
+      // Forzar recarga de la página para asegurar que se apliquen los cambios
+      setTimeout(() => {
+        window.location.href = window.location.pathname;
+      }, 300);
     }
   };
 
