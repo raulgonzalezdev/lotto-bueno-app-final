@@ -305,8 +305,8 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
   };
 
   // Modificar los estilos de los inputs y selects
-  const inputClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 ${errors.cedula ? 'border-red-500' : ''}`;
-  const selectClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 ${errors.estado ? 'border-red-500' : ''}`;
+  const inputClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 text-black ${errors.cedula ? 'border-red-500' : ''}`;
+  const selectClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 text-black ${errors.estado ? 'border-red-500' : ''}`;
 
   return (
     <div className="welcome-page">
@@ -372,7 +372,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
                   id="operador"
                   value={formData.operador}
                   onChange={handleInputChange}
-                  className="w-28 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5"
+                  className="w-28 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 text-black"
                 >
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>

@@ -254,11 +254,11 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
         {showMessengerView === 'none' && !registrationComplete && (
           <form className="space-y-4 w-full max-w-md" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 text-white">Promotor</label>
+              <label className="block text-sm font-medium text-white">Promotor</label>
               <input 
                 type="text"
                 placeholder="Buscar promotor..."
-                className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled={isLoadingRecolectores}
@@ -268,7 +268,7 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
               {!isLoadingRecolectores && !isErrorRecolectores && (
                 <select 
                   name="referido_id"
-                  className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black"
                   onChange={handleInputChange}
                   value={formData.referido_id}
                   disabled={isLoadingRecolectores || isErrorRecolectores}
@@ -283,11 +283,11 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 text-white">Cédula</label>
+              <label className="block text-sm font-medium text-white">Cédula</label>
               <input 
                 type="text" 
                 name="cedula"
-                className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
+                className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black" 
                 value={formData.cedula}
                 onChange={handleInputChange}
                 disabled={isLoadingSubmit}
@@ -296,10 +296,10 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
             <div className="flex items-center">
               
               <div className="ml-2">
-                <label className="block text-sm font-medium text-gray-700 text-white">Operador</label>
+                <label className="block text-sm font-medium text-white">Operador</label>
                 <select 
                   name="operador"
-                  className="inputField mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="inputField mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black"
                   onChange={handleInputChange}
                   value={formData.operador}
                   disabled={isLoadingSubmit}
@@ -312,12 +312,12 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
                 </select>
               </div>
               <div className="flex-grow">
-                <label className="block text-sm font-medium text-gray-700 text-white">Teléfono</label>
+                <label className="block text-sm font-medium text-white">Teléfono</label>
                 <input 
                   type="text" 
                   name="telefono"
                   placeholder="Ingrese el número de teléfono"
-                  className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
+                  className="inputField mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black" 
                   value={formData.telefono}
                   onChange={handleInputChange}
                   disabled={isLoadingSubmit}

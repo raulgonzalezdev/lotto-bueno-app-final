@@ -139,14 +139,14 @@ const LoginModal: React.FC<LoginModalProps> = ({
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Nombre de usuario"
-            className="input input-bordered w-full mb-2"
+            className="input input-bordered w-full mb-2 text-black"
           />
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
-            className="input input-bordered w-full mb-2"
+            className="input input-bordered w-full mb-2 text-black"
           />
           {!isLoginMode && (
             <input
@@ -154,7 +154,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Correo electrónico"
-              className="input input-bordered w-full mb-2"
+              className="input input-bordered w-full mb-2 text-black"
             />
           )}
         </div>
