@@ -349,7 +349,7 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
                 <p className="text-gray-600 text-sm">En línea</p>
               </div>
               <div className="bg-gray-100 p-3 rounded mb-4">
-                <p className="text-sm">
+                <p className="text-sm text-black">
                   {getWhatsAppMessage()}
                 </p>
                 <div className="flex justify-end">
@@ -388,7 +388,7 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
                 <p className="text-gray-600 text-sm">Bot está activo</p>
               </div>
               <div className="bg-gray-100 p-3 rounded mb-4">
-                <p className="text-sm">
+                <p className="text-sm text-black">
                   {getTelegramMessage()}
                 </p>
                 <div className="flex justify-end">
@@ -507,8 +507,8 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
               <button className="modal-close-button" onClick={handleCloseQRModal}>×</button>
               <h2>Ticket Generado</h2>
               <img src={`data:image/png;base64,${qrCode}`} alt="QR Code" />
-              <p>El ticket #{ticketId} ha sido generado exitosamente.</p>
-              <p className="mt-2 mb-4">Por favor selecciona cómo quieres conectar:</p>
+              <p className="text-black">El ticket #{ticketId} ha sido generado exitosamente.</p>
+              <p className="mt-2 mb-4 text-black">Por favor selecciona cómo quieres conectar:</p>
               <div className="flex justify-center space-x-4">
                 <button 
                   onClick={handleOpenWhatsappView}

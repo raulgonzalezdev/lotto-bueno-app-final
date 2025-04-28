@@ -54,25 +54,42 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleLogin = async () => {
     try {
+      console.log("Iniciando proceso de login...");
       // Usar mutación en lugar de fetch directo
       await loginMutation.mutateAsync({ 
         username,
         password 
       }, {
         onSuccess: (data) => {
+          console.log("Login exitoso, respuesta:", data);
           if (data.isAdmin) {
+            console.log("Usuario es admin, redirigiendo a ELECTORES");
             onAdminLogin(true);
             setCurrentPage('ELECTORES');
             setToastMessage("Inicio de sesión exitoso");
             setToastType("success");
-            onClose();
+            
+            // Guardar sesión en localStorage
+            localStorage.setItem('session', JSON.stringify({
+              isAdmin: true,
+              lastPage: 'ELECTORES'
+            }));
+            
+            // Cerrar modal después de corto delay para permitir que se actualice el estado
+            setTimeout(() => {
+              onClose();
+              // Forzar recarga si es necesario
+              window.location.href = window.location.pathname;
+            }, 500);
           } else {
+            console.log("Usuario no es admin");
             setToastMessage("No tiene permisos de administrador");
             setToastType("error");
             onAdminLogin(false);
           }
         },
         onError: (error) => {
+          console.error("Error en login:", error);
           setToastMessage("Inicio de sesión fallido: " + error.message);
           setToastType("error");
           onAdminLogin(false);
