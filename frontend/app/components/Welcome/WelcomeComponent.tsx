@@ -1,9 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import LoginModal from '../login/Login';
 
 interface WelcomeComponentProps {
   title: string;
@@ -16,6 +17,7 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
   const defaultImageSrc = '/lotto.avif';  // Ruta relativa a la imagen del logo por defecto
   const logoSrc =  imageSrc  ;
   const router = useRouter();
+  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 
   // Función que maneja tanto la navegación interna como por rutas
   const handleRegister = () => {
@@ -34,9 +36,18 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
     router.push('/registro-recolector');
   };
   
-  const handleAdminLogin = () => {
-    // Navegación híbrida al login administrativo
-    setCurrentPage('ELECTORES');
+  const handleOpenLoginModal = () => {
+    setIsLoginModalVisible(true);
+  };
+
+  const handleCloseLoginModal = () => {
+    setIsLoginModalVisible(false);
+  };
+
+  const handleAdminLogin = (isAdmin: boolean) => {
+    if (isAdmin) {
+      setCurrentPage('ELECTORES');
+    }
   };
 
   return (
@@ -62,7 +73,7 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
       </div>
       <div className="mt-6">
         <button
-          onClick={handleAdminLogin}
+          onClick={handleOpenLoginModal}
           className="text-white hover:text-blue-300 transition-colors"
         >
           Acceso Administrativo
@@ -83,6 +94,17 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
         <p>Ganar premios nunca había sido tan sencillo</p>
         <img src={logoSrc} width={180} height={69} alt="Logo" className="footer-logo" />
       </footer>
+
+      {/* Modal de login */}
+      <LoginModal
+        isVisible={isLoginModalVisible}
+        onClose={handleCloseLoginModal}
+        onAdminLogin={handleAdminLogin}
+        setCurrentPage={setCurrentPage}
+        title={title}
+        subtitle={subtitle}
+        imageSrc={imageSrc}
+      />
     </div>
   );
 };
