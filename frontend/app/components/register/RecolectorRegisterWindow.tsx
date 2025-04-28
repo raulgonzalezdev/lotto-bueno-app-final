@@ -304,6 +304,26 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
     setIsLoginModalVisible(false);
   };
 
+  // Esta función se llamará cuando el login sea exitoso
+  const handleOnAdminLogin = (isAdmin: boolean) => {
+    console.log("RecolectorRegisterWindow - handleOnAdminLogin called with isAdmin:", isAdmin);
+    if (isAdmin) {
+      // Guardar la sesión en localStorage
+      localStorage.setItem('session', JSON.stringify({
+        isAdmin: true,
+        lastPage: 'ELECTORES'
+      }));
+      
+      // Actualizar el estado local si es necesario
+      if (onAdminLogin) {
+        onAdminLogin(true);
+      }
+      
+      // Redirigir a la página principal para que se active el dashboard
+      window.location.href = '/';
+    }
+  };
+
   // Modificar los estilos de los inputs y selects
   const inputClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 text-black ${errors.cedula ? 'border-red-500' : ''}`;
   const selectClassName = `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 text-black ${errors.estado ? 'border-red-500' : ''}`;
@@ -504,7 +524,7 @@ const RecolectorRegisterWindow: React.FC<RecolectorRegisterWindowProps> = ({
         <LoginModal
           isVisible={isLoginModalVisible}
           onClose={handleCloseLoginModal}
-          onAdminLogin={onAdminLogin}
+          onAdminLogin={handleOnAdminLogin}
           setCurrentPage={setCurrentPage}
           title={title}
           subtitle={subtitle}

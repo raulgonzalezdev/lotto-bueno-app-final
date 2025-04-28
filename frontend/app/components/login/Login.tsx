@@ -64,10 +64,6 @@ const LoginModal: React.FC<LoginModalProps> = ({
           console.log("Login exitoso, respuesta:", data);
           if (data.isAdmin) {
             console.log("Usuario es admin, redirigiendo a ELECTORES");
-            onAdminLogin(true);
-            setCurrentPage('ELECTORES');
-            setToastMessage("Inicio de sesión exitoso");
-            setToastType("success");
             
             // Guardar sesión en localStorage
             localStorage.setItem('session', JSON.stringify({
@@ -75,11 +71,19 @@ const LoginModal: React.FC<LoginModalProps> = ({
               lastPage: 'ELECTORES'
             }));
             
-            // Cerrar modal después de corto delay para permitir que se actualice el estado
+            // Notificar al componente padre
+            onAdminLogin(true);
+            
+            // Mostrar mensaje de éxito
+            setToastMessage("Inicio de sesión exitoso");
+            setToastType("success");
+            
+            // Cerrar modal después de un momento
             setTimeout(() => {
               onClose();
-              // Forzar recarga si es necesario
-              window.location.href = window.location.pathname;
+              
+              // Redirigir a la raíz para asegurar que se cargue el dashboard
+              window.location.href = '/';
             }, 500);
           } else {
             console.log("Usuario no es admin");

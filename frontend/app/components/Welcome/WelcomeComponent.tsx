@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,22 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
   const logoSrc =  imageSrc  ;
   const router = useRouter();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+
+  // Efecto para verificar localStorage al montar el componente
+  useEffect(() => {
+    const session = localStorage.getItem('session');
+    if (session) {
+      try {
+        const sessionData = JSON.parse(session);
+        if (sessionData.isAdmin) {
+          console.log("WelcomeComponent - Sesión de admin detectada, redirigiendo...");
+          window.location.href = '/';
+        }
+      } catch (e) {
+        console.error("Error al procesar la sesión:", e);
+      }
+    }
+  }, []);
 
   // Función que maneja tanto la navegación interna como por rutas
   const handleRegister = () => {
@@ -53,12 +69,11 @@ const WelcomeComponent: React.FC<WelcomeComponentProps> = ({ title, subtitle, im
         lastPage: 'ELECTORES'
       }));
       
+      // Actualizar el estado local
       setCurrentPage('ELECTORES');
       
-      // Forzar recarga de la página para asegurar que se apliquen los cambios
-      setTimeout(() => {
-        window.location.href = window.location.pathname;
-      }, 300);
+      // Redirigir a la página principal para que se active el dashboard
+      window.location.href = '/';
     }
   };
 
