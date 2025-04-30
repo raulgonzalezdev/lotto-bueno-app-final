@@ -3791,6 +3791,7 @@ async def download_excel_emprendedores(
                 "Teléfono": emp.telefono,
                 "Estado": emp.estado if emp.estado else "",
                 "Municipio": emp.municipio if emp.municipio else "",
+                "Motivo": emp.motivo if emp.motivo else "",
                 "Fecha de Registro": emp.created_at.strftime("%Y-%m-%d %H:%M:%S") if emp.created_at else "",
                 "Última Actualización": emp.updated_at.strftime("%Y-%m-%d %H:%M:%S") if emp.updated_at else ""
             })

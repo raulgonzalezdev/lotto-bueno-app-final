@@ -28,7 +28,8 @@ export default function RegistroForm() {
     nombre_emprendimiento: '',
     telefono: '',
     estado: '',
-    municipio: ''
+    municipio: '',
+    motivo: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -100,7 +101,8 @@ export default function RegistroForm() {
       nombre_emprendimiento: '',
       telefono: '',
       estado: '',
-      municipio: ''
+      municipio: '',
+      motivo: ''
     });
     setErrorMessage('');
     setSuccessMessage('');
@@ -159,7 +161,8 @@ export default function RegistroForm() {
         nombre_emprendimiento: formData.nombre_emprendimiento,
         telefono: formData.telefono,
         estado: formData.estado,
-        municipio: formData.municipio
+        municipio: formData.municipio,
+        motivo: formData.motivo
       });
       
       // Guardar los datos del registro para mostrarlos en el modal
@@ -289,6 +292,19 @@ export default function RegistroForm() {
               />
             </div>
 
+            <div className="mb-3 md:mb-4">
+              <label className="block mb-1 text-white text-sm md:text-base">Motivo (opcional):</label>
+              <textarea
+                name="motivo"
+                value={formData.motivo}
+                onChange={handleChange}
+                className="w-full p-2 rounded bg-white text-black text-sm md:text-base resize-y"
+                placeholder="Indícanos el motivo de tu registro (financiamiento, asesoría, etc.)"
+                rows="4"
+                style={{ minHeight: '100px' }}
+              />
+            </div>
+
             <div className="text-center">
               <button
                 type="submit"
@@ -335,6 +351,9 @@ export default function RegistroForm() {
               <p><strong>Nombre:</strong> {datosRegistro.nombre_apellido}</p>
               <p><strong>Emprendimiento:</strong> {datosRegistro.nombre_emprendimiento}</p>
               <p><strong>Teléfono:</strong> {datosRegistro.telefono}</p>
+              {datosRegistro.motivo && (
+                <p><strong>Motivo:</strong> {datosRegistro.motivo}</p>
+              )}
             </div>
           )}
           

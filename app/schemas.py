@@ -205,6 +205,7 @@ class EmprendedorBase(BaseModel):
     telefono: str
     estado: Optional[str] = None
     municipio: Optional[str] = None
+    motivo: Optional[str] = None
 
 class EmprendedorCreate(EmprendedorBase):
     pass
@@ -217,6 +218,7 @@ class EmprendedorUpdate(BaseModel):
     telefono: Optional[str] = None
     estado: Optional[str] = None
     municipio: Optional[str] = None
+    motivo: Optional[str] = None
 
 class EmprendedorList(EmprendedorBase):
     id: int

@@ -16,6 +16,7 @@ const mockEmprendedores = [
     telefono: '0414-1234567',
     estado: 'Distrito Capital',
     municipio: 'Libertador',
+    motivo: 'Solicitud de crédito para ampliar negocio',
     created_at: new Date().toISOString()
   },
   {
@@ -27,6 +28,7 @@ const mockEmprendedores = [
     telefono: '0424-7654321',
     estado: 'Miranda',
     municipio: 'Chacao',
+    motivo: 'Financiamiento para compra de materiales',
     created_at: new Date().toISOString()
   },
   {
@@ -38,6 +40,7 @@ const mockEmprendedores = [
     telefono: '0412-3456789',
     estado: 'Aragua',
     municipio: 'Girardot',
+    motivo: 'Asesoría técnica para expansión',
     created_at: new Date().toISOString()
   }
 ];
