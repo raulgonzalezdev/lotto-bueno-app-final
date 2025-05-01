@@ -383,63 +383,77 @@ const EmprendedorControl = () => {
   };
 
   // Exportar a Excel
-  const exportToExcel = () => {
-    // Formatear los datos para Excel
-    const dataForExcel = emprendedoresData?.items.map(emp => ({
-      'Cédula': emp.cedula,
-      'Nombre y Apellido': emp.nombre_apellido,
-      'Emprendimiento': emp.nombre_emprendimiento,
-      'RIF': emp.rif,
-      'Teléfono': emp.telefono,
-      'Estado': emp.estado?.replace('EDO. ', ''),
-      'Municipio': emp.municipio?.replace('MP. ', ''),
-      'Fecha de Registro': formatDate(emp.created_at)
-    })) || [];
-    
-    // Crear libro de Excel
-    const wb = utils.book_new();
-    const ws = utils.json_to_sheet(dataForExcel);
-    
-    // Ajustar anchos de columna
-    const columnWidths = [
-      { wch: 12 }, // Cédula
-      { wch: 25 }, // Nombre y Apellido
-      { wch: 25 }, // Emprendimiento
-      { wch: 15 }, // RIF
-      { wch: 15 }, // Teléfono
-      { wch: 20 }, // Estado
-      { wch: 20 }, // Municipio
-      { wch: 20 }  // Fecha
-    ];
-    
-    ws['!cols'] = columnWidths;
-    
-    // Generar nombre del archivo según filtros
-    let fileName = 'Emprendedores';
-    
-    if (selectedEstado && estados) {
-      const estado = estados.find(e => e.codigo_estado.toString() === selectedEstado);
-      if (estado) {
-        fileName += `_${estado.estado.replace('EDO. ', '')}`;
+  const exportToExcel = async () => {
+    try {
+      setExporting(true);
+      
+      // Construir los parámetros de búsqueda
+      const queryParams = new URLSearchParams();
+      
+      if (searchTerm) {
+        queryParams.append('search', searchTerm);
       }
-    }
-    
-    if (selectedMunicipio && municipios) {
-      const municipio = municipios.find(m => m.codigo_municipio.toString() === selectedMunicipio);
-      if (municipio) {
-        fileName += `_${municipio.municipio.replace('MP. ', '')}`;
+      
+      // Convertir códigos a nombres de estado y municipio si es necesario
+      if (selectedEstado && estados) {
+        const estado = estados.find(e => e.codigo_estado.toString() === selectedEstado);
+        if (estado) {
+          queryParams.append('estado', estado.estado);
+        }
       }
+      
+      if (selectedMunicipio && municipios) {
+        const municipio = municipios.find(m => m.codigo_municipio.toString() === selectedMunicipio);
+        if (municipio) {
+          queryParams.append('municipio', municipio.municipio);
+        }
+      }
+      
+      // Generar nombre del archivo según filtros
+      let fileName = 'Emprendedores';
+      
+      if (selectedEstado && estados) {
+        const estado = estados.find(e => e.codigo_estado.toString() === selectedEstado);
+        if (estado) {
+          fileName += `_${estado.estado.replace('EDO. ', '')}`;
+        }
+      }
+      
+      if (selectedMunicipio && municipios) {
+        const municipio = municipios.find(m => m.codigo_municipio.toString() === selectedMunicipio);
+        if (municipio) {
+          fileName += `_${municipio.municipio.replace('MP. ', '')}`;
+        }
+      }
+      
+      if (searchTerm) {
+        fileName += `_Busqueda_${searchTerm}`;
+      }
+      
+      fileName += `.xlsx`;
+      
+      // Obtener la URL base
+      const host = await apiClient.detectHost();
+      
+      // Llamar al endpoint de descarga directamente
+      const url = `${host}/api/download/excel/emprendedores?${queryParams.toString()}`;
+      
+      // Crear un enlace oculto para iniciar la descarga
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Mostrar mensaje de éxito
+      fireToast('Archivo Excel descargado correctamente', 'success');
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error);
+      fireToast('Error al generar el archivo Excel', 'error');
+    } finally {
+      setExporting(false);
     }
-    
-    if (searchTerm) {
-      fileName += `_Busqueda_${searchTerm}`;
-    }
-    
-    fileName += `.xlsx`;
-    
-    // Agregar hoja y descargar
-    utils.book_append_sheet(wb, ws, 'Emprendedores');
-    writeFile(wb, fileName);
   };
 
   /* -------------------------------------------------------------------------- */
@@ -668,6 +682,7 @@ const EmprendedorControl = () => {
                       <th className="px-4 py-3">Teléfono</th>
                       <th className="px-4 py-3">Estado</th>
                       <th className="px-4 py-3">Municipio</th>
+                      <th className="px-4 py-3">Motivo</th>
                       <th className="px-4 py-3">Registro</th>
                       <th className="px-4 py-3">Acciones</th>
               </tr>
@@ -684,6 +699,7 @@ const EmprendedorControl = () => {
                           <td className="px-4 py-3">{e.telefono}</td>
                           <td className="px-4 py-3">{e.estado ?? '-'}</td>
                           <td className="px-4 py-3">{e.municipio ?? '-'}</td>
+                          <td className="px-4 py-3">{e.motivo ?? '-'}</td>
                           <td className="px-4 py-3">{e.created_at ? new Date(e.created_at).toLocaleDateString() : '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1 flex-wrap">
@@ -907,6 +923,17 @@ const EmprendedorControl = () => {
                         ) : null}
                   </select>
                     </div>
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Motivo</label>
+                  <textarea
+                    value={modalEmprendedor.data.motivo ?? ''}
+                    onChange={(e) => setModalEmprendedor((m) => ({ ...m, data: { ...m.data, motivo: e.target.value } }))}
+                    className="textarea w-full border-gray-300 focus:border-golden focus:ring-1 focus:ring-golden resize-y"
+                    placeholder="Motivo de registro del emprendedor"
+                    rows="3"
+                  />
                 </div>
 
                   <div className="mt-6 flex justify-end space-x-3">
