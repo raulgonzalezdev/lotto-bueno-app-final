@@ -57,7 +57,9 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
     isLoading: isLoadingRecolectores, 
     isError: isErrorRecolectores, 
     error: errorRecolectores 
-  } = useRecolectores();
+  } = useRecolectores({
+    recolectoresPerPage: 1000
+  });
 
   const { 
     mutate: createTicketMutate, 

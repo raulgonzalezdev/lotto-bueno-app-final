@@ -1815,7 +1815,7 @@ class RecolectorResponse(BaseModel):
 @app.get("/api/recolectores/", response_model=RecolectorResponse)
 async def read_recolectores(
     skip: int = 0, 
-    limit: int = 100, 
+    limit: int = 1000, 
     search: Optional[str] = None,
     estado: Optional[str] = None,
     municipio: Optional[str] = None,
@@ -3777,6 +3777,7 @@ async def download_excel_emprendedores(
         if municipio:
             query = query.filter(Emprendedor.municipio == municipio)
         
+        # Sin paginación - obtener todos los registros
         emprendedores = query.all()
         
         # Crear DataFrame con los datos

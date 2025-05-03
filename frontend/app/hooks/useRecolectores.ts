@@ -70,12 +70,14 @@ export const useRecolectores = (params?: {
   organizacion_politica?: string;
 }) => {
   const currentPage = params?.currentPage || 1;
-  const recolectoresPerPage = params?.recolectoresPerPage || 10;
   const searchTerm = params?.searchTerm || '';
   const estado = params?.estado || '';
   const municipio = params?.municipio || '';
   const organizacion_politica = params?.organizacion_politica || '';
   const queryClient = useQueryClient();
+  
+  // Si no se especifica recolectoresPerPage, usar 1000 para obtener todos
+  const recolectoresPerPage = params?.recolectoresPerPage || (params?.currentPage ? 10 : 1000);
   
   const queryKey = ['recolectores', currentPage, recolectoresPerPage, searchTerm, estado, municipio, organizacion_politica];
 
