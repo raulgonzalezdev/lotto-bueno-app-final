@@ -410,45 +410,17 @@ const EmprendedorControl = () => {
         }
       }
       
-      // Generar nombre del archivo según filtros
-      let fileName = 'Emprendedores';
-      
-      if (selectedEstado && estados) {
-        const estado = estados.find(e => e.codigo_estado.toString() === selectedEstado);
-        if (estado) {
-          fileName += `_${estado.estado.replace('EDO. ', '')}`;
-        }
-      }
-      
-      if (selectedMunicipio && municipios) {
-        const municipio = municipios.find(m => m.codigo_municipio.toString() === selectedMunicipio);
-        if (municipio) {
-          fileName += `_${municipio.municipio.replace('MP. ', '')}`;
-        }
-      }
-      
-      if (searchTerm) {
-        fileName += `_Busqueda_${searchTerm}`;
-      }
-      
-      fileName += `.xlsx`;
-      
       // Obtener la URL base
       const host = await apiClient.detectHost();
       
       // Llamar al endpoint de descarga directamente
       const url = `${host}/api/download/excel/emprendedores?${queryParams.toString()}`;
       
-      // Crear un enlace oculto para iniciar la descarga
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Abrir en una nueva pestaña para la descarga
+      window.open(url, '_blank');
       
       // Mostrar mensaje de éxito
-      fireToast('Archivo Excel descargado correctamente', 'success');
+      fireToast('Descarga de Excel iniciada', 'success');
     } catch (error) {
       console.error('Error al exportar a Excel:', error);
       fireToast('Error al generar el archivo Excel', 'error');
