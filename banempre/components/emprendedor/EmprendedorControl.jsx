@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { FiDownload, FiFilter, FiRefreshCw } from 'react-icons/fi';
 import { utils, writeFile } from 'xlsx';
 import { formatDate } from '../../utils/formatUtils';
+import { apiClient } from '../../api';
 
 import Toast from '../Toast';
 import ConfirmationModal from '../confirmation/ConfirmationModal';
