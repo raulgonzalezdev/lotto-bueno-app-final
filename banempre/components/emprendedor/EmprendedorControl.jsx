@@ -414,7 +414,7 @@ const EmprendedorControl = () => {
       const host = await apiClient.detectHost();
       
       // Llamar al endpoint de descarga directamente
-      const url = `${host}/api/download/excel/emprendedores?${queryParams.toString()}`;
+      const url = `${host}/download/excel/emprendedores?${queryParams.toString()}`;
       
       // Abrir en una nueva pestaña para la descarga
       window.open(url, '_blank');
