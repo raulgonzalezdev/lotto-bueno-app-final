@@ -26,8 +26,10 @@ from app.main import (
     verificar_cedula,
 )
 
-API_INSTANCE = os.getenv("API_INSTANCE", "7103942544")
-API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0")
+# Obtener las variables de entorno para esta instancia específica
+# El contenedor Docker pasará estas variables según la instancia
+API_INSTANCE = os.getenv("API_INSTANCE")
+API_TOKEN = os.getenv("API_TOKEN")
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
@@ -37,6 +39,10 @@ INTERNAL_API_URL = "http://app:8000"
 API_URL_BASE = os.getenv(
     "API_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}"
 )
+
+# Log de la instancia que se está utilizando
+print(f"Iniciando bot de WhatsApp con la instancia: {API_INSTANCE}")
+print(f"URL base de la API: {API_URL_BASE}")
 
 # Constante para el tiempo máximo de inactividad (5 minutos)
 MAX_INACTIVITY_TIME_SECONDS = 300

@@ -44,8 +44,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
       REDIS_URL: "redis://redis:6379/0"
-      API_INSTANCE: "${API_INSTANCE:-7103942544}"
-      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      API_INSTANCE: "${API_INSTANCE_1:-7103942544}"
+      API_TOKEN: "${API_TOKEN_1:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
     volumes:
       - ./app:/app/app
@@ -69,15 +69,15 @@ services:
       retries: 3
       start_period: 20s
 
-  whatsapp-bot:
+  whatsapp-bot-1:
     build:
       context: .
       target: app
     environment:
       DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
       REDIS_URL: "redis://redis:6379/0"
-      API_INSTANCE: "${API_INSTANCE:-7103942544}"
-      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      API_INSTANCE: "${API_INSTANCE_1:-7103942544}"
+      API_TOKEN: "${API_TOKEN_1:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
       WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
       TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
@@ -85,6 +85,162 @@ services:
       app:
         condition: service_healthy
     command: python app/bot.py
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  whatsapp-bot-2:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_2}"
+      API_TOKEN: "${API_TOKEN_2}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+      WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
+      TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
+    depends_on:
+      app:
+        condition: service_healthy
+    command: python app/bot.py
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  whatsapp-bot-3:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_3}"
+      API_TOKEN: "${API_TOKEN_3}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+      WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
+      TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
+    depends_on:
+      app:
+        condition: service_healthy
+    command: python app/bot.py
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  whatsapp-bot-4:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_4}"
+      API_TOKEN: "${API_TOKEN_4}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+      WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
+      TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
+    depends_on:
+      app:
+        condition: service_healthy
+    command: python app/bot.py
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  bot-monitor-1:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_1:-7103942544}"
+      API_TOKEN: "${API_TOKEN_1:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    depends_on:
+      - whatsapp-bot-1
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "while true; do 
+             sleep 300; 
+             curl -s -X POST http://app:8000/api/reboot_instance/1 || echo 'Error rebooting instance 1'; 
+             echo 'Automatic reboot of instance 1 executed at '`date`; 
+             done"
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  bot-monitor-2:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_2}"
+      API_TOKEN: "${API_TOKEN_2}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    depends_on:
+      - whatsapp-bot-2
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "while true; do 
+             sleep 300; 
+             curl -s -X POST http://app:8000/api/reboot_instance/2 || echo 'Error rebooting instance 2'; 
+             echo 'Automatic reboot of instance 2 executed at '`date`; 
+             done"
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  bot-monitor-3:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_3}"
+      API_TOKEN: "${API_TOKEN_3}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    depends_on:
+      - whatsapp-bot-3
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "while true; do 
+             sleep 300; 
+             curl -s -X POST http://app:8000/api/reboot_instance/3 || echo 'Error rebooting instance 3'; 
+             echo 'Automatic reboot of instance 3 executed at '`date`; 
+             done"
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
+  bot-monitor-4:
+    build:
+      context: .
+      target: app
+    environment:
+      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
+      REDIS_URL: "redis://redis:6379/0"
+      API_INSTANCE: "${API_INSTANCE_4}"
+      API_TOKEN: "${API_TOKEN_4}"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
+    depends_on:
+      - whatsapp-bot-4
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "while true; do 
+             sleep 300; 
+             curl -s -X POST http://app:8000/api/reboot_instance/4 || echo 'Error rebooting instance 4'; 
+             echo 'Automatic reboot of instance 4 executed at '`date`; 
+             done"
     restart: unless-stopped
     networks:
       - lotto-bueno-network
@@ -104,30 +260,6 @@ services:
       app:
         condition: service_healthy
     command: python app/telegram_bot/bot.py
-    restart: unless-stopped
-    networks:
-      - lotto-bueno-network
-
-  bot-monitor:
-    build:
-      context: .
-      target: app
-    environment:
-      DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
-      REDIS_URL: "redis://redis:6379/0"
-      API_INSTANCE: "${API_INSTANCE:-7103942544}"
-      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
-      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
-    depends_on:
-      - whatsapp-bot
-    volumes:
-      - ./app:/app/app
-    command: >
-      sh -c "while true; do 
-             sleep 300; 
-             curl -s -X POST http://app:8000/api/reboot_instance || echo 'Error rebooting instance'; 
-             echo 'Automatic reboot executed at '`date`; 
-             done"
     restart: unless-stopped
     networks:
       - lotto-bueno-network

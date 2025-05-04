@@ -73,9 +73,6 @@ from app.schemas import (
     RecolectorCreate,
     RecolectorList,
     RecolectorUpdate,
-    ElectorCreate,
-    GeograficoCreate,
-    CentroVotacionCreate,
     ElectorDetail,
     OrganizacionPoliticaList,
     OrganizacionPoliticaCreate,
@@ -201,9 +198,36 @@ DATABASE_URL = os.getenv(
     f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@postgres:5432/{POSTGRES_DB}"
 )
 
-API_INSTANCE = os.getenv("API_INSTANCE", "7103942544")
+# Obtener la instancia API específica que está utilizando este servicio
+# Si no se especifica, se usa la instancia 1 por defecto
+API_INSTANCE = os.getenv("API_INSTANCE", os.getenv("API_INSTANCE_1", "7103942544"))
+API_TOKEN = os.getenv("API_TOKEN", os.getenv("API_TOKEN_1", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0"))
 API_URL_BASE = os.getenv("API_URL_BASE", f"https://7103.api.greenapi.com/waInstance{API_INSTANCE}")
-API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0")
+
+# Función para obtener todas las instancias de WhatsApp configuradas
+def get_whatsapp_instances():
+    instances = []
+    i = 1
+    while True:
+        instance_id = os.getenv(f"API_INSTANCE_{i}")
+        token = os.getenv(f"API_TOKEN_{i}")
+        if not instance_id or not token:
+            break
+        instances.append({
+            "id": i,
+            "instance": instance_id,
+            "token": token,
+            "url_base": f"https://7103.api.greenapi.com/waInstance{instance_id}"
+        })
+        i += 1
+    return instances
+
+# Obtener todas las instancias configuradas
+WHATSAPP_INSTANCES = get_whatsapp_instances()
+print(f"Instancias de WhatsApp configuradas: {len(WHATSAPP_INSTANCES)}")
+for instance in WHATSAPP_INSTANCES:
+    print(f"Instancia {instance['id']}: {instance['instance']}")
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
 COMPANY_PHONE_CONTACT = os.getenv("COMPANY_PHONE_CONTACT", "584262831867")
@@ -401,10 +425,8 @@ def api_check_whatsapp(request: PhoneNumberRequest):
             "message": "El servicio de verificación de WhatsApp no está disponible en este momento. Por favor, inténtalo más tarde."
         }
     if not result.get("existsWhatsapp"):
-        raise HTTPException(
-            status_code=400,
-            detail="El número no tiene WhatsApp:" + request.phone_number
-        )
+        # Procesar cuando no existe WhatsApp
+        return {"status": "error", "message": "El número no tiene WhatsApp:" + request.phone_number}
     return {"status": "Número válido"}
 
 
@@ -1383,30 +1405,93 @@ def enviar_contacto(chat_id, phone_contact, first_name, last_name, company):
 
 
 @app.post("/api/reboot_instance")
-def api_reboot_instance():
+async def reboot_instance():
+    """
+    Reinicia la instancia principal de WhatsApp.
+    """
     try:
-        reboot_instance()
-        return {"status": "Instancia reiniciada"}
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=str(err))
+        # Usar la instancia principal por defecto
+        instance_id = API_INSTANCE
+        token = API_TOKEN
+        url = f"https://7103.api.greenapi.com/waInstance{instance_id}/reboot/{token}"
+        
+        print(f"Reiniciando instancia {instance_id}...")
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            return {"status": "success", "message": f"Instancia {instance_id} reiniciada correctamente"}
+        else:
+            return {"status": "error", "message": f"Error al reiniciar instancia {instance_id}: {response.text}"}
+    except Exception as e:
+        return {"status": "error", "message": f"Error inesperado: {str(e)}"}
 
-
-def reboot_instance():
-    url = f"{API_URL_BASE}/reboot/{API_TOKEN}"
-    headers = {}
-
+@app.post("/api/reboot_instance/{instance_number}")
+async def reboot_specific_instance(instance_number: int):
+    """
+    Reinicia una instancia específica de WhatsApp por su número.
+    """
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        print("Instance rebooted successfully.")
-        print(response.text.encode('utf8'))
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-        raise
-    except Exception as err:
-        print(f"Other error occurred: {err}")
-        raise
+        # Verificar que la instancia existe
+        if instance_number < 1 or instance_number > len(WHATSAPP_INSTANCES):
+            return {"status": "error", "message": f"Instancia {instance_number} no encontrada"}
+        
+        # Obtener la información de la instancia
+        instance = WHATSAPP_INSTANCES[instance_number - 1]
+        instance_id = instance["instance"]
+        token = instance["token"]
+        
+        url = f"https://7103.api.greenapi.com/waInstance{instance_id}/reboot/{token}"
+        
+        print(f"Reiniciando instancia {instance_number} (ID: {instance_id})...")
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            return {"status": "success", "message": f"Instancia {instance_number} (ID: {instance_id}) reiniciada correctamente"}
+        else:
+            return {"status": "error", "message": f"Error al reiniciar instancia {instance_number} (ID: {instance_id}): {response.text}"}
+    except Exception as e:
+        return {"status": "error", "message": f"Error inesperado: {str(e)}"}
 
+@app.post("/api/reboot_all_instances")
+async def reboot_all_instances():
+    """
+    Reinicia todas las instancias de WhatsApp configuradas.
+    """
+    results = []
+    
+    try:
+        for instance in WHATSAPP_INSTANCES:
+            instance_id = instance["instance"]
+            token = instance["token"]
+            url = f"https://7103.api.greenapi.com/waInstance{instance_id}/reboot/{token}"
+            
+            print(f"Reiniciando instancia {instance['id']} (ID: {instance_id})...")
+            
+            try:
+                response = requests.get(url)
+                
+                if response.status_code == 200:
+                    results.append({
+                        "instance": instance['id'],
+                        "status": "success",
+                        "message": f"Instancia {instance['id']} (ID: {instance_id}) reiniciada correctamente"
+                    })
+                else:
+                    results.append({
+                        "instance": instance['id'],
+                        "status": "error",
+                        "message": f"Error al reiniciar instancia {instance['id']} (ID: {instance_id}): {response.text}"
+                    })
+            except Exception as e:
+                results.append({
+                    "instance": instance['id'],
+                    "status": "error",
+                    "message": f"Error al reiniciar instancia {instance['id']} (ID: {instance_id}): {str(e)}"
+                })
+        
+        return {"status": "completed", "results": results}
+    except Exception as e:
+        return {"status": "error", "message": f"Error inesperado: {str(e)}"}
 
 async def get_elector_from_cache(elector_id: int, db: Session):
     cache_key = f"elector:{elector_id}"
@@ -1443,7 +1528,7 @@ async def get_elector_by_cedula_from_cache(numero_cedula: int, db: Session):
                 "centro_votacion": to_dict(centro_votacion),
                 "geografico": to_dict(geografico)
             }
-            await redis.set(cache_key, json.dumps(result, default=custom_serializer), ex=60*60)
+            await redis.set(cache_key, json.dumps(result, default=custom_serializer), ex=60 * 60)
             return result
         return None
 
@@ -3895,4 +3980,3 @@ if __name__ == "__main__":
     print("Iniciando servidor Uvicorn...")
     # Ejecutar Uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
