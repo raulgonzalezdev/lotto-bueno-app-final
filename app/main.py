@@ -93,7 +93,7 @@ import uuid
 
 # Importar instrumentador de Prometheus
 from prometheus_fastapi_instrumentator import Instrumentator, metrics
-from prometheus_fastapi_instrumentator.metrics import Info
+from prometheus_fastapi_instrumentator.metrics import Info, Counter
 
 load_dotenv()
 
@@ -138,13 +138,19 @@ def setup_prometheus_metrics():
     
     # Añadir métrica personalizada para contar peticiones por ruta y código de estado
     def requests_by_path_and_status(metric_name: str = "http_requests_by_path_status"):
+        METRIC = Counter(
+            metric_name,
+            "Number of requests by path and status",
+            labelnames=["path", "status", "method"]
+        )
+        
         def instrumentation(info: Info):
             if info.response is not None:
-                # Usar el contador global en lugar de acceder a info.request.metrics que no existe
-                info.metrics.counter(
-                    metric_name,
-                    "Number of requests by path and status",
-                    labels={"path": info.request.url.path, "status": str(info.response.status_code), "method": info.request.method}
+                # Usar un contador global en lugar de info.metrics que no existe
+                METRIC.labels(
+                    path=info.request.url.path, 
+                    status=str(info.response.status_code), 
+                    method=info.request.method
                 ).inc()
         
         return instrumentation
@@ -155,7 +161,12 @@ def setup_prometheus_metrics():
     return instrumentator.instrument(app).expose(app, tags=["metrics"], endpoint="/metrics")
 
 # Configurar e iniciar instrumentación
-setup_prometheus_metrics()
+try:
+    setup_prometheus_metrics()
+except Exception as e:
+    # Manejar errores en la configuración de Prometheus
+    print(f"Error al configurar Prometheus: {str(e)}")
+    # Continuamos la ejecución de la app aunque falle la instrumentación
 
 def get_db():
     db = SessionLocal()
@@ -1385,27 +1396,34 @@ def enviar_contacto(chat_id, phone_contact, first_name, last_name, company):
 @app.post("/api/reboot_instance")
 def api_reboot_instance():
     try:
-        reboot_instance()
-        return {"status": "Instancia reiniciada"}
+        # Función comentada temporalmente por problemas causados
+        # reboot_instance()
+        return {"status": "Instancia reiniciada (desactivado temporalmente)"}
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))
 
 
 def reboot_instance():
-    url = f"{API_URL_BASE}/reboot/{API_TOKEN}"
-    headers = {}
+    """
+    Función temporalmente comentada por solicitud del usuario. Esta función estaba causando fallas.
+    El código original reinicia la instancia de WhatsApp.
+    """
+    # url = f"{API_URL_BASE}/reboot/{API_TOKEN}"
+    # headers = {}
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        print("Instance rebooted successfully.")
-        print(response.text.encode('utf8'))
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-        raise
-    except Exception as err:
-        print(f"Other error occurred: {err}")
-        raise
+    # try:
+    #     response = requests.get(url, headers=headers)
+    #     response.raise_for_status()
+    #     print("Instance rebooted successfully.")
+    #     print(response.text.encode('utf8'))
+    # except requests.exceptions.HTTPError as http_err:
+    #     print(f"HTTP error occurred: {http_err}")
+    #     raise
+    # except Exception as err:
+    #     print(f"Other error occurred: {err}")
+    #     raise
+    print("Función de reinicio de instancia desactivada temporalmente")
+    pass
 
 
 async def get_elector_from_cache(elector_id: int, db: Session):
