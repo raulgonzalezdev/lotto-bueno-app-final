@@ -1,0 +1,43 @@
+{
+  "name": "simulador-electoral-brito",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3005",
+    "build": "next build",
+    "start": "next start -p 3005",
+    "export": "next export",
+    "lint": "next lint"
+  },
+  "keywords": [
+    "simulador",
+    "electoral",
+    "votación",
+    "José Brito",
+    "Anzoátegui"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Simulador de votación para las elecciones regionales de Anzoátegui 2025",
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.1.0",
+    "@types/node": "^18.15.0",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "autoprefixer": "^10.4.14",
+    "eslint": "^8.36.0",
+    "eslint-config-next": "^13.2.4",
+    "next": "^13.2.4",
+    "postcss": "^8.4.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.8.0",
+    "react-modal": "^3.16.1",
+    "tailwindcss": "^3.2.7"
+  },
+  "devDependencies": {
+    "prettier": "^2.8.4"
+  }
+}
