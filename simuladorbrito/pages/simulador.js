@@ -14,7 +14,7 @@ import Button from '@mui/material/Button';
 export default function Simulador() {
   const router = useRouter();
   
-  // Datos del tarjetón 7x7 exactamente como en la imagen
+  // Datos del tarjetón actualizados según la entrada del usuario
   const tarjetonData = [
     // Fila 1 - todos vacíos
     [null, null, null, null, null, null, null],
@@ -87,22 +87,18 @@ export default function Simulador() {
   const headerHeight = '56px'; // Estimación, ajustar según el contenido real de la cabecera
   const footerHeight = '48px'; // Estimación, ajustar según el contenido real del pie de página
 
-  const sidePanelSx = {
-    width: { xs: '0px', md: '25vw' }, // Aumentado un poco para que se vea más
-    minHeight: `calc(100vh - ${headerHeight} - ${footerHeight})`,
-    mt: headerHeight, // Margen superior para no solaparse con la cabecera fija
-    mb: footerHeight, // Margen inferior para no solaparse con el pie de página fijo
-    backgroundImage: 'url(/fondovertical.jpg)',
-    backgroundSize: 'contain', // Cambiado de cover a contain
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    opacity: 0.7,
-    display: { xs: 'none', md: 'block' },
-    alignSelf: 'stretch' // Para que ocupe la altura disponible en el flex container
-  };
-
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}> {/* Contenedor principal de página ahora es columna */}
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      backgroundImage: 'url(/fondovertical.jpg)', // Imagen de fondo global
+      backgroundSize:  'contain',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'repeat',
+      backgroundColor: 'rgba(255,255,255,0.87)', // Ligera transparencia sobre la imagen
+      backgroundBlendMode: 'lighten', // Modo de mezcla para la transparencia
+    }}> 
       <Head>
         <title>Simulador Electoral 2025 - José Brito Gobernador</title>
         <meta name="description" content="Simulador de votación para las elecciones regionales 2025" />
@@ -115,7 +111,7 @@ export default function Simulador() {
           top: 0, 
           left: 0, 
           right: 0, 
-          zIndex: 1200, // Alto z-index para estar encima de todo
+          zIndex: 1200, 
           backgroundColor: 'rgb(21, 40, 82)', 
           color: 'white', 
           py: 1, px: 2, 
@@ -129,126 +125,117 @@ export default function Simulador() {
         </Typography>
       </Box>
 
-      {/* Contenedor para Paneles Laterales y Contenido Central */}
-      <Box sx={{ display: 'flex', flexDirection: 'row', flexGrow: 1, pt: headerHeight, pb: footerHeight }}> 
-        <Box sx={sidePanelSx} /> {/* Panel Izquierdo */}
-
-        <Box 
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            // minHeight: `calc(100vh - ${headerHeight} - ${footerHeight})`, // Altura ajustada
-            // overflowY: 'auto' // Si el contenido central es más largo que el espacio
+      {/* Contenido Principal (entre cabecera y pie de página) */}
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', // Apila el Paper del tarjetón y otros elementos si los hubiera
+        flexGrow: 1, 
+        pt: headerHeight, 
+        pb: footerHeight, 
+        width: '100%',
+        alignItems: { xs: 'center', md: 'flex-start' }, // Centra en móvil, alinea a la izquierda en desktop
+        justifyContent: 'center', // Centra verticalmente el contenido si hay espacio
+        p: { xs: 1, sm: 2, md: 3 }, // Padding general
+        overflowY: 'auto' // Scroll si el contenido es muy alto
+      }}> 
+        
+        {/* Tarjetón */}
+        <Paper 
+          elevation={6} 
+          sx={{ 
+            p: { xs: 1, sm: 2 }, 
+            backgroundColor: 'white', 
+            borderRadius: 2, 
+            border: '3px solid rgb(21, 40, 82)',
+            maxWidth: '900px', 
+            width: '100%', // Ocupa el ancho disponible hasta maxWidth
+            ml: { md: '5%' }, // Margen izquierdo solo en desktop para no pegarse al borde
+            alignSelf: {xs: 'center', md: 'flex-start'} // Asegura que el Paper en sí se alinee como su contenedor padre
           }}
         >
-          {/* El contenido que solía estar aquí (cabecera azul, tarjetón, pie de página) ahora está distribuido */}
-          {/* La cabecera ya no es necesaria aquí, ya que está fija arriba */}
+          <Box sx={{ backgroundColor: 'rgb(21, 40, 82)', color: 'white', py: 1, px: 2, textAlign: 'center', mb: 2, borderRadius: 1 }}>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', fontSize: { xs: '1rem', md: '1.25rem' } }}>
+              TARJETÓN ELECTORAL 2025
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+              Seleccione un partido para votar por José Brito como Gobernador
+            </Typography>
+          </Box>
           
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
-            <Paper 
-              elevation={6} 
-              sx={{ 
-                p: { xs: 1, sm: 2 }, 
-                backgroundColor: 'white', 
-                borderRadius: 2, 
-                border: '3px solid rgb(21, 40, 82)',
-                maxWidth: '900px', 
-                width: '100%',
-              }}
-            >
-              <Box sx={{ backgroundColor: 'rgb(21, 40, 82)', color: 'white', py: 1, px: 2, textAlign: 'center', mb: 2, borderRadius: 1 }}>
-                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', fontSize: { xs: '1rem', md: '1.25rem' } }}>
-                  TARJETÓN ELECTORAL 2025
-                </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                  Seleccione un partido para votar por José Brito como Gobernador
-                </Typography>
-              </Box>
-              
+          <Box
+            display="grid"
+            gridTemplateColumns="repeat(7, 1fr)"
+            gap={{ xs: 0.5, sm: 1 }}
+            sx={{ border: '1px solid #ccc', p: {xs: 0.5, sm: 1}, backgroundColor: '#f0f0f0' }}
+          >
+            {tarjetonData.flat().map((partido, index) => (
               <Box
-                display="grid"
-                gridTemplateColumns="repeat(7, 1fr)"
-                gap={{ xs: 0.5, sm: 1 }}
-                sx={{ border: '1px solid #ccc', p: {xs: 0.5, sm: 1}, backgroundColor: '#f0f0f0' }}
+                key={index}
+                sx={{
+                  aspectRatio: '1 / 0.7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: (partido && partido.apoyaBrito) ? 'white' : '#e5e7eb',
+                  overflow: 'hidden',
+                }}
               >
-                {tarjetonData.flat().map((partido, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      aspectRatio: '1 / 0.7',
+                {partido && partido.apoyaBrito ? (
+                  <Card 
+                    variant="outlined" 
+                    sx={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      borderColor: 'rgb(21, 40, 82)',
+                      borderWidth: 2,
+                      borderRadius: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: '1px solid #d1d5db',
-                      // El fondo es blanco si apoya Y HAY PARTIDO, si no, es gris claro.
-                      // Si solo es `partido.apoyaBrito`, una celda null con apoyaBrito=true (imposible) sería blanca.
-                      backgroundColor: (partido && partido.apoyaBrito) ? 'white' : '#e5e7eb',
-                      overflow: 'hidden',
+                       '&:hover': {
+                        borderColor: 'blue.700',
+                        boxShadow: 3,
+                      }
                     }}
                   >
-                    {partido && partido.apoyaBrito ? (
-                      // Solo renderiza la Card si el partido existe y apoyaBrito es true
-                      <Card 
-                        variant="outlined" 
-                        sx={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          borderColor: 'rgb(21, 40, 82)',
-                          borderWidth: 2,
-                          borderRadius: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                           '&:hover': {
-                            borderColor: 'blue.700',
-                            boxShadow: 3,
-                          }
-                        }}
-                      >
-                        <CardActionArea 
-                          onClick={() => handleSelectPartido(partido)}
-                          sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 0.25 }}
-                        >
-                          <Image
-                            src={partido.logo}
-                            alt={partido.nombre}
-                            layout="intrinsic"
-                            width={100}
-                            height={60}
-                            objectFit="contain"
-                          />
-                        </CardActionArea>
-                      </Card>
-                    ) : (
-                      // Si no hay partido o el partido no apoya a Brito, se renderiza una celda vacía (el Box base con su estilo).
-                      // No se muestra ningún logo aquí.
-                      null 
-                    )}
-                  </Box>
-                ))}
+                    <CardActionArea 
+                      onClick={() => handleSelectPartido(partido)}
+                      sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 0.25 }}
+                    >
+                      <Image
+                        src={partido.logo}
+                        alt={partido.nombre}
+                        layout="intrinsic"
+                        width={100}
+                        height={60}
+                        objectFit="contain"
+                      />
+                    </CardActionArea>
+                  </Card>
+                ) : (
+                  null 
+                )}
               </Box>
-              
-              <Box sx={{ textAlign: 'center', mt: 3 }}>
-                <Button 
-                  variant="contained"
-                  onClick={goToInicio}
-                  sx={{ 
-                    backgroundColor: 'rgb(21, 40, 82)', 
-                    '&:hover': { backgroundColor: 'rgb(15, 30, 62)' },
-                    fontSize: {xs: '0.8rem', sm:'0.9rem', md: '1rem'},
-                    px: {xs: 2, sm:3, md: 4},
-                    py: {xs: 0.8, sm:1, md: 1.2}
-                  }}
-                >
-                  REGRESAR
-                </Button>
-              </Box>
-            </Paper>
+            ))}
           </Box>
-        </Box>
-
-        <Box sx={sidePanelSx} /> {/* Panel Derecho */}
+          
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
+            <Button 
+              variant="contained"
+              onClick={goToInicio}
+              sx={{ 
+                backgroundColor: 'rgb(21, 40, 82)', 
+                '&:hover': { backgroundColor: 'rgb(15, 30, 62)' },
+                fontSize: {xs: '0.8rem', sm:'0.9rem', md: '1rem'},
+                px: {xs: 2, sm:3, md: 4},
+                py: {xs: 0.8, sm:1, md: 1.2}
+              }}
+            >
+              REGRESAR
+            </Button>
+          </Box>
+        </Paper>
       </Box>
       
       {/* Pie de Página Fijo */}
@@ -266,7 +253,7 @@ export default function Simulador() {
         }}
       >
         <Typography variant="body2" align="center" sx={{ fontSize: {xs: '0.7rem', sm:'0.75rem', md: '0.875rem'} }}>
-          &copy; 2024 Simulador Electoral - José Brito Gobernador
+          &copy; 2025 Simulador Electoral - José Brito Gobernador
         </Typography>
       </Box>
     </Box>
