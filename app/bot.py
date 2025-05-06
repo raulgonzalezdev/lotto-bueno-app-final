@@ -57,7 +57,11 @@ user_last_interaction = {}
 # Nuevo: Diccionario para almacenar si ya se envió mensaje de verificación
 verification_message_sent = {}
 
-bot = GreenAPIBot(API_INSTANCE, API_TOKEN)
+# Activar modo de depuración para ver más logs
+os.environ["DEBUG"] = "true"
+
+# Crear el bot con modo de depuración
+bot = GreenAPIBot(API_INSTANCE, API_TOKEN, bot_debug_mode=True, debug_mode=True)
 
 
 def extract_cedula(text):
@@ -216,6 +220,14 @@ def shorten_url(long_url):
 
 @bot.router.message()
 def obtener_cedula(notification: Notification) -> None:
+    # Agregar logs de depuración
+    print("\n----- INICIO DE PROCESAMIENTO DE MENSAJE -----")
+    print(f"Evento recibido: {json.dumps(notification.event, ensure_ascii=False, indent=2)}")
+    print(f"Sender: {notification.sender}")
+    print(f"Chat: {notification.chat}")
+    print(f"Texto del mensaje: {notification.message_text}")
+    print("----- DATOS DE NOTIFICACIÓN -----\n")
+    
     sender = notification.sender
     message_data = notification.event.get("messageData", {})
 
@@ -1336,6 +1348,57 @@ def get_user_state(notification, sender):
 
 if __name__ == "__main__":
     import threading
-
+    
+    # Función para verificar la configuración y conectividad
+    def init_bot():
+        print("\n========== INICIALIZACIÓN DEL BOT DE WHATSAPP ==========")
+        print(f"API_INSTANCE: {API_INSTANCE}")
+        print(f"API_TOKEN: {API_TOKEN[:10]}...{API_TOKEN[-10:]}")
+        print(f"API_URL_BASE: {API_URL_BASE}")
+        print(f"MEDIA_URL_BASE: {MEDIA_URL_BASE}")
+        print(f"WHATSAPP_CHANNEL: {WHATSAPP_CHANNEL}")
+        
+        # Probar conexión a la API
+        try:
+            print("\nVerificando conexión y estado de la cuenta...")
+            estado = bot.api.account.getStateInstance()
+            print(f"Estado de la instancia: {estado.data}")
+            
+            print("\nVerificando webhooks...")
+            settings = bot.api.account.getSettings()
+            print(f"incomingWebhook: {settings.data.get('incomingWebhook')}")
+            print(f"outgoingMessageWebhook: {settings.data.get('outgoingMessageWebhook')}")
+            print(f"outgoingAPIMessageWebhook: {settings.data.get('outgoingAPIMessageWebhook')}")
+            
+            # Forzar activación de webhooks si no están habilitados
+            if settings.data.get('incomingWebhook') != 'yes' or settings.data.get('outgoingMessageWebhook') != 'yes':
+                print("Activando webhooks...")
+                bot.api.account.setSettings({
+                    "incomingWebhook": "yes",
+                    "outgoingMessageWebhook": "yes",
+                    "outgoingAPIMessageWebhook": "yes"
+                })
+                print("Configuración de webhooks actualizada")
+            
+            # Probar envío de un mensaje al teléfono del sistema
+            system_phone = "584262831867"
+            print(f"\nEnviando mensaje de prueba al teléfono del sistema: {system_phone}")
+            test_msg = bot.api.sending.sendMessage(
+                f"{system_phone}@c.us", 
+                "🤖 Test de conexión del bot. Si ves este mensaje, la conexión está funcionando."
+            )
+            print(f"Resultado del envío: {test_msg.data}")
+            
+            print("\n========== INICIANDO MONITOR DE INACTIVIDAD ==========")
+        except Exception as e:
+            print(f"ERROR al inicializar el bot: {e}")
+            print("Continuando de todos modos...")
+    
+    # Inicializar el bot
+    init_bot()
+    
+    # Iniciar el hilo del monitor de inactividad
     threading.Thread(target=inactivity_checker, daemon=True).start()
+    
+    print("\n========== INICIANDO RECEPCIÓN DE MENSAJES ==========")
     bot.run_forever()
