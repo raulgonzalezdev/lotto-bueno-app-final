@@ -33,9 +33,13 @@ WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 WHATSAPP_CHANNEL = os.getenv("WHATSAPP_CHANNEL", "https://whatsapp.com/channel/0029Vb5QksyDp2Q801mgOi0h")
 # Definir la URL interna para la comunicación entre servicios Docker
 INTERNAL_API_URL = "http://app:8000"
-# Definir la URL base de la API de Green para cambios
+# Definir la URL base de la API de Green para comandos API
 API_URL_BASE = os.getenv(
-    "API_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}"
+    "API_URL_BASE", f"https://7103.api.greenapi.com/waInstance{API_INSTANCE}"
+)
+# Definir la URL base para manejo de archivos multimedia
+MEDIA_URL_BASE = os.getenv(
+    "MEDIA_URL_BASE", f"https://7103.media.greenapi.com/waInstance{API_INSTANCE}"
 )
 
 # Constante para el tiempo máximo de inactividad (5 minutos)
@@ -817,7 +821,7 @@ def handle_registro_promotor(
                             qr_buffer.seek(0)
 
                             # Enviar directamente usando el endpoint sendFileByUpload de Green API
-                            url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
+                            url = f"{MEDIA_URL_BASE}/sendFileByUpload/{API_TOKEN}"
 
                             # Verificar si el sender tiene sufijo @c.us
                             chat_id = sender
