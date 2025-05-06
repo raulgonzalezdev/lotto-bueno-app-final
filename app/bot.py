@@ -30,7 +30,7 @@ API_INSTANCE = os.getenv("API_INSTANCE", "7103942544")
 API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0")
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
-TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "https://t.me/applottobueno")
+WHATSAPP_CHANNEL = os.getenv("WHATSAPP_CHANNEL", "https://whatsapp.com/channel/0029Vb5QksyDp2Q801mgOi0h")
 # Definir la URL interna para la comunicación entre servicios Docker
 INTERNAL_API_URL = "http://app:8000"
 # Definir la URL base de la API de Green para cambios
@@ -937,9 +937,9 @@ def handle_registro_promotor(
                     "Próximamente tendremos una aplicación móvil donde podrás revisar tus tickets y recibir notificaciones."
                 )
 
-                telegram_url_short = shorten_url(TELEGRAM_CHANNEL)
+                telegram_url_short = shorten_url(WHATSAPP_CHANNEL)
                 notification.answer(
-                    f"📣 También puedes unirte a nuestro canal de Telegram: {telegram_url_short}"
+                    f"📣 También puedes unirte a nuestro canal de WhatsApp: {telegram_url_short}"
                 )
 
                 show_post_registro_menu(notification, nombre)
@@ -1012,7 +1012,7 @@ def show_menu_principal(notification: Notification, nombre: str):
         f"Hola {nombre}, estamos aquí para ayudarte. ¿Qué te gustaría hacer?\n\n"
         f"*1.* Registrarme en Lotto Bueno 📝\n"
         f"*2.* Visitar nuestro sitio web 🌐\n"
-        f"*3.* Unirme al canal de Telegram 📣\n"
+        f"*3.* Unirme al canal de WhatsApp 📣\n"
         f"*4.* Verificar otra cédula 🔢\n"
         f"*5.* Finalizar conversación 👋\n\n"
         f"Responde con el *número* de la opción deseada."
@@ -1068,7 +1068,7 @@ def handle_menu_principal(notification: Notification, sender: str, message_data:
         show_menu_principal(notification, nombre)
     elif option == "3":
         notification.answer(
-            f"¡Genial! Únete a nuestro canal de Telegram:\n{TELEGRAM_CHANNEL}"
+            f"¡Genial! Únete a nuestro canal de WhatsApp:\n{WHATSAPP_CHANNEL}"
         )
         set_user_state(
             notification, sender, {"state": "menu_principal", "nombre": nombre}
@@ -1099,7 +1099,7 @@ def show_post_registro_menu(notification: Notification, nombre: str):
     menu_message = (
         "¿Qué te gustaría hacer ahora?\n\n"
         "*1.* Visitar nuestro sitio web 🌐\n"
-        "*2.* Unirte a nuestro canal de Telegram 📣\n"
+        "*2.* Unirte a nuestro canal de WhatsApp 📣\n"
         "*3.* Regresar al menú principal 🔄\n"
         "*4.* Finalizar conversación 👋\n\n"
         "Responde con el *número* de la opción deseada."
@@ -1152,7 +1152,7 @@ def handle_post_registro_menu(
         show_post_registro_menu(notification, nombre)
     elif option == "2":
         notification.answer(
-            f"¡Genial! Únete a nuestro canal de Telegram:\n{TELEGRAM_CHANNEL}"
+            f"¡Genial! Únete a nuestro canal de WhatsApp:\n{WHATSAPP_CHANNEL}"
         )
         set_user_state(
             notification, sender, {"state": "menu_post_registro", "nombre": nombre}

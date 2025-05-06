@@ -40,17 +40,15 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
   const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
   const [ticketMessage, setTicketMessage] = useState("");
   const [fullnumberMessage, setFullnumberMessage] = useState("");
-  const [showMessengerView, setShowMessengerView] = useState<'none' | 'whatsapp' | 'telegram'>('none');
+  const [showMessengerView, setShowMessengerView] = useState<'none' | 'whatsapp'>('none');
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const router = useRouter();
   
   // Referencias para los iframes
   const whatsappIframeRef = useRef<HTMLIFrameElement>(null);
-  const telegramIframeRef = useRef<HTMLIFrameElement>(null);
   
   const companyPhoneContact = process.env.COMPANY_PHONE_CONTACT || '584262831867';
-  const telegramBotUsername = process.env.TELEGRAM_BOT_USERNAME || 'Applottobueno_bot';
 
   const { 
     data: recolectoresData, 
@@ -66,10 +64,6 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
     isPending: isLoadingSubmit,
   } = useCreateTicket();
 
-  // Añadir estado para usuario de Telegram
-  // const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null); // Comentado
-  // const [isTelegramLoginLoading, setIsTelegramLoginLoading] = useState(false); // Comentado
-  
   useEffect(() => {
     if (isErrorRecolectores && errorRecolectores) {
       console.error("Error fetching referidos:", errorRecolectores);
@@ -108,11 +102,6 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
 
   const handleOpenWhatsappView = () => {
     setShowMessengerView('whatsapp');
-    handleCloseQRModal();
-  };
-
-  const handleOpenTelegramView = () => {
-    setShowMessengerView('telegram');
     handleCloseQRModal();
   };
 
@@ -180,70 +169,6 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
   const getWhatsAppMessage = () => {
     return `${formData.cedula}\n\nHola, soy ${ticketMessage} con cédula ${formData.cedula}. Este es mi número telefónico ${fullnumberMessage} para Lotto Bueno.`;
   };
-
-  const getTelegramMessage = () => {
-    return formData.cedula;
-  };
-
-  // Función que se llamará cuando el usuario se autentique con Telegram
-  /* Comentado por solicitud
-  const handleTelegramAuth = async (user: TelegramUser) => {
-    setIsTelegramLoginLoading(true);
-    setToastMessage(null);
-    
-    try {
-      // Llamar a nuestra API para verificar los datos y crear/obtener usuario
-      const response = await fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(user)
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Error al autenticar con Telegram');
-      }
-      
-      const data = await response.json();
-      setTelegramUser(user);
-      
-      // Guardar el token en localStorage
-      localStorage.setItem('token', data.access_token);
-      
-      // Si el usuario está logueado, mostrar mensaje de éxito
-      setToastMessage(`Inicio de sesión exitoso como ${user.first_name}`);
-      setToastType('success');
-      
-      // Chequeamos si es admin y redirigimos
-      if (data.user.is_admin) {
-        onAdminLogin(true);
-        setCurrentPage("WELCOME");
-      }
-      
-    } catch (error) {
-      console.error('Error en autenticación de Telegram:', error);
-      setToastMessage(error instanceof Error ? error.message : 'Error desconocido en la autenticación');
-      setToastType('error');
-    } finally {
-      setIsTelegramLoginLoading(false);
-    }
-  };
-  */
-
-  // Definir la función global para que el widget pueda llamarla
-  /* Comentado por solicitud
-  useEffect(() => {
-    // @ts-ignore
-    window.onTelegramAuth = handleTelegramAuth;
-    
-    return () => {
-      // @ts-ignore
-      delete window.onTelegramAuth;
-    };
-  }, []);
-  */
 
   return (
     <div className="welcome-page">
@@ -372,67 +297,21 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
             </div>
           </div>
         )}
-
-        {showMessengerView === 'telegram' && (
-          <div className="messenger-view w-full max-w-md">
-            <div className="bg-blue-500 text-white p-4 rounded-t-lg flex justify-between items-center">
-              <h3 className="text-xl font-bold">Telegram Web</h3>
-              <button 
-                onClick={handleCloseMessengerView}
-                className="bg-white text-blue-500 px-2 py-1 rounded text-sm"
-              >
-                Cerrar
-              </button>
-            </div>
-            <div className="bg-white p-4 rounded-b-lg shadow-lg">
-              <div className="mb-4">
-                <p className="font-bold">Chat con @{telegramBotUsername}</p>
-                <p className="text-gray-600 text-sm">Bot está activo</p>
-              </div>
-              <div className="bg-gray-100 p-3 rounded mb-4">
-                <p className="text-sm text-black">
-                  {getTelegramMessage()}
-                </p>
-                <div className="flex justify-end">
-                  <a 
-                    href={`https://t.me/${telegramBotUsername}?start=${formData.cedula}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mt-4 inline-block"
-                  >
-                    Enviar mensaje
-                  </a>
-                </div>
-              </div>
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-600">Este es un visor de Telegram integrado en nuestra aplicación.</p>
-                <p className="text-sm text-gray-600">Al hacer clic en "Enviar mensaje" se abrirá Telegram con este mensaje.</p>
-              </div>
-            </div>
-          </div>
-        )}
         
         {registrationComplete && showMessengerView === 'none' && (
           <div className="text-center mt-6 bg-white p-6 rounded-lg shadow-lg max-w-md">
             <h3 className="text-2xl font-bold mb-4 text-green-600">¡Registro Exitoso!</h3>
             <p className="mb-4 text-gray-800">
               Tu ticket ha sido generado. Para completar el proceso, conecta con nuestro sistema
-              a través de WhatsApp o Telegram seleccionando una de las siguientes opciones:
+              a través de WhatsApp seleccionando el botón a continuación:
             </p>
-            <div className="flex justify-center space-x-4 mb-6">
+            <div className="flex justify-center mb-6">
               <button
                 onClick={handleOpenWhatsappView}
                 className="bg-green-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-green-600 transition-colors"
               >
                 <img src="/whatsapp-icon.png" alt="WhatsApp" className="w-6 h-6 mr-2" />
                 WhatsApp
-              </button>
-              <button
-                onClick={handleOpenTelegramView}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-600 transition-colors"
-              >
-                <img src="/telegram-icon.png" alt="Telegram" className="w-6 h-6 mr-2" />
-                Telegram
               </button>
             </div>
             <p className="text-sm text-gray-600">
@@ -455,44 +334,6 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
               <div className="border-t border-gray-300 flex-grow"></div>
             </div>
           )}
-          
-          {/* Widget de Telegram - Comentado por solicitud */}
-          {/* 
-          <div className="my-4">
-            <div className="text-white text-sm mb-2">Inicia sesión con Telegram:</div>
-            <div id="telegram-login-container">
-              {/* El script se cargará aquí */}
-              {/* <Script
-                src="https://telegram.org/js/telegram-widget.js"
-                strategy="lazyOnload"
-                onLoad={() => {
-                  // Creamos el botón de Telegram una vez cargado el script
-                  const telegramBotName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'Applottobueno_bot';
-                  const container = document.getElementById('telegram-login-container');
-                  
-                  if (container) {
-                    container.innerHTML = ''; // Limpiar cualquier contenido previo
-                    
-                    // Crear el script tag con los atributos necesarios
-                    const script = document.createElement('script');
-                    script.async = true;
-                    script.src = "https://telegram.org/js/telegram-widget.js";
-                    script.setAttribute('data-telegram-login', telegramBotName);
-                    script.setAttribute('data-size', 'medium');
-                    // script.setAttribute('data-onauth', 'onTelegramAuth(user)'); // Comentado
-                    script.setAttribute('data-request-access', 'write');
-                    
-                    container.appendChild(script);
-                  }
-                }}
-              /> */}
-            {/* </div>
-            {isTelegramLoginLoading && (
-              <div className="mt-2">
-                <span className="spinner"></span> Verificando...
-              </div>
-            )} */}
-          {/* </div> */}
         </div>
         <LoginModal
           isVisible={isLoginModalVisible}
@@ -510,19 +351,13 @@ const RegisterWindow: React.FC<RegisterWindowProps> = ({ title, subtitle, imageS
               <h2>Ticket Generado</h2>
               <img src={`data:image/png;base64,${qrCode}`} alt="QR Code" />
               <p className="text-black">El ticket #{ticketId} ha sido generado exitosamente.</p>
-              <p className="mt-2 mb-4 text-black">Por favor selecciona cómo quieres conectar:</p>
-              <div className="flex justify-center space-x-4">
+              <p className="mt-2 mb-4 text-black">Por favor selecciona WhatsApp para conectar:</p>
+              <div className="flex justify-center">
                 <button 
                   onClick={handleOpenWhatsappView}
                   className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
                 >
                   WhatsApp
-                </button>
-                <button 
-                  onClick={handleOpenTelegramView}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                  Telegram
                 </button>
               </div>
             </div>
