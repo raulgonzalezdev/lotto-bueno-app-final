@@ -80,7 +80,7 @@ services:
       API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
       WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
-      TELEGRAM_CHANNEL: "${TELEGRAM_CHANNEL:-https://t.me/applottobueno}"
+      WHATSAPP_CHANNEL: "${WHATSAPP_CHANNEL:-https://whatsapp.com/channel/0029Vb5QksyDp2Q801mgOi0h}"
     depends_on:
       app:
         condition: service_healthy
@@ -124,9 +124,10 @@ services:
       - ./app:/app/app
     command: >
       sh -c "while true; do 
-             sleep 300; 
-             curl -s -X POST http://app:8000/api/reboot_instance || echo 'Error rebooting instance'; 
-             echo 'Automatic reboot executed at '`date`; 
+             sleep 86400;  # Reinicio cada 24 horas en lugar de cada 5 minutos 
+             echo 'Verificando estado del bot de WhatsApp '`date`; 
+             # La línea de reinicio de instancia está comentada para evitar problemas
+             # curl -s -X POST http://app:8000/api/reboot_instance || echo 'Error rebooting instance'; 
              done"
     restart: unless-stopped
     networks:
