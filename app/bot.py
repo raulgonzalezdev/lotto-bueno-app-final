@@ -26,8 +26,8 @@ from app.main import (
     verificar_cedula,
 )
 
-API_INSTANCE = os.getenv("API_INSTANCE", "7103942544")
-API_TOKEN = os.getenv("API_TOKEN", "1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0")
+API_INSTANCE = os.getenv("API_INSTANCE", "7103238857")
+API_TOKEN = os.getenv("API_TOKEN", "e36f48d77cc4444daa7126e2b02cab9c787da2fc2b92460792")
 NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "https://applottobueno.com")
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://applottobueno.com")
 WHATSAPP_CHANNEL = os.getenv("WHATSAPP_CHANNEL", "https://whatsapp.com/channel/0029Vb5QksyDp2Q801mgOi0h")

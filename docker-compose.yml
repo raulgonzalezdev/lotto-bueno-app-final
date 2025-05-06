@@ -44,8 +44,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
       REDIS_URL: "redis://redis:6379/0"
-      API_INSTANCE: "${API_INSTANCE:-7103942544}"
-      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      API_INSTANCE: "${API_INSTANCE:-7103238857}"
+      API_TOKEN: "${API_TOKEN:-e36f48d77cc4444daa7126e2b02cab9c787da2fc2b92460792}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
     volumes:
       - ./app:/app/app
@@ -76,8 +76,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
       REDIS_URL: "redis://redis:6379/0"
-      API_INSTANCE: "${API_INSTANCE:-7103942544}"
-      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      API_INSTANCE: "${API_INSTANCE:-7103238857}"
+      API_TOKEN: "${API_TOKEN:-e36f48d77cc4444daa7126e2b02cab9c787da2fc2b92460792}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
       WEBSITE_URL: "${WEBSITE_URL:-https://applottobueno.com}"
       WHATSAPP_CHANNEL: "${WHATSAPP_CHANNEL:-https://whatsapp.com/channel/0029Vb5QksyDp2Q801mgOi0h}"
@@ -115,8 +115,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://lottobueno:lottobueno@postgres:5432/lottobueno"
       REDIS_URL: "redis://redis:6379/0"
-      API_INSTANCE: "${API_INSTANCE:-7103942544}"
-      API_TOKEN: "${API_TOKEN:-1b64dc5c3ccc4d9aa01265ce553b874784d414aa81d64777a0}"
+      API_INSTANCE: "${API_INSTANCE:-7103238857}"
+      API_TOKEN: "${API_TOKEN:-e36f48d77cc4444daa7126e2b02cab9c787da2fc2b92460792}"
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://applottobueno.com}"
     depends_on:
       - whatsapp-bot
