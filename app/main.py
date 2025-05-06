@@ -420,33 +420,56 @@ def api_check_whatsapp(request: PhoneNumberRequest):
 
 
 def send_message(chat_id: str, message: str):
+    # Normalizar el chat_id para asegurar compatibilidad con iOS y Android
+    if "@c.us" not in chat_id and "@g.us" not in chat_id:
+        chat_id = f"{chat_id}@c.us"
+    
     url = f"{API_URL_BASE}/sendMessage/{API_TOKEN}"
+    
+    # Log de depuración
+    print(f"\n===== ENVIANDO MENSAJE =====")
+    print(f"Chat ID normalizado: {chat_id}")
+    print(f"Mensaje: {message[:50]}{'...' if len(message) > 50 else ''}")
+    print(f"URL: {url}")
+    
     payload = json.dumps({
-        "chatId": f"{chat_id}@c.us",
+        "chatId": chat_id,  # Ya no agregamos @c.us aquí porque lo normalizamos arriba
         "message": message
     })
+    
     headers = {'Content-Type': 'application/json'}
     
     try:
         response = requests.post(url, headers=headers, data=payload)
+        print(f"Código de estado: {response.status_code}")
+        print(f"Respuesta: {response.text}")
+        
         response.raise_for_status()
         response_data = response.json()
         
         # Revisar si la respuesta contiene el idMessage
         if "idMessage" in response_data:
+            print(f"Mensaje enviado exitosamente. ID: {response_data['idMessage']}")
+            print("===== FIN DE ENVÍO =====\n")
             return {"status": "success", "data": response_data}
         else:
+            print(f"La API respondió pero no indicó éxito: {response_data}")
+            print("===== FIN DE ENVÍO (ERROR) =====\n")
             return {
                 "status": "error",
                 "message": "La API respondió pero no indicó éxito",
                 "data": response_data
             }
     except requests.exceptions.HTTPError as http_err:
+        print(f"Error HTTP: {http_err}")
+        print("===== FIN DE ENVÍO (ERROR HTTP) =====\n")
         return {
             "status": "error",
             "message": f"Error de HTTP al enviar el mensaje: {http_err}"
         }
     except Exception as err:
+        print(f"Error general: {err}")
+        print("===== FIN DE ENVÍO (ERROR GENERAL) =====\n")
         return {
             "status": "error",
             "message": f"No se pudo conectar a la API de envío de mensajes: {err}"
@@ -469,22 +492,42 @@ def generate_ticket_number():
 
 
 def send_qr_code(chat_id: str, qr_buf: BytesIO):
+    # Normalizar el chat_id para asegurar compatibilidad con iOS y Android
+    if "@c.us" not in chat_id and "@g.us" not in chat_id:
+        chat_id = f"{chat_id}@c.us"
+    
     url = f"{API_URL_BASE}/sendFileByUpload/{API_TOKEN}"
+    
+    # Log de depuración
+    print(f"\n===== ENVIANDO CÓDIGO QR =====")
+    print(f"Chat ID normalizado: {chat_id}")
+    print(f"URL: {url}")
+    
     files = {
         'file': ('qrcode.png', qr_buf, 'image/png')
     }
     payload = {
-        'chatId': f'{chat_id}@c.us'
+        'chatId': chat_id  # Ya no agregamos @c.us aquí porque lo normalizamos arriba
     }
     headers = {}
 
     try:
         response = requests.post(url, headers=headers, files=files, data=payload)
+        print(f"Código de estado: {response.status_code}")
+        print(f"Respuesta: {response.text}")
+        
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        print(f"QR enviado exitosamente. Respuesta: {result}")
+        print("===== FIN DE ENVÍO QR =====\n")
+        return result
     except requests.exceptions.HTTPError as http_err:
+        print(f"Error HTTP al enviar QR: {http_err}")
+        print("===== FIN DE ENVÍO QR (ERROR HTTP) =====\n")
         return {"status": "error", "message": "Error de HTTP al enviar el código QR"}
     except Exception as err:
+        print(f"Error general al enviar QR: {err}")
+        print("===== FIN DE ENVÍO QR (ERROR GENERAL) =====\n")
         return {"status": "error", "message": "No se pudo conectar a la API de envío de códigos QR"}
 
 
