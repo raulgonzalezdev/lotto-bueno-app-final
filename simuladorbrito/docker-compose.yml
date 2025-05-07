@@ -15,8 +15,8 @@ services:
     ports:
       - "3005:3005"
     volumes:
-      - ./:/simuladorbrito
-      - /simuladorbrito/node_modules
+      - ./:/app
+      - /app/node_modules
     restart: unless-stopped
     networks:
       - simuladorbrito-network

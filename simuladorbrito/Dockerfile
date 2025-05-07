@@ -1,15 +1,17 @@
 FROM node:18-alpine
 
-WORKDIR /simuladorbrito
+# Establecer directorio de trabajo
+WORKDIR /app
 
-# Copia los archivos de configuración y el código fuente
-COPY ./simuladorbrito/package.json ./simuladorbrito/package-lock.json* ./
-COPY ./simuladorbrito /simuladorbrito
+# Determinar el contexto de construcción
+# Si estamos construyendo desde la raíz del proyecto, usaremos ./simuladorbrito
+# Si estamos construyendo desde la carpeta simuladorbrito, usaremos ./
+COPY package*.json ./
 
 # Instalar dependencias
 RUN npm install --legacy-peer-deps
 
-# Copiar el resto del código
+# Copiar el código de la aplicación
 COPY . .
 
 # Construir la aplicación

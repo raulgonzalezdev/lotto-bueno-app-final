@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script de despliegue para Simulador Brito con Cloudflare Tunnel
-# Despliegue individual sin afectar otros servicios
+# Funciona tanto para despliegue independiente como integrado
 
 set -e
 
@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== Iniciando despliegue individual de Simulador Brito con Cloudflare Tunnel ===${NC}"
+echo -e "${GREEN}=== Iniciando despliegue de Simulador Brito con Cloudflare Tunnel ===${NC}"
 
 # Verificar si docker está instalado
 if ! [ -x "$(command -v docker)" ]; then
@@ -33,8 +33,20 @@ if [ ! -f .env ]; then
   cat > .env << EOF
 NODE_ENV=production
 PORT=3005
+NEXT_PUBLIC_BASE_URL=https://simulador.britoanzoategui.com
+NEXT_PUBLIC_SITE_NAME=Simulador Electoral José Brito
+NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regionales de Anzoátegui 2025
 EOF
 fi
+
+# Dar permisos de ejecución al script build-context.sh
+chmod +x build-context.sh
+
+# Ejecutar script para determinar contexto de construcción
+./build-context.sh
+
+# Detectar si estamos en la carpeta simuladorbrito o en la raíz del proyecto
+CURRENT_DIR=$(basename "$PWD")
 
 # Verificar si existe la red lotto-bueno-network
 echo -e "${YELLOW}Verificando si existe la red lotto-bueno-network...${NC}"
@@ -47,14 +59,26 @@ fi
 
 # Detener y eliminar contenedores si existen
 echo -e "${YELLOW}Deteniendo contenedores existentes de Simulador Brito...${NC}"
-docker compose down || true
-
-# Construir y levantar contenedores
-echo -e "${GREEN}Construyendo contenedores de Simulador Brito...${NC}"
-docker compose build
-
-echo -e "${GREEN}Iniciando servicios de Simulador Brito...${NC}"
-docker compose up -d
+if [ "$CURRENT_DIR" = "simuladorbrito" ]; then
+  docker compose down || true
+  
+  # Construir y levantar contenedores para despliegue independiente
+  echo -e "${GREEN}Construyendo contenedores de Simulador Brito (despliegue independiente)...${NC}"
+  docker compose build
+  
+  echo -e "${GREEN}Iniciando servicios de Simulador Brito...${NC}"
+  docker compose up -d
+else
+  # Estamos en la raíz del proyecto, usar el contexto correcto
+  docker compose stop simuladorbrito || true
+  
+  # Construir y levantar contenedores para despliegue integrado
+  echo -e "${GREEN}Construyendo contenedor de Simulador Brito (despliegue integrado)...${NC}"
+  docker compose build simuladorbrito
+  
+  echo -e "${GREEN}Iniciando servicio de Simulador Brito...${NC}"
+  docker compose up -d simuladorbrito
+fi
 
 echo -e "${GREEN}=== Despliegue de Simulador Brito completado con éxito ===${NC}"
 echo -e "El Simulador Brito ahora está disponible a través del túnel de Cloudflare"
