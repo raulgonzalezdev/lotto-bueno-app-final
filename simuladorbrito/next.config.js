@@ -1,10 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  swcMinify: true,
   env: {
-    HOST: process.env.NEXT_PUBLIC_API_URL
+    HOST: process.env.HOST || 'localhost',
+    PORT: process.env.PORT || 3005
   },
+  // Configuración para producción
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   typescript: {
     ignoreBuildErrors: true
   },

@@ -3,9 +3,7 @@ FROM node:18-alpine
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Determinar el contexto de construcción
-# Si estamos construyendo desde la raíz del proyecto, usaremos ./simuladorbrito
-# Si estamos construyendo desde la carpeta simuladorbrito, usaremos ./
+# Copiar archivos de configuración del proyecto
 COPY package*.json ./
 
 # Instalar dependencias
@@ -13,6 +11,11 @@ RUN npm install --legacy-peer-deps
 
 # Copiar el código de la aplicación
 COPY . .
+
+# Establecer variables de entorno necesarias
+ENV NODE_ENV=production
+ENV PORT=3005
+ENV HOST=0.0.0.0
 
 # Construir la aplicación
 RUN npm run build
