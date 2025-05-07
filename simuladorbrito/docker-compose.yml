@@ -34,7 +34,10 @@ services:
     depends_on:
       - simuladorbrito
     network_mode: "host"
-    command: tunnel --no-autoupdate run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
+    volumes:
+      - ./cloudflared-config.yaml:/etc/cloudflared/config.yml
+      - ./creds.json:/etc/cloudflared/creds.json
+    command: tunnel run
 
 networks:
   simuladorbrito-network:

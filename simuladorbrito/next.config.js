@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   swcMinify: true,
   env: {
     HOST: process.env.HOST || 'localhost',
@@ -16,15 +16,22 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['simuladorparametrica.com']
+    domains: ['simuladorparametrica.com', 'localhost'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'simuladorparametrica.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        pathname: '/**',
+      }
+    ]
   },
-  // Configuración de assetPrefix para asegurar que las rutas de los activos sean absolutas
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://simuladorparametrica.com' : '',
+  // Eliminamos assetPrefix para evitar problemas con rutas relativas
   basePath: '',
-  experimental: {
-    // Esto es necesario para la compilación standalone
-    outputStandalone: true
-  },
   async headers() {
     return [
       {
@@ -41,6 +48,14 @@ const nextConfig = {
         ]
       }
     ]
+  },
+  // Deshabilitar compresión para facilitar la depuración
+  compress: false,
+  // Configurar el manejo de rutas estáticas
+  trailingSlash: false,
+  // Permitir referencias circulares para Material UI
+  experimental: {
+    esmExternals: 'loose'
   }
 };
 

@@ -41,16 +41,6 @@ NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regional
 EOF
 fi
 
-# Dar permisos de ejecución al script build-context.sh si existe
-if [ -f build-context.sh ]; then
-  chmod +x build-context.sh
-  # Ejecutar script para determinar contexto de construcción
-  ./build-context.sh
-fi
-
-# Detectar si estamos en la carpeta simuladorbrito o en la raíz del proyecto
-CURRENT_DIR=$(basename "$PWD")
-
 # Verificar si existe la red lotto-bueno-network
 echo -e "${YELLOW}Verificando si existe la red lotto-bueno-network...${NC}"
 if ! docker network inspect lotto-bueno-network >/dev/null 2>&1; then
@@ -62,32 +52,24 @@ fi
 
 # Detener y eliminar contenedores si existen
 echo -e "${YELLOW}Deteniendo contenedores existentes de Simulador Brito...${NC}"
-if [ "$CURRENT_DIR" = "simuladorbrito" ]; then
-  # Detener y eliminar completamente
-  docker compose down --remove-orphans
-  
-  # Limpiar imágenes huérfanas o de versiones anteriores
-  echo -e "${YELLOW}Limpiando imágenes antiguas...${NC}"
-  docker image prune -f
-  
-  # Reconstruir las imágenes sin usar caché
-  echo -e "${GREEN}Construyendo contenedores de Simulador Brito (despliegue independiente)...${NC}"
-  docker compose build --no-cache
-  
-  echo -e "${GREEN}Iniciando servicios de Simulador Brito...${NC}"
-  docker compose up -d
-else
-  # Estamos en la raíz del proyecto, usar el contexto correcto
-  docker compose stop simuladorbrito cloudflared || true
-  docker compose rm -f simuladorbrito cloudflared || true
-  
-  # Construir y levantar contenedores para despliegue integrado
-  echo -e "${GREEN}Construyendo contenedor de Simulador Brito (despliegue integrado)...${NC}"
-  docker compose build --no-cache simuladorbrito
-  
-  echo -e "${GREEN}Iniciando servicio de Simulador Brito...${NC}"
-  docker compose up -d simuladorbrito cloudflared
+docker compose down --remove-orphans || true
+
+# Limpiar imágenes huérfanas o de versiones anteriores
+echo -e "${YELLOW}Limpiando imágenes antiguas...${NC}"
+docker image prune -f
+
+# Reconstruir las imágenes sin usar caché
+echo -e "${GREEN}Construyendo contenedores de Simulador Brito...${NC}"
+docker compose build --no-cache
+
+# Copiar archivo de credenciales de Cloudflare si existe en la raíz
+if [ -f ../creds.json ]; then
+  echo -e "${YELLOW}Copiando archivo de credenciales de Cloudflare...${NC}"
+  cp ../creds.json ./creds.json
 fi
+
+echo -e "${GREEN}Iniciando servicios de Simulador Brito...${NC}"
+docker compose up -d
 
 echo -e "${GREEN}=== Despliegue de Simulador Brito completado con éxito ===${NC}"
 echo -e "El Simulador Brito ahora está disponible a través del túnel de Cloudflare"

@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
 // Material UI Imports
@@ -11,30 +11,42 @@ import Typography from '@mui/material/Typography'; // Opcional, si queremos esti
 export default function Home() {
   const router = useRouter();
   const [isPortrait, setIsPortrait] = useState(true);
+  const [mounted, setMounted] = useState(false);
   
   // Función para verificar la orientación de la pantalla
-  const checkOrientation = () => {
+  const checkOrientation = useCallback(() => {
     if (typeof window !== 'undefined') {
       setIsPortrait(window.innerHeight > window.innerWidth);
     }
-  };
+  }, []);
   
   // Escuchar cambios de orientación
   useEffect(() => {
+    setMounted(true);
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
     return () => window.removeEventListener('resize', checkOrientation);
-  }, []);
+  }, [checkOrientation]);
   
-  const goToSimulator = () => {
+  const goToSimulator = useCallback(() => {
+    console.log("Navegando a /simulador");
     router.push('/simulador');
-  };
+  }, [router]);
 
   const brandBlueColor = 'rgb(21, 40, 82)';
   const brandBlueHoverColor = 'rgb(15, 30, 62)';
   const headerHeight = '56px';
   const footerHeight = '48px';
+  
+  // Usar URL absolutas para las imágenes
   const logoCNE = "/cne/logo_cne.png";
+  const fondoVertical = "/fondovertical.jpg";
+  const fondoHorizontal = "/fondohorizontal.jpg";
+
+  // No renderizar hasta que el componente esté montado en el cliente
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <Box 
@@ -47,8 +59,8 @@ export default function Home() {
         minHeight: '100vh',
         height: '100vh',
         backgroundImage: isPortrait 
-          ? 'url(/fondovertical.jpg)' 
-          : 'url(/fondohorizontal.jpg)',
+          ? `url(${fondoVertical})` 
+          : `url(${fondoHorizontal})`,
         backgroundSize: isPortrait ? '75%' : '80%',
         backgroundPosition: 'center 55%',
         backgroundRepeat: 'no-repeat',
@@ -82,7 +94,9 @@ export default function Home() {
           justifyContent: 'center'
         }}
       >
-        <Image src={logoCNE} alt="CNE Logo" width={24} height={24} style={{ marginRight: '8px' }} />
+        <div style={{ marginRight: '8px', width: '24px', height: '24px', position: 'relative' }}>
+          <img src={logoCNE} alt="CNE Logo" width={24} height={24} />
+        </div>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
           ELECCIONES REGIONALES Y NACIONALES 2025
         </Typography>
@@ -95,14 +109,13 @@ export default function Home() {
           display: 'flex',
           justifyContent: 'center',
           // Ajustar 'bottom' para subir el botón. 
-          // Queremos que esté debajo del eslogan principal, cerca de la miniatura del tarjetón en la imagen de fondo.
-          // Estos valores pueden necesitar ajuste fino dependiendo de las imágenes exactas.
           bottom: isPortrait ? '18%' : '15%', 
         }}
       >
         <Button 
           variant="contained"
           onClick={goToSimulator}
+          disableElevation
           sx={{
             backgroundColor: brandBlueColor,
             color: 'white',

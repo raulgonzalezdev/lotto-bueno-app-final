@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
@@ -13,7 +13,13 @@ import Button from '@mui/material/Button';
 
 export default function Simulador() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  
   const logoCNE = "/cne/logo_cne.png"; // Añadir referencia al logo del CNE
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Datos del tarjetón actualizados según la entrada del usuario
   const tarjetonData = [
@@ -74,19 +80,31 @@ export default function Simulador() {
     ]
   ];
 
-  const handleSelectPartido = (partido) => {
+  const handleSelectPartido = useCallback((partido) => {
     if (partido) {
-      // Navegar a la nueva página de selección de cargos, pasando el objeto partido como JSON string
-      router.push(`/seleccion-cargos?partido=${encodeURIComponent(JSON.stringify(partido))}`);
+      console.log("Seleccionando partido:", partido.nombre);
+      // Envolver en setTimeout para asegurar que el evento se procese correctamente
+      setTimeout(() => {
+        router.push(`/seleccion-cargos?partido=${encodeURIComponent(JSON.stringify(partido))}`);
+      }, 50);
     }
-  };
+  }, [router]);
 
-  const goToInicio = () => {
-    router.push('/');
-  };
+  const goToInicio = useCallback(() => {
+    console.log("Regresando al inicio");
+    // Envolver en setTimeout para asegurar que el evento se procese correctamente
+    setTimeout(() => {
+      router.push('/');
+    }, 50);
+  }, [router]);
 
   const headerHeight = '56px'; // Estimación, ajustar según el contenido real de la cabecera
   const footerHeight = '48px'; // Estimación, ajustar según el contenido real del pie de página
+
+  // No renderizar hasta que el componente esté montado en el cliente
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <Box sx={{ 
@@ -124,7 +142,9 @@ export default function Simulador() {
           justifyContent: 'center'
         }}
       >
-        <Image src={logoCNE} alt="CNE Logo" width={24} height={24} style={{ marginRight: '8px' }} />
+        <div style={{ marginRight: '8px', width: '24px', height: '24px', position: 'relative' }}>
+          <img src={logoCNE} alt="CNE Logo" width={24} height={24} />
+        </div>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
           ELECCIONES REGIONALES Y NACIONALES 2025
         </Typography>
@@ -237,6 +257,7 @@ export default function Simulador() {
             <Button 
               variant="contained"
               onClick={goToInicio}
+              disableElevation
               sx={{ 
                 backgroundColor: 'rgb(21, 40, 82)', 
                 '&:hover': { backgroundColor: 'rgb(15, 30, 62)' },

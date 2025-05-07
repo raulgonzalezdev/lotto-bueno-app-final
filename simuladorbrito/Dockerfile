@@ -18,17 +18,17 @@ ENV PORT=3005
 ENV HOST=0.0.0.0
 ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
 
-# Construir la aplicación
+# Construir la aplicación con output standalone configurado en next.config.js
 RUN npm run build
 
 # Segunda etapa de la imagen - más pequeña
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# Copiar solo lo necesario
+# Copiar archivos necesarios desde la etapa de construcción
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
 
 # Establecer variables de entorno
 ENV NODE_ENV=production
