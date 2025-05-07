@@ -62,12 +62,6 @@ docker image prune -f
 echo -e "${GREEN}Construyendo contenedores de Simulador Brito...${NC}"
 docker compose build --no-cache
 
-# Copiar archivo de credenciales de Cloudflare si existe en la raíz
-if [ -f ../creds.json ]; then
-  echo -e "${YELLOW}Copiando archivo de credenciales de Cloudflare...${NC}"
-  cp ../creds.json ./creds.json
-fi
-
 echo -e "${GREEN}Iniciando servicios de Simulador Brito...${NC}"
 docker compose up -d
 

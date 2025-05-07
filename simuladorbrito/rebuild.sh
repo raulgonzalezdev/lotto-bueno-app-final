@@ -25,6 +25,16 @@ if [ -d ".next" ]; then
   rm -rf .next
 fi
 
+# Eliminar archivos de configuración de cloudflared que ya no se usan
+echo -e "${YELLOW}Limpiando archivos de configuración antiguos...${NC}"
+if [ -f "cloudflared-config.yaml" ]; then
+  rm cloudflared-config.yaml
+fi
+
+if [ -f "creds.json" ]; then
+  rm creds.json
+fi
+
 # Limpiar imágenes de Docker antiguas
 echo -e "${YELLOW}Limpiando imágenes Docker antiguas...${NC}"
 docker image prune -f
