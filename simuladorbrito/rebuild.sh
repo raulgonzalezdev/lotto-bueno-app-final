@@ -25,7 +25,7 @@ if [ -d ".next" ]; then
   rm -rf .next
 fi
 
-# Eliminar archivos de configuración de cloudflared que ya no se usan
+# Eliminar archivos de configuración antiguos
 echo -e "${YELLOW}Limpiando archivos de configuración antiguos...${NC}"
 if [ -f "cloudflared-config.yaml" ]; then
   rm cloudflared-config.yaml
@@ -33,6 +33,12 @@ fi
 
 if [ -f "creds.json" ]; then
   rm creds.json
+fi
+
+# Verificar que existe la configuración de Nginx
+if [ ! -d "nginx/conf.d" ]; then
+  echo -e "${YELLOW}Creando directorios para la configuración de Nginx...${NC}"
+  mkdir -p nginx/conf.d nginx/html
 fi
 
 # Limpiar imágenes de Docker antiguas

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script de despliegue para Simulador Brito con Cloudflare Tunnel
-# Funciona tanto para despliegue independiente como integrado
+# Funciona para la nueva configuración con Nginx y Cloudflare
 
 set -e
 
@@ -41,13 +41,11 @@ NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regional
 EOF
 fi
 
-# Verificar si existe la red lotto-bueno-network
-echo -e "${YELLOW}Verificando si existe la red lotto-bueno-network...${NC}"
-if ! docker network inspect lotto-bueno-network >/dev/null 2>&1; then
-  echo -e "${YELLOW}Creando red lotto-bueno-network...${NC}"
-  docker network create lotto-bueno-network
-else
-  echo -e "${GREEN}La red lotto-bueno-network ya existe.${NC}"
+# Verificar que existe la configuración de Nginx
+if [ ! -f nginx/conf.d/simuladorbrito.conf ]; then
+  echo -e "${RED}Error: No se encontró la configuración de Nginx.${NC}" >&2
+  echo -e "Asegúrese de que el archivo nginx/conf.d/simuladorbrito.conf existe."
+  exit 1
 fi
 
 # Detener y eliminar contenedores si existen
@@ -73,12 +71,13 @@ echo -e "${YELLOW}Para verificar el estado de los contenedores:${NC} docker comp
 echo -e "${YELLOW}Para ver logs:${NC} docker compose logs -f"
 echo -e "${YELLOW}Para ver logs del túnel:${NC} docker compose logs -f cloudflared"
 
-# Mostrar URL de Cloudflare
+# Mostrar URLs disponibles
 echo -e "${GREEN}=============================================================${NC}"
-echo -e "${GREEN}¡IMPORTANTE! Configuración de Cloudflare:${NC}"
+echo -e "${GREEN}¡IMPORTANTE! URLs disponibles:${NC}"
 echo -e "${GREEN}=============================================================${NC}"
-echo -e "El túnel está configurado para conectarse al simulador en el puerto 3005"
-echo -e "Dominio configurado: ${YELLOW}simuladorparametrica.com${NC}"
+echo -e "Dominio principal: ${YELLOW}https://simuladorparametrica.com${NC}"
+echo -e "URL local Nginx: ${YELLOW}http://localhost:8090${NC} (para pruebas locales)"
+echo -e "URL directa Next.js: ${YELLOW}http://localhost:3005${NC} (para depuración)"
 echo -e "${GREEN}=============================================================${NC}"
 
 # Verificar el estado de los contenedores

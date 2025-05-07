@@ -1,43 +1,61 @@
-FROM node:18-alpine AS builder
+FROM node:18-alpine AS base
 
-# Establecer directorio de trabajo
+# Instalar dependencias solo cuando se modifique package.json
+FROM base AS deps
 WORKDIR /app
 
-# Copiar archivos de configuración del proyecto
-COPY package*.json ./
-
-# Instalar dependencias
+COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
-# Copiar el código de la aplicación
-COPY . .
-
-# Establecer variables de entorno necesarias
-ENV NODE_ENV=production
-ENV PORT=3005
-ENV HOST=0.0.0.0
-ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
-
-# Construir la aplicación con output standalone configurado en next.config.js
-RUN npm run build
-
-# Segunda etapa de la imagen - más pequeña
-FROM node:18-alpine AS runner
+# Construir la aplicación
+FROM base AS builder
 WORKDIR /app
 
-# Copiar archivos necesarios desde la etapa de construcción
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# Establecer variables de entorno
+# Definir variables de entorno
 ENV NODE_ENV=production
 ENV PORT=3005
 ENV HOST=0.0.0.0
 ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
+ENV NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Exponer el puerto 3005
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Construir la aplicación con output standalone configurado en next.config.js
+RUN npm run build && \
+    if [ ! -d .next/standalone ]; then \
+    echo "Error: La compilación no generó la carpeta standalone. Verifica la configuración de Next.js." && \
+    exit 1; \
+    fi
+
+# Imagen de producción
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3005
+ENV HOST=0.0.0.0
+ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
+ENV NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Crear un usuario no root para ejecutar la aplicación
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copiar archivos de public (estáticos)
+COPY --from=builder /app/public ./public
+
+# Copiar los archivos de construcción con los permisos adecuados
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Cambiar al usuario nextjs para ejecución segura
+USER nextjs
+
+# Exponer el puerto
 EXPOSE 3005
 
-# Comando para iniciar la aplicación usando server.js generado por standalone
+# Comando para iniciar la aplicación
 CMD ["node", "server.js"]

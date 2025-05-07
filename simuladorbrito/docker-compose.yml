@@ -1,4 +1,4 @@
-# Configuración de servicios para SasDatQbox
+# Configuración de servicios para Simulador Electoral Brito
 # Compatible con Cloudflare Tunnel
 
 version: '3.8'
@@ -9,35 +9,44 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: simuladorbrito
+    restart: always
+    ports:
+      - "3005:3005"  # Exponer el puerto 3005 directamente
     environment:
       - NODE_ENV=production
       - PORT=3005
       - HOST=0.0.0.0
       - NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
-    ports:
-      - "3005:3005"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://0.0.0.0:3005" , "||", "exit", "0"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+      - NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
+      - NEXT_PUBLIC_SITE_NAME=Simulador Electoral José Brito
+      - NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regionales de Anzoátegui 2025
     networks:
       - simuladorbrito-network
-      - lotto-bueno-network
 
+  # Nginx para servir como proxy y manejar SSL (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: simuladorbrito-nginx
+    restart: always
+    ports:
+      - "8090:80"    # Puerto alternativo por si necesitas acceso directo
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/html:/usr/share/nginx/html
+      - /dev/null:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - simuladorbrito
+    networks:
+      - simuladorbrito-network
+
+  # Cloudflare Tunnel para exponer la aplicación en internet
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: simuladorbrito-cloudflared
     restart: unless-stopped
-    depends_on:
-      - simuladorbrito
-    network_mode: "host"
+    network_mode: "host"  # Usar la red del host en lugar de la red Docker
     command: tunnel --no-autoupdate run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
 
 networks:
   simuladorbrito-network:
     driver: bridge
-  lotto-bueno-network:
-    external: true
