@@ -40,13 +40,6 @@ NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regional
 EOF
 fi
 
-# Verificar si existen los archivos de configuración
-if [ ! -f config.yml ] || [ ! -f creds.json ]; then
-  echo -e "${RED}Error: No se encontraron los archivos de configuración config.yml o creds.json${NC}"
-  echo -e "Estos archivos son necesarios para el túnel de Cloudflare."
-  exit 1
-fi
-
 # Dar permisos de ejecución al script build-context.sh si existe
 if [ -f build-context.sh ]; then
   chmod +x build-context.sh
@@ -107,9 +100,8 @@ echo -e "${YELLOW}Para ver logs del túnel:${NC} docker compose logs -f cloudfla
 echo -e "${GREEN}=============================================================${NC}"
 echo -e "${GREEN}¡IMPORTANTE! Configuración de Cloudflare:${NC}"
 echo -e "${GREEN}=============================================================${NC}"
-echo -e "El túnel está configurado para apuntar a:"
-echo -e "${YELLOW}http://127.0.0.1:3005${NC}"
-echo -e "Con el dominio: ${YELLOW}simuladorparametrica.com${NC}"
+echo -e "El túnel está configurado para conectarse al simulador en el puerto 3005"
+echo -e "Dominio configurado: ${YELLOW}simuladorparametrica.com${NC}"
 echo -e "${GREEN}=============================================================${NC}"
 
 # Verificar el estado de los contenedores
@@ -119,4 +111,7 @@ docker compose ps
 
 # Verificar los logs para asegurarse de que todo está funcionando
 echo -e "${YELLOW}Mostrando los últimos logs del servicio simuladorbrito...${NC}"
-docker logs --tail 20 simuladorbrito 
+docker logs --tail 10 simuladorbrito
+
+echo -e "${YELLOW}Mostrando los últimos logs del túnel de Cloudflare...${NC}"
+docker logs --tail 10 simuladorbrito-cloudflared 
