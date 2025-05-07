@@ -2,5 +2,5 @@ tunnel: 2b59f68e-27b4-4738-afa9-12894418b128
 credentials-file: ./creds.json
 ingress:
   - hostname: simuladorparametrica.com
-    service: http://localhost:3005
+    service: http://127.0.0.1:3005
   - service: http_status:404 

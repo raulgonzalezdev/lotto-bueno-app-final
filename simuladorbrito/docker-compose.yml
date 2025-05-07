@@ -17,11 +17,11 @@ services:
       - "3005:3005"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3005"] 
+      test: ["CMD", "wget", "-qO-", "http://0.0.0.0:3005" , "||", "exit", "0"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
     networks:
       - simuladorbrito-network
       - lotto-bueno-network
@@ -34,8 +34,7 @@ services:
       - ./creds.json:/etc/cloudflared/creds.json
     restart: unless-stopped
     depends_on:
-      simuladorbrito:
-        condition: service_healthy
+      - simuladorbrito
     network_mode: "host"
     command: tunnel --config /etc/cloudflared/config.yml run
 
