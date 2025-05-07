@@ -17,10 +17,14 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 
+// Componentes personalizados
+import ConfirmationModal from '../components/ConfirmationModal';
+
 export default function SeleccionCargos() {
   const router = useRouter();
   const [partidoSeleccionado, setPartidoSeleccionado] = useState(null);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
 
   useEffect(() => {
     if (router.query.partido) {
@@ -44,6 +48,11 @@ export default function SeleccionCargos() {
     setTimeout(() => {
       router.push('/');
     }, 1500);
+  };
+
+  const handleCardClick = (event) => {
+    event.preventDefault();
+    setShowWarningDialog(true);
   };
 
   if (!partidoSeleccionado) {
@@ -76,14 +85,12 @@ export default function SeleccionCargos() {
   const baseImageHeight = 45;
 
   // Tamaños para desktop (md y superior)
-  const mdTitlePaddingTop = '8px';
-  const mdLogoHeight = '80px';
-  const mdFontSize = '0.8rem';
-  const mdCardPadding = 0.5;
-  const mdLogoMarginY = 1;
-  const mdLogoMarginX = 1;
-  const mdImageWidth = 120;
-  const mdImageHeight = 60;
+  const mdTitlePaddingTop = '12px';
+  const mdLogoHeight = '130px';
+  const mdFontSize = '1.1rem';
+  const mdCardPadding = 1;
+  const mdLogoMarginY = 1.5;
+  const mdLogoMarginX = 1.5;
 
   const SectionHeader = ({ title, sx }) => (
     <Box sx={{
@@ -91,7 +98,7 @@ export default function SeleccionCargos() {
       color: 'white',
       textAlign: 'center',
       py: {xs: 0.5, md: 0.75},
-      fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.9rem' }, // Aumentado para md
+      fontSize: { xs: '0.6rem', sm: '0.7rem', md: '1.2rem' },
       fontWeight: 'bold',
       borderRadius: 0,
       ...sx
@@ -102,12 +109,14 @@ export default function SeleccionCargos() {
 
   const VotoCard = ({ cardTitle, subText, titlePaddingTop = {xs: baseTitlePaddingTop, md: mdTitlePaddingTop}, logoHeight = {xs: baseLogoHeight.xs, sm: baseLogoHeight.sm, md: mdLogoHeight} }) => (
     <Card variant="outlined" sx={{ borderColor: brandBlueColor, borderWidth: 2, borderRadius: 0, height: '100%', p: {xs: baseCardPadding, md: mdCardPadding}, display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ p: '2px !important', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexGrow: 1 }}>
+      <CardContent 
+        sx={{ p: '2px !important', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexGrow: 1, cursor: 'pointer' }}
+        onClick={handleCardClick}
+      >
         <Typography sx={{ fontSize: {xs: baseFontSize, md: mdFontSize}, fontWeight: 600, minHeight: {xs:'1.4em', md:'1.6em'}, pt: titlePaddingTop }}>
           {cardTitle || '\u00A0'}
         </Typography>
         <Box sx={{
-          backgroundColor: logoBgColor,
           height: logoHeight,
           display: 'flex',
           alignItems: 'center',
@@ -115,11 +124,14 @@ export default function SeleccionCargos() {
           my: {xs: baseLogoMarginY, md: mdLogoMarginY},
           borderRadius: '4px',
           mx: {xs: baseLogoMarginX, md: mdLogoMarginX},
+          position: 'relative'
         }}>
-          <Image src={logoPartido} alt={nombrePartido} 
-            width={typeof logoHeight === 'object' ? (logoHeight.md === mdLogoHeight ? mdImageWidth : baseImageWidth) : baseImageWidth} 
-            height={typeof logoHeight === 'object' ? (logoHeight.md === mdLogoHeight ? mdImageHeight : baseImageHeight) : baseImageHeight} 
-            style={{ objectFit: 'contain' }} />
+          <Image 
+            src={logoPartido} 
+            alt={nombrePartido}
+            fill
+            style={{ objectFit: 'contain' }} 
+          />
         </Box>
         <Typography sx={{ fontSize: {xs: baseFontSize, md: mdFontSize}, fontWeight: 'bold', lineHeight: 1.2, pb: '2px' }}>
           {subText}
@@ -143,69 +155,63 @@ export default function SeleccionCargos() {
   const baseGobernadorTextMarginTop = 0.5;
 
   // Tamaños Gobernador Desktop (md y superior)
-  const mdGobernadorPadding = 1;
-  const mdGobernadorContentPadding = '4px !important';
-  const mdGobernadorGridMinHeight = '110px';
-  const mdGobernadorImgContainerHeight = '100px'; 
-  const mdGobernadorImgContainerWidth = '75px';
-  const mdGobernadorImgWidth = 70;
-  const mdGobernadorImgHeight = 90;
-  const mdGobernadorLogoHeight = '95px';
-  const mdGobernadorLogoImgWidth = 150;
-  const mdGobernadorLogoImgHeight = 75;
-  const mdGobernadorTextFontSize = '0.85rem';
-  const mdGobernadorTextMarginTop = 1;
+  const mdGobernadorPadding = 2;
+  const mdGobernadorContentPadding = '10px !important';
+  const mdGobernadorGridMinHeight = '180px';
+  const mdGobernadorImgContainerHeight = '160px';
+  const mdGobernadorImgContainerWidth = '120px';
+  const mdGobernadorLogoHeight = '150px';
+  const mdGobernadorTextFontSize = '1.2rem';
+  const mdGobernadorTextMarginTop = 2;
 
   const GobernadorCardContent = () => (
     <Card variant="outlined" sx={{ borderColor: brandBlueColor, borderWidth: 2, borderRadius: 0, p: {xs:baseGobernadorPadding, md: mdGobernadorPadding}, width: '100%', mx: 'auto' }}>
-      <CardContent sx={{ p: {xs: baseGobernadorContentPadding, md: mdGobernadorContentPadding} }}>
+      <CardContent 
+        sx={{ p: {xs: baseGobernadorContentPadding, md: mdGobernadorContentPadding}, cursor: 'pointer' }}
+        onClick={handleCardClick}
+      >
         <Grid container alignItems="center" spacing={{xs:0.5, md:1}} sx={{minHeight: {xs: baseGobernadorGridMinHeight.xs, sm: baseGobernadorGridMinHeight.sm, md:mdGobernadorGridMinHeight}}}>
           {imagenCandidatoGobernador && (
-            <Grid item xs={4} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Box sx={{ border: '1px solid grey', display: 'flex', justifyContent: 'center', alignItems: 'center', p: 0.25, 
-                         height: { xs: baseGobernadorImgContainerHeight.xs, sm: baseGobernadorImgContainerHeight.sm, md: mdGobernadorImgContainerHeight }, 
-                         width: { xs: baseGobernadorImgContainerWidth.xs, sm: baseGobernadorImgContainerWidth.sm, md: mdGobernadorImgContainerWidth } 
-                       }}>
+            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Box sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          alignItems: 'center', 
+                          p: 0, 
+                          height: { xs: '160px', sm: '200px', md: '250px' }, 
+                          width: { xs: '160px', sm: '200px', md: '250px' },
+                          mx: 'auto'
+                        }}>
                 <Image 
                   src={imagenCandidatoGobernador} 
                   alt={nombreCandidatoGobernador || "Candidato"} 
-                  layout="intrinsic" 
-                  width={baseGobernadorImgWidth} // Para xs/sm
-                  height={baseGobernadorImgHeight} // Para xs/sm
-                  style={{ 
-                    objectFit: 'contain', 
-                    // Se podría intentar un hack con media queries en style si fuera estrictamente necesario
-                    // pero MUI sx prop es preferible para responsividad.
-                    // Para Image de Next, el width/height son más como proporciones si layout es intrinsic/responsive.
-                  }}
-                  // Para md, idealmente se usaría un componente diferente o se ajustaría vía CSS más complejo
-                  // Aquí, se usará el tamaño base, y el Box lo contendrá. 
-                  // Podríamos escalar el Box, pero Image de Next con intrinsic/responsive se adapta al width/height dados.
+                  width={230}
+                  height={230}
+                  style={{ objectFit: 'contain', maxWidth: '100%', height: 'auto' }}
                 />
               </Box>
             </Grid>
           )}
-          <Grid item xs={imagenCandidatoGobernador ? 8 : 12}>
-            <Box sx={{
-              backgroundColor: logoBgColor,
-              height: { xs: baseGobernadorLogoHeight.xs, sm: baseGobernadorLogoHeight.sm, md: mdGobernadorLogoHeight },
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '4px',
-            }}>
-              {/* Similar al anterior, usar base para xs/sm, md para md */}
-              <Image 
-                src={logoPartido} 
-                alt={nombrePartido} 
-                width={baseGobernadorLogoImgWidth} 
-                height={baseGobernadorLogoImgHeight} 
-                style={{ objectFit: 'contain' }} 
-              />
-            </Box>
-          </Grid>
         </Grid>
         <Box sx={{ textAlign: 'center', mt: {xs: baseGobernadorTextMarginTop, md:mdGobernadorTextMarginTop} }}>
+          {/* Logo de COPEI debajo de la foto sin fondo verde */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            mb: {xs: 1, md: 1.5},
+            height: { xs: '100px', sm: '120px', md: '160px' }, 
+            backgroundColor: 'transparent',
+            mx: 'auto',
+            width: { xs: '180px', sm: '220px', md: '300px' },
+          }}>
+            <Image 
+              src={logoPartido}
+              alt={nombrePartido}
+              width={280}
+              height={140}
+              style={{ objectFit: 'contain', maxWidth: '100%', height: 'auto' }}
+            />
+          </Box>
           {nombreCandidatoGobernador && (
             <Typography sx={{ fontSize: {xs: baseGobernadorTextFontSize, md:mdGobernadorTextFontSize}, fontWeight: 'bold', lineHeight: 1.2 }}>
               {nombreCandidatoGobernador}
@@ -264,14 +270,14 @@ export default function SeleccionCargos() {
           overflowY: 'auto' // Scroll si el contenido es largo
       }}>
         <Paper elevation={0} sx={{
-          p: { xs: 0.5, sm: 1, md: 2 }, // Aumentado padding en md
+          p: { xs: 0.5, sm: 1, md: 3 }, // Original md: 2
           backgroundColor: 'white',
           width: '100%',
-          maxWidth: {xs: '900px', md: '1100px'}, // MaxWidth aumentado para desktop
+          maxWidth: {xs: '900px', md: '1600px'}, // Original md: '1100px'
           borderRadius: 2,
           border: `3px solid ${brandBlueColor}`,
         }}>
-          <Grid container spacing={{ xs: 1, sm: 1.5, md: 2.5 }}> {/* Spacing aumentado para md */}
+          <Grid container spacing={{ xs: 1, sm: 1.5, md: 4 }}> {/* Original md: 2.5 */}
 
             {/* Columna 1: DIPUTADO ASAMBLEA NACIONAL */}
             <Grid item xs={12} sm={12} md={3}> {/* sm={12} para apilar en tablet */}
@@ -357,27 +363,70 @@ export default function SeleccionCargos() {
         </Typography>
       </Box>
 
-      {/* Diálogo de Confirmación de Voto */}
+      {/* Diálogo de Advertencia */}
       <Dialog
-        open={showConfirmationDialog}
-        onClose={() => setShowConfirmationDialog(false)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
+        open={showWarningDialog}
+        onClose={() => setShowWarningDialog(false)}
+        aria-labelledby="warning-dialog-title"
+        aria-describedby="warning-dialog-description"
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            maxWidth: '400px',
+            p: 2,
+            textAlign: 'center'
+          }
+        }}
       >
-        <DialogTitle id="alert-dialog-title">
-          {"Confirmación de Voto"}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            {`Su voto por ${partidoSeleccionado?.nombre || 'el partido seleccionado'} ha sido registrado exitosamente (simulación).`}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialogAndRedirect} sx={{color: brandBlueColor}} autoFocus>
-            Aceptar
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <Box sx={{ 
+            width: '80px', 
+            height: '80px', 
+            borderRadius: '50%', 
+            border: '4px solid red',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative'
+          }}>
+            <Box sx={{ 
+              position: 'absolute',
+              width: '100%',
+              height: '4px',
+              backgroundColor: 'red',
+              transform: 'rotate(-45deg)'
+            }} />
+          </Box>
+        </Box>
+        <Typography id="warning-dialog-title" variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 2 }}>
+          ¡No lo pienses!
+        </Typography>
+        <Typography id="warning-dialog-description" sx={{ mb: 3 }}>
+          No inventes. Presiona VOTAR.
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+          <Button 
+            onClick={() => setShowWarningDialog(false)} 
+            color="error" 
+            variant="contained" 
+            sx={{ 
+              minWidth: '100px', 
+              fontWeight: 'medium',
+              borderRadius: 1
+            }}
+          >
+            Cerrar
           </Button>
-        </DialogActions>
+        </Box>
       </Dialog>
+
+      {/* Usar el componente ConfirmationModal personalizado en lugar del Dialog nativo */}
+      <ConfirmationModal 
+        isOpen={showConfirmationDialog}
+        partido={partidoSeleccionado}
+        onConfirm={handleCloseDialogAndRedirect}
+        onCancel={() => setShowConfirmationDialog(false)}
+      />
 
     </Box>
   );

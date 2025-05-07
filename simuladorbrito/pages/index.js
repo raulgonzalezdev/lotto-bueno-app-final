@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 // Material UI Imports
 import Box from '@mui/material/Box';
@@ -31,6 +32,9 @@ export default function Home() {
 
   const brandBlueColor = 'rgb(21, 40, 82)';
   const brandBlueHoverColor = 'rgb(15, 30, 62)';
+  const headerHeight = '56px';
+  const footerHeight = '48px';
+  const logoCNE = "/cne/logo_cne.png";
 
   return (
     <Box 
@@ -45,16 +49,44 @@ export default function Home() {
         backgroundImage: isPortrait 
           ? 'url(/fondovertical.jpg)' 
           : 'url(/fondohorizontal.jpg)',
-        backgroundSize: 'contain',
-        backgroundPosition: 'center center',
+        backgroundSize: isPortrait ? '75%' : '80%',
+        backgroundPosition: 'center 55%',
         backgroundRepeat: 'no-repeat',
-        backgroundColor: '#f0f2f5' // Un color de fondo suave por si la imagen no cubre todo
+        backgroundColor: '#f0f2f5',
+        pt: headerHeight,
+        pb: footerHeight,
+        overflow: 'hidden',
       }}
     >
       <Head>
         <title>Simulador Electoral 2025 - José Brito Gobernador</title>
         <meta name="description" content="Simulador de votación para las elecciones regionales 2025 - José Brito Gobernador de Anzoátegui" />
       </Head>
+      
+      {/* Cabecera Fija */}
+      <Box 
+        sx={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 1200, 
+          backgroundColor: brandBlueColor, 
+          color: 'white', 
+          py: 1, px: 2, 
+          textAlign: 'center', 
+          boxShadow: 3, 
+          height: headerHeight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Image src={logoCNE} alt="CNE Logo" width={24} height={24} style={{ marginRight: '8px' }} />
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
+          ELECCIONES REGIONALES Y NACIONALES 2025
+        </Typography>
+      </Box>
       
       <Box 
         sx={{
@@ -88,6 +120,25 @@ export default function Home() {
         >
           ENTRAR AL SIMULADOR
         </Button>
+      </Box>
+      
+      {/* Pie de Página Fijo */}
+      <Box 
+        sx={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 1200, 
+          backgroundColor: brandBlueColor, 
+          color: 'white', 
+          py: 1.5, 
+          height: footerHeight
+        }}
+      >
+        <Typography variant="body2" align="center" sx={{ fontSize: {xs: '0.7rem', sm:'0.75rem', md: '0.875rem'} }}>
+          &copy; 2025 Simulador Electoral - José Brito Gobernador
+        </Typography>
       </Box>
     </Box>
   );

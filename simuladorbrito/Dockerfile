@@ -1,40 +1,21 @@
-FROM node:18-alpine as builder
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar archivos de configuración primero para optimizar capas de Docker
-COPY package.json package-lock.json ./
-COPY jsconfig.json next.config.js postcss.config.js tailwind.config.js ./
+# Copiar archivos de configuración del proyecto
+COPY package*.json ./
 
-# Configurar npm para manejar dependencias conflictivas
-RUN echo 'legacy-peer-deps=true' > .npmrc
+# Instalar dependencias
+RUN npm install --legacy-peer-deps
 
-# Instalar dependencias primero
-RUN npm install --legacy-peer-deps && \
-    npm install --legacy-peer-deps -D @tailwindcss/typography daisyui
-
-# Luego copiar el resto del código
+# Copiar el resto del código
 COPY . .
 
 # Construir la aplicación
-RUN npm run build:standalone
+RUN npm run build
 
-# Imagen de producción
-FROM node:18-alpine as runner
-WORKDIR /app
+# Exponer el puerto 3005
+EXPOSE 3005
 
-ENV NODE_ENV=production
-ENV PORT=3002
-ENV NEXT_PUBLIC_API_URL=https://applottobueno.com/api
-
-# Copiar dependencias y archivos compilados
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-
-# Exponer puerto
-EXPOSE 3002
-
-# Comando para iniciar
+# Comando para iniciar la aplicación
 CMD ["npm", "start"] 

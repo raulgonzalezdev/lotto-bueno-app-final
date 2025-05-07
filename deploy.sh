@@ -7,6 +7,10 @@ NODE_ENV=production
 WEBSITE_URL=https://banempre.online
 TELEGRAM_CHANNEL=https://t.me/applottobueno" > banempre/.env
 
+# Crear archivo .env para simuladorbrito si es necesario
+echo "NODE_ENV=production
+PORT=3005" > simuladorbrito/.env
+
 echo "Building Docker images and starting containers..."
 
 # Construir las imágenes de Docker
@@ -21,4 +25,6 @@ echo "Applying Alembic migrations to create new table and fields..."
 docker-compose exec app alembic upgrade head
 
 echo "All services are up and running with latest database schema."
+
+echo "Cloudflare tunnel for simuladorbrito is running with ID: 2b59f68e-27b4-4738-afa9-12894418b128"
 

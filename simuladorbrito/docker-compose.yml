@@ -1,0 +1,31 @@
+# Configuración de servicios para SasDatQbox
+# Compatible con Cloudflare Tunnel
+
+version: '3.8'
+
+services:
+  simuladorbrito:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+    ports:
+      - "3005:3005"
+    command: >
+      sh -c "npm install --legacy-peer-deps && npm run build && npm start"
+    restart: unless-stopped
+    networks:
+      - simuladorbrito-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    network_mode: "host"
+    command: tunnel run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
+
+networks:
+  simuladorbrito-network:
+    driver: bridge

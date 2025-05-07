@@ -13,6 +13,7 @@ import Button from '@mui/material/Button';
 
 export default function Simulador() {
   const router = useRouter();
+  const logoCNE = "/cne/logo_cne.png"; // Añadir referencia al logo del CNE
   
   // Datos del tarjetón actualizados según la entrada del usuario
   const tarjetonData = [
@@ -49,7 +50,7 @@ export default function Simulador() {
       null,
       { id: 'lapiz', nombre: 'LÁPIZ', logo: '/partidos/lapiz.png', apoyaBrito: false },
       { id: 'une', nombre: 'UNE', logo: '/partidos/une.png', apoyaBrito: true },
-      { id: 'soluciones', nombre: 'SOLUCIONES', logo: '/partidos/soluciones.png', apoyaBrito: true }
+      { id: 'soluciones', nombre: 'SOLUCIONES', logo: '/partidos/soluciones.png', apoyaBrito: false }
     ],
     // Fila 6
     [
@@ -117,9 +118,13 @@ export default function Simulador() {
           py: 1, px: 2, 
           textAlign: 'center', 
           boxShadow: 3, 
-          height: headerHeight 
+          height: headerHeight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
+        <Image src={logoCNE} alt="CNE Logo" width={24} height={24} style={{ marginRight: '8px' }} />
         <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
           ELECCIONES REGIONALES Y NACIONALES 2025
         </Typography>
@@ -133,7 +138,7 @@ export default function Simulador() {
         pt: headerHeight, 
         pb: footerHeight, 
         width: '100%',
-        alignItems: { xs: 'center', md: 'flex-start' }, // Centra en móvil, alinea a la izquierda en desktop
+        alignItems: { xs: 'center', md: 'center' }, // Centra en móvil Y en desktop
         justifyContent: 'center', // Centra verticalmente el contenido si hay espacio
         p: { xs: 1, sm: 2, md: 3 }, // Padding general
         overflowY: 'auto' // Scroll si el contenido es muy alto
@@ -147,10 +152,9 @@ export default function Simulador() {
             backgroundColor: 'white', 
             borderRadius: 2, 
             border: '3px solid rgb(21, 40, 82)',
-            maxWidth: '900px', 
+            maxWidth: { xs: '900px', md: '1600px' }, // Aumentado para desktop y centrado por el padre
             width: '100%', // Ocupa el ancho disponible hasta maxWidth
-            ml: { md: '5%' }, // Margen izquierdo solo en desktop para no pegarse al borde
-            alignSelf: {xs: 'center', md: 'flex-start'} // Asegura que el Paper en sí se alinee como su contenedor padre
+            height: { xs: 'auto', md: 'auto' }, // Permitir que crezca en altura en móviles
           }}
         >
           <Box sx={{ backgroundColor: 'rgb(21, 40, 82)', color: 'white', py: 1, px: 2, textAlign: 'center', mb: 2, borderRadius: 1 }}>
@@ -165,54 +169,63 @@ export default function Simulador() {
           <Box
             display="grid"
             gridTemplateColumns="repeat(7, 1fr)"
-            gap={{ xs: 0.5, sm: 1 }}
-            sx={{ border: '1px solid #ccc', p: {xs: 0.5, sm: 1}, backgroundColor: '#f0f0f0' }}
+            gap={{ xs: 0.8, sm: 1 }}
+            sx={{ 
+              border: '1px solid #ccc', 
+              p: {xs: 0.8, sm: 1}, 
+              backgroundColor: '#f0f0f0',
+              minHeight: { xs: '400px', sm: 'auto' } // Aumentar altura mínima en móviles
+            }}
           >
             {tarjetonData.flat().map((partido, index) => (
               <Box
                 key={index}
                 sx={{
-                  aspectRatio: '1 / 0.7',
+                  aspectRatio: { xs: '1 / 1', sm: '1 / 0.7', md: '1.8 / 0.7' }, // Hacer cuadradas las tarjetas en móvil
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   border: '1px solid #d1d5db',
                   backgroundColor: (partido && partido.apoyaBrito) ? 'white' : '#e5e7eb',
                   overflow: 'hidden',
+                  boxSizing: 'border-box',
+                  p: { xs: 0.3, sm: 0.4, md: 0.5 } // Reducir padding para dar más espacio a la imagen
                 }}
               >
                 {partido && partido.apoyaBrito ? (
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      borderColor: 'rgb(21, 40, 82)',
-                      borderWidth: 2,
-                      borderRadius: 0,
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid rgb(21, 40, 82)',
+                    padding: 0,
+                    boxSizing: 'border-box',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSelectPartido(partido)}>
+                    <div style={{ 
+                      width: '95%', // Aumentado de 90% a 95%
+                      height: '95%', // Aumentado de 90% a 95%
+                      position: 'relative',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                       '&:hover': {
-                        borderColor: 'blue.700',
-                        boxShadow: 3,
-                      }
-                    }}
-                  >
-                    <CardActionArea 
-                      onClick={() => handleSelectPartido(partido)}
-                      sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 0.25 }}
-                    >
-                      <Image
+                      justifyContent: 'center'
+                    }}>
+                      <img
                         src={partido.logo}
                         alt={partido.nombre}
-                        layout="intrinsic"
-                        width={100}
-                        height={60}
-                        objectFit="contain"
+                        style={{ 
+                          maxWidth: '100%',
+                          maxHeight: '100%',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain'
+                        }}
                       />
-                    </CardActionArea>
-                  </Card>
+                    </div>
+                  </div>
                 ) : (
                   null 
                 )}
