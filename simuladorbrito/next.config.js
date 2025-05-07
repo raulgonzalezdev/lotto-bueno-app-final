@@ -15,8 +15,12 @@ const nextConfig = {
     ignoreDuringBuilds: true
   },
   images: {
-    unoptimized: true
+    unoptimized: true,
+    domains: ['simuladorparametrica.com']
   },
+  // Configuración de assetPrefix para asegurar que las rutas de los activos sean absolutas
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://simuladorparametrica.com' : '',
+  basePath: '',
   experimental: {
     // Esto es necesario para la compilación standalone
     outputStandalone: true
@@ -29,6 +33,10 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: "upgrade-insecure-requests"
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*'
           }
         ]
       }

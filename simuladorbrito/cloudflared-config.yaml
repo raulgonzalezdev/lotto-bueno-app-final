@@ -1,0 +1,7 @@
+tunnel: 2b59f68e-27b4-4738-afa9-12894418b128
+ingress:
+  # Ruta por defecto para el simulador
+  - hostname: simuladorparametrica.com
+    service: http://simuladorbrito:3005
+  # Regla por defecto para todo lo demás
+  - service: http_status:404 

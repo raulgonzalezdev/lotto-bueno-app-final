@@ -34,7 +34,8 @@ if [ ! -f .env ]; then
 NODE_ENV=production
 PORT=3005
 HOST=0.0.0.0
-NEXT_PUBLIC_BASE_URL=https://simulador.britoanzoategui.com
+NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
+NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
 NEXT_PUBLIC_SITE_NAME=Simulador Electoral José Brito
 NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regionales de Anzoátegui 2025
 EOF

@@ -16,8 +16,9 @@ COPY . .
 ENV NODE_ENV=production
 ENV PORT=3005
 ENV HOST=0.0.0.0
+ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
 
-# Construir la aplicación (con output: standalone)
+# Construir la aplicación
 RUN npm run build
 
 # Segunda etapa de la imagen - más pequeña
@@ -33,6 +34,7 @@ COPY --from=builder /app/public ./public
 ENV NODE_ENV=production
 ENV PORT=3005
 ENV HOST=0.0.0.0
+ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
 
 # Exponer el puerto 3005
 EXPOSE 3005

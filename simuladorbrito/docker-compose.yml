@@ -13,6 +13,7 @@ services:
       - NODE_ENV=production
       - PORT=3005
       - HOST=0.0.0.0
+      - NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
     ports:
       - "3005:3005"
     restart: unless-stopped
