@@ -30,7 +30,9 @@ const nextConfig = {
       }
     ]
   },
-  // Eliminamos assetPrefix para evitar problemas con rutas relativas
+  // Configurar correctamente assetPrefix
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://simuladorparametrica.com' : '',
+  // Mantener basePath vacío
   basePath: '',
   async headers() {
     return [
@@ -44,19 +46,46 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Origin',
             value: '*'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          }
+        ]
+      },
+      {
+        // Configuración específica para archivos JS
+        source: '/_next/static/chunks/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript'
+          }
+        ]
+      },
+      {
+        // Configuración específica para archivos CSS
+        source: '/_next/static/css/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/css'
           }
         ]
       }
     ]
   },
-  // Deshabilitar compresión para facilitar la depuración
-  compress: false,
-  // Configurar el manejo de rutas estáticas
+  // Habilitar compresión para mejor rendimiento
+  compress: true,
+  // No usar trailing slash para URLs
   trailingSlash: false,
   // Permitir referencias circulares para Material UI
   experimental: {
     esmExternals: 'loose'
-  }
+  },
+  // Configuración específica para mejorar el manejo de archivos estáticos
+  poweredByHeader: false,
+  generateEtags: true
 };
 
 module.exports = nextConfig;

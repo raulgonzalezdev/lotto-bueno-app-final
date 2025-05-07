@@ -51,6 +51,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Asegurar que los archivos estáticos tengan los permisos adecuados
+RUN find ./.next/static -type d -exec chmod 755 {} \;
+RUN find ./.next/static -type f -exec chmod 644 {} \;
+RUN find ./public -type d -exec chmod 755 {} \;
+RUN find ./public -type f -exec chmod 644 {} \;
+
 # Cambiar al usuario nextjs para ejecución segura
 USER nextjs
 
