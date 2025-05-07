@@ -7,7 +7,7 @@ const nextConfig = {
     PORT: process.env.PORT || 3005
   },
   // Configuración para producción
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true
   },
@@ -16,6 +16,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true
+  },
+  experimental: {
+    // Esto es necesario para la compilación standalone
+    outputStandalone: true
   },
   async headers() {
     return [

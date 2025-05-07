@@ -16,6 +16,12 @@ services:
     ports:
       - "3005:3005"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005"] 
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - simuladorbrito-network
       - lotto-bueno-network
@@ -23,9 +29,15 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: simuladorbrito-cloudflared
+    volumes:
+      - ./config.yml:/etc/cloudflared/config.yml
+      - ./creds.json:/etc/cloudflared/creds.json
     restart: unless-stopped
+    depends_on:
+      simuladorbrito:
+        condition: service_healthy
     network_mode: "host"
-    command: tunnel run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
+    command: tunnel --config /etc/cloudflared/config.yml run
 
 networks:
   simuladorbrito-network:
