@@ -6,4 +6,5 @@ ingress:
       connectTimeout: 30s
       timeout: 60s
       noTLSVerify: true
+      disableChunkedEncoding: true
   - service: http_status:404 

@@ -31,6 +31,7 @@ ingress:
       connectTimeout: 30s
       timeout: 60s
       noTLSVerify: true
+      disableChunkedEncoding: true
   - service: http_status:404
 EOF
 fi
@@ -57,7 +58,10 @@ echo -e "\n${YELLOW}Verificando conexión local al simulador:${NC}"
 curl -I http://localhost:3005 2>/dev/null || echo -e "${RED}No se pudo conectar al simulador${NC}"
 
 echo -e "\n${YELLOW}Verificando conexión local a nginx:${NC}"
-curl -I http://localhost:80 2>/dev/null || echo -e "${RED}No se pudo conectar a nginx${NC}"
+curl -I http://localhost:8080 2>/dev/null || echo -e "${RED}No se pudo conectar a nginx en puerto 8080${NC}"
+
+echo -e "\n${YELLOW}Verificando conexión local a nginx (puerto alternativo):${NC}"
+curl -I http://localhost:8090 2>/dev/null || echo -e "${RED}No se pudo conectar a nginx en puerto 8090${NC}"
 
 # Mostrar logs de cada servicio
 echo -e "\n${YELLOW}Revisando logs del simulador:${NC}"
