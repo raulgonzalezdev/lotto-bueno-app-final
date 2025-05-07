@@ -7,7 +7,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Confetti from 'react-confetti';
 import { useWindowSize } from '../hooks/useWindowSize';
 
 /**
@@ -35,24 +34,32 @@ const ConfirmationModal = ({ isOpen, partido, onConfirm, onCancel }) => {
           width: { xs: '350px', sm: '450px', md: '500px' },
           p: { xs: 1, sm: 2, md: 3 },
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          background: 'linear-gradient(to bottom, #ffffff, #f5f8fa)',
+          border: '2px solid rgb(21, 40, 82)',
         }
       }}
     >
-      {isOpen && <Confetti width={width} height={height} recycle={false} numberOfPieces={200} />}
-      
       <DialogTitle sx={{ 
         textAlign: 'center', 
         pt: { xs: 2, sm: 3 },
         pb: { xs: 1, sm: 2 },
         fontWeight: 'bold',
-        fontSize: { xs: '1.3rem', sm: '1.5rem', md: '1.8rem' }
+        fontSize: { xs: '1.3rem', sm: '1.5rem', md: '1.8rem' },
+        color: 'rgb(21, 40, 82)'
       }}>
         ¡Voto registrado!
       </DialogTitle>
       
       <DialogContent>
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
+        <Box sx={{ 
+          textAlign: 'center', 
+          mb: 2,
+          p: 2,
+          border: '1px solid #e0e0e0',
+          borderRadius: 1,
+          backgroundColor: 'white'
+        }}>
           <img 
             src={partido.logo} 
             alt={partido.nombre}
@@ -68,7 +75,8 @@ const ConfirmationModal = ({ isOpen, partido, onConfirm, onCancel }) => {
         <DialogContentText sx={{ 
           textAlign: 'center',
           fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-          mb: 2
+          mb: 2,
+          fontWeight: 'medium'
         }}>
           Has votado por {partido.nombre} apoyando a <strong>JOSÉ BRITO</strong> como Gobernador de Anzoátegui.
         </DialogContentText>
@@ -77,7 +85,8 @@ const ConfirmationModal = ({ isOpen, partido, onConfirm, onCancel }) => {
           textAlign: 'center',
           fontSize: { xs: '0.75rem', sm: '0.8rem' },
           color: 'rgba(0,0,0,0.6)',
-          mt: 2
+          mt: 2,
+          fontStyle: 'italic'
         }}>
           Recuerda que este es solo un simulador para prácticas electorales.
         </Typography>
