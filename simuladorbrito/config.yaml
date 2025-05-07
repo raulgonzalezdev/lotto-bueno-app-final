@@ -1,0 +1,9 @@
+tunnel: 2b59f68e-27b4-4738-afa9-12894418b128
+ingress:
+  - hostname: simuladorparametrica.com
+    service: http://nginx:80
+    originRequest:
+      connectTimeout: 30s
+      timeout: 60s
+      noTLSVerify: true
+  - service: http_status:404 
