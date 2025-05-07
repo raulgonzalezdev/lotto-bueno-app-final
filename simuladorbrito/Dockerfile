@@ -1,9 +1,10 @@
 FROM node:18-alpine
 
-WORKDIR /app
+WORKDIR /simuladorbrito
 
-# Copiar archivos de configuración del proyecto
-COPY package*.json ./
+# Copia los archivos de configuración y el código fuente
+COPY ./simuladorbrito/package.json ./simuladorbrito/package-lock.json* ./
+COPY ./simuladorbrito /simuladorbrito
 
 # Instalar dependencias
 RUN npm install --legacy-peer-deps
@@ -18,4 +19,4 @@ RUN npm run build
 EXPOSE 3005
 
 # Comando para iniciar la aplicación
-CMD ["npm", "start"] 
+CMD ["npm", "run", "start"]
