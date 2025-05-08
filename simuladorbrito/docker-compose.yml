@@ -45,8 +45,9 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/html:/usr/share/nginx/html
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      # Usar los certificados existentes en lugar de los de certbot
+      - ../nginx/certs/ahorasi.fullchain.pem:/etc/nginx/ssl/ahorasi.fullchain.pem:ro
+      - ../nginx/certs/ahorasi.privkey.pem:/etc/nginx/ssl/ahorasi.privkey.pem:ro
       - /dev/null:/etc/nginx/conf.d/default.conf
     depends_on:
       - simuladorbrito
