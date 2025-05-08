@@ -179,19 +179,6 @@ services:
     depends_on:
       - app
 
-  simuladorbrito:
-    build:
-      context: .
-      target: simuladorbrito
-    environment:
-      - NODE_ENV=production
-      - PORT=3005
-    ports:
-      - "3005:3005"
-    restart: unless-stopped
-    networks:
-      - lotto-bueno-network
-
   nginx:
     image: nginx:latest
     ports:
@@ -205,13 +192,6 @@ services:
       - lotto-bueno-network
     depends_on:
       - app
-
-   cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    network_mode: "host"
-    command: tunnel --no-autoupdate run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
-
 
   # --- Servicios de Monitoreo ---
 
