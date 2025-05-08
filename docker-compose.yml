@@ -183,7 +183,6 @@ services:
     build:
       context: .
       target: simuladorbrito
-    container_name: simuladorbrito
     environment:
       - NODE_ENV=production
       - PORT=3005
