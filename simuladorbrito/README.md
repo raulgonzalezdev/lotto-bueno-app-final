@@ -1,135 +1,83 @@
 # Simulador Electoral José Brito
 
-## Instalación y despliegue
+Aplicación para simular procesos electorales regionales en Anzoátegui.
 
-Este proyecto está configurado para ejecutarse de manera independiente con su propio Nginx y certificados SSL.
+## Requisitos
 
-### Requisitos previos
-- Docker y Docker Compose
-- El dominio ahorasi.online debe apuntar a la IP del servidor
+- Docker
+- Docker Compose
 
-### Pasos para instalar
+## Estructura de archivos
 
-1. Clona este repositorio
-   ```bash
-   git clone <repositorio> simuladorbrito
-   cd simuladorbrito
-   ```
+- `Dockerfile`: Configuración para construir la imagen de Docker
+- `docker-compose.yml`: Configuración de servicios (simulador, nginx, etc.)
+- `deploy.sh`: Script principal para el despliegue completo
+- `iniciar.sh`: Script simple para gestionar el simulador (start, stop, logs, etc.)
 
-2. Crea las carpetas necesarias para certbot:
-   ```bash
-   mkdir -p certbot/conf certbot/www certbot/logs
-   ```
+## Scripts disponibles
 
-3. Inicia el servicio para que Nginx pueda manejar la validación HTTP de Let's Encrypt:
-   ```bash
-   docker-compose up -d
-   ```
+### 1. Script de despliegue completo
 
-4. Obtén los certificados SSL:
-   ```bash
-   chmod +x obtain-cert.sh
-   ./obtain-cert.sh
-   ```
+```bash
+# Hacer el script ejecutable
+chmod +x deploy.sh
 
-5. Reinicia todos los servicios:
-   ```bash
-   docker-compose down
-   docker-compose up -d
-   ```
+# Ejecutar el despliegue completo
+./deploy.sh
+```
 
-### Renovación de certificados
+Este script:
+- Crea los directorios necesarios
+- Detecta si hay certificados SSL existentes y los utiliza
+- Construye y despliega la aplicación
+- Muestra logs y estado
 
-Los certificados se renovarán automáticamente gracias al contenedor de certbot.
+### 2. Script de gestión
 
-### Verificación de instalación
+```bash
+# Hacer el script ejecutable
+chmod +x iniciar.sh
 
-Visita https://ahorasi.online para comprobar que el simulador está funcionando correctamente.
+# Iniciar el simulador
+./iniciar.sh start
+
+# Detener el simulador
+./iniciar.sh stop
+
+# Ver los logs
+./iniciar.sh logs
+
+# Ver el estado
+./iniciar.sh status
+
+# Reiniciar el simulador
+./iniciar.sh restart
+```
+
+## Acceso a la aplicación
+
+Una vez desplegada, la aplicación estará disponible en:
+
+- **HTTP local**: http://localhost:8081
+- **HTTPS local**: https://localhost:8443
+- **Dominio principal**: https://ahorasi.online
+
+## Estructura de Docker
+
+- **simuladorbrito**: Servidor Next.js (puerto 3005)
+- **nginx**: Proxy inverso con SSL (puertos 8081 y 8443)
+
+## Uso de certificados SSL
+
+El sistema está configurado para usar certificados existentes ubicados en:
+```
+/nginx/certs/ahorasi.fullchain.pem
+/nginx/certs/ahorasi.privkey.pem
+```
+
+Si estos certificados no existen, se deben obtener antes del despliegue.
 
 ## Estructura del proyecto
 
 - `nginx/conf.d/` - Configuración de Nginx
-- `certbot/` - Configuración y certificados SSL
-- `Dockerfile` - Configuración del contenedor de Next.js
-- `docker-compose.yml` - Configuración de todos los servicios
-
-## Mantenimiento
-
-Para reiniciar todos los servicios:
-```bash
-docker-compose restart
-```
-
-Para ver los logs:
-```bash
-docker-compose logs -f
-```
-
-# Simulador Electoral 2025 - José Brito Gobernador
-
-Simulador de votación para las elecciones regionales de Anzoátegui 2025.
-
-## Imágenes requeridas
-
-Para que el simulador funcione correctamente, debes agregar las siguientes imágenes:
-
-### Carpeta `/public/partidos/`
-
-Agrega los logos de los partidos políticos con estos nombres:
-- `copei.png` - Logo de COPEI
-- `psuv.png` - Logo de PSUV
-- `tupamaro.png` - Logo de TUPAMARO
-- `ppt.png` - Logo de PPT
-- `futuro.png` - Logo de FUTURO
-- `somos.png` - Logo de SOMOS VENEZUELA
-- `mep.png` - Logo de MEP
-- `podemos.png` - Logo de PODEMOS
-- `pcv.png` - Logo de PCV
-- `alianza.png` - Logo de ALIANZA PARA EL CAMBIO
-- `upv.png` - Logo de UPV
-- `enamorate.png` - Logo de ENAMÓRATE
-- `ora.png` - Logo de ORA
-- `verde.png` - Logo de PARTIDO VERDE
-- `udp.png` - Logo de UDP
-
-### Carpeta `/public/candidatos/`
-
-Agrega la foto del candidato:
-- `brito.jpg` - Foto de José Brito
-
-### Carpeta `/public/`
-
-Agrega la imagen del tarjetón electoral:
-- `tarjeton-electoral.png` - Imagen del tarjetón electoral completo
-
-## Cómo ejecutar el simulador
-
-1. Asegúrate de tener Node.js instalado (versión 14 o superior)
-2. Instala las dependencias: `npm install`
-3. Ejecuta el servidor de desarrollo: `npm run dev`
-4. Abre tu navegador en [http://localhost:3000](http://localhost:3000)
-
-## Personalización
-
-Puedes personalizar el simulador modificando los siguientes archivos:
-- `pages/index.js` - Página principal con mensaje de bienvenida
-- `pages/simulador.js` - Página del simulador de votación
-- `styles/globals.css` - Estilos globales del simulador
-
-## Despliegue
-
-Para generar una versión optimizada para producción:
-
-```bash
-npm run build
-npm start
-```
-
-O si prefieres exportar una versión estática:
-
-```bash
-npm run build
-npm run export
-```
-
-Los archivos generados estarán en la carpeta `out` y podrás subirlos a cualquier servidor web. 
+- `
