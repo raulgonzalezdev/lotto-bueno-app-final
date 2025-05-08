@@ -179,6 +179,22 @@ services:
     depends_on:
       - app
 
+  simuladorbrito:
+    build:
+      context: .
+      target: simuladorbrito
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - WEBSITE_URL=${WEBSITE_URL:-https://ahorasi.online}
+    ports:
+      - "3005:3005"
+    networks:
+      - lotto-bueno-network
+    depends_on:
+      - app
+    restart: unless-stopped
+
   nginx:
     image: nginx:latest
     ports:

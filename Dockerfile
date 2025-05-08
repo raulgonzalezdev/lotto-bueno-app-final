@@ -99,3 +99,31 @@ EXPOSE 3002
 
 # Comando para iniciar la aplicación
 CMD ["npm", "run", "start"]
+
+# Etapa 5: Configuración de la aplicación simuladorbrito
+FROM node:18-alpine as simuladorbrito
+
+# Establecer variables de entorno
+ENV NODE_ENV=production
+ENV PORT=3005
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV WEBSITE_URL=${WEBSITE_URL:-https://ahorasi.online}
+
+WORKDIR /simuladorbrito
+
+# Copia los archivos de configuración y el código fuente
+COPY ./simuladorbrito/package.json ./simuladorbrito/package-lock.json* ./
+COPY ./simuladorbrito/.env ./
+COPY ./simuladorbrito /simuladorbrito
+
+# Instala dependencias
+RUN npm install --legacy-peer-deps
+
+# Construye la aplicación
+RUN npm run build
+
+# Expone el puerto que usa la aplicación
+EXPOSE 3005
+
+# Comando para iniciar la aplicación
+CMD ["node", ".next/standalone/server.js"]

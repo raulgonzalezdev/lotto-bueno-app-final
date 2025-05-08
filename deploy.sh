@@ -7,9 +7,10 @@ NODE_ENV=production
 WEBSITE_URL=https://banempre.online
 TELEGRAM_CHANNEL=https://t.me/applottobueno" > banempre/.env
 
-# Crear archivo .env para simuladorbrito si es necesario
+# Crear archivo .env para simuladorbrito
 echo "NODE_ENV=production
-PORT=3005" > simuladorbrito/.env
+PORT=3005
+WEBSITE_URL=https://ahorasi.online" > simuladorbrito/.env
 
 echo "Building Docker images and starting containers..."
 
