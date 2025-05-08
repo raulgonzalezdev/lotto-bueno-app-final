@@ -1,10 +1,73 @@
-# Simulador Electoral 2025 - José Brito Gobernador
+# Simulador Electoral José Brito
 
-Simulador de votación para las elecciones regionales de Anzoátegui 2025.
+## Instalación y despliegue
+
+Este proyecto está configurado para ejecutarse de manera independiente con su propio Nginx y certificados SSL.
+
+### Requisitos previos
+- Docker y Docker Compose
+- El dominio ahorasi.online debe apuntar a la IP del servidor
+
+### Pasos para instalar
+
+1. Clona este repositorio
+   ```bash
+   git clone <repositorio> simuladorbrito
+   cd simuladorbrito
+   ```
+
+2. Crea las carpetas necesarias para certbot:
+   ```bash
+   mkdir -p certbot/conf certbot/www certbot/logs
+   ```
+
+3. Inicia el servicio para que Nginx pueda manejar la validación HTTP de Let's Encrypt:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Obtén los certificados SSL:
+   ```bash
+   chmod +x obtain-cert.sh
+   ./obtain-cert.sh
+   ```
+
+5. Reinicia todos los servicios:
+   ```bash
+   docker-compose down
+   docker-compose up -d
+   ```
+
+### Renovación de certificados
+
+Los certificados se renovarán automáticamente gracias al contenedor de certbot.
+
+### Verificación de instalación
+
+Visita https://ahorasi.online para comprobar que el simulador está funcionando correctamente.
 
 ## Estructura del proyecto
 
-Este simulador está desarrollado con Next.js y muestra una papeleta electoral interactiva con los partidos que respaldan a José Brito como candidato a gobernador de Anzoátegui.
+- `nginx/conf.d/` - Configuración de Nginx
+- `certbot/` - Configuración y certificados SSL
+- `Dockerfile` - Configuración del contenedor de Next.js
+- `docker-compose.yml` - Configuración de todos los servicios
+
+## Mantenimiento
+
+Para reiniciar todos los servicios:
+```bash
+docker-compose restart
+```
+
+Para ver los logs:
+```bash
+docker-compose logs -f
+```
+
+# Simulador Electoral 2025 - José Brito Gobernador
+
+Simulador de votación para las elecciones regionales de Anzoátegui 2025.
 
 ## Imágenes requeridas
 
