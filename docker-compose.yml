@@ -187,13 +187,28 @@ services:
       - NODE_ENV=production
       - PORT=3005
       - WEBSITE_URL=${WEBSITE_URL:-https://ahorasi.online}
+    volumes:
+      - ./simuladorbrito/package.json:/simuladorbrito/package.json:ro
     ports:
       - "3005:3005"
     networks:
       - lotto-bueno-network
     depends_on:
-      - app
+      - nginx
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3005"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: npm run start
 
   nginx:
     image: nginx:latest
