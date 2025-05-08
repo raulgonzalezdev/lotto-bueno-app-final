@@ -21,10 +21,10 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Construye la aplicación
-RUN npm run build
+RUN npm run build:standalone
 
-# Expone el puerto que usa la aplicación
+# Expone el puerto que usa la aplicación banempre
 EXPOSE 3005
 
 # Comando para iniciar la aplicación
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start"]
