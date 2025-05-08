@@ -37,21 +37,22 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Aplica estos encabezados a todas las rutas
         source: '/:path*',
         headers: [
           {
-            key: 'Content-Security-Policy',
-            value: "upgrade-insecure-requests"
-          },
-          {
             key: 'Access-Control-Allow-Origin',
-            value: '*'
+            value: '*',
           },
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Accept',
           }
-        ]
+        ],
       },
       {
         // Configuración específica para archivos JS

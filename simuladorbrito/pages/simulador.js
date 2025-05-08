@@ -233,15 +233,22 @@ export default function Simulador() {
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <img
+                      <Box
+                        component="img"
                         src={partido.logo}
                         alt={partido.nombre}
-                        style={{ 
+                        sx={{ 
                           maxWidth: '100%',
                           maxHeight: '100%',
                           width: 'auto',
                           height: 'auto',
-                          objectFit: 'contain'
+                          objectFit: 'contain',
+                          '@media (max-width: 600px)': {
+                            objectFit: 'fill',
+                            width: '100%',
+                            height: '100%',
+                            aspectRatio: '1 / 1'
+                          }
                         }}
                       />
                     </div>
