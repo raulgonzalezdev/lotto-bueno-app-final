@@ -90,6 +90,29 @@ CERT_FOUND=false
 if [ -f "../nginx/certs/ahorasi.fullchain.pem" ] && [ -f "../nginx/certs/ahorasi.privkey.pem" ]; then
   echo -e "${GREEN}Certificados SSL encontrados en ../nginx/certs/${NC}"
   CERT_FOUND=true
+else
+  echo -e "${YELLOW}No se encontraron certificados SSL en la ubicación predeterminada.${NC}"
+  echo -e "${YELLOW}Buscando certificados en otras ubicaciones...${NC}"
+  
+  # Buscar certificados en ubicaciones alternativas
+  FULLCHAIN_PATH=$(find .. -name "ahorasi.fullchain.pem" -type f 2>/dev/null | head -n 1)
+  PRIVKEY_PATH=$(find .. -name "ahorasi.privkey.pem" -type f 2>/dev/null | head -n 1)
+  
+  if [ -n "$FULLCHAIN_PATH" ] && [ -n "$PRIVKEY_PATH" ]; then
+    echo -e "${GREEN}Certificados encontrados en:${NC}"
+    echo -e "  Fullchain: ${FULLCHAIN_PATH}"
+    echo -e "  Privkey: ${PRIVKEY_PATH}"
+    
+    # Crear directorio de certificados si no existe
+    mkdir -p ../nginx/certs
+    
+    # Copiar certificados a la ubicación estándar
+    cp "$FULLCHAIN_PATH" ../nginx/certs/ahorasi.fullchain.pem
+    cp "$PRIVKEY_PATH" ../nginx/certs/ahorasi.privkey.pem
+    
+    echo -e "${GREEN}Certificados copiados a la ubicación estándar.${NC}"
+    CERT_FOUND=true
+  fi
 fi
 
 # Detener y eliminar contenedores si existen
@@ -99,23 +122,6 @@ docker compose down --remove-orphans || true
 # Limpiar imágenes huérfanas o de versiones anteriores
 echo -e "${YELLOW}Limpiando imágenes antiguas...${NC}"
 docker image prune -f
-
-# Editar docker-compose.yml si se encontraron certificados
-if [ "$CERT_FOUND" = true ]; then
-  echo -e "${YELLOW}Actualizando docker-compose.yml para usar certificados existentes...${NC}"
-  # Verificar si el archivo es compatible con yq o jq, sino usar método alternativo
-  if [ -x "$(command -v sed)" ]; then
-    # Método alternativo con sed para líneas específicas
-    sed -i -e 's|./certbot/conf:/etc/letsencrypt|../nginx/certs/ahorasi.fullchain.pem:/etc/nginx/ssl/ahorasi.fullchain.pem:ro|g' docker-compose.yml
-    sed -i -e 's|./certbot/www:/var/www/certbot|../nginx/certs/ahorasi.privkey.pem:/etc/nginx/ssl/ahorasi.privkey.pem:ro|g' docker-compose.yml
-    echo -e "${YELLOW}docker-compose.yml actualizado para usar certificados existentes.${NC}"
-  else
-    echo -e "${RED}No se pudo actualizar automáticamente docker-compose.yml.${NC}"
-    echo -e "${YELLOW}Por favor, asegúrese de que el archivo docker-compose.yml contiene las líneas adecuadas:${NC}"
-    echo -e "- ../nginx/certs/ahorasi.fullchain.pem:/etc/nginx/ssl/ahorasi.fullchain.pem:ro"
-    echo -e "- ../nginx/certs/ahorasi.privkey.pem:/etc/nginx/ssl/ahorasi.privkey.pem:ro"
-  fi
-fi
 
 # Reconstruir las imágenes sin usar caché
 echo -e "${GREEN}Construyendo contenedores de Simulador Brito...${NC}"

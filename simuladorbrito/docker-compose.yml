@@ -9,10 +9,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
-        - NEXT_PUBLIC_BASE_URL=https://ahorasi.online
-        - NEXT_PUBLIC_SITE_NAME=Simulador Electoral José Brito
-        - NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regionales de Anzoátegui 2025
+        NEXT_PUBLIC_ASSET_PREFIX: "https://ahorasi.online"
+        NEXT_PUBLIC_BASE_URL: "https://ahorasi.online"
+        NEXT_PUBLIC_SITE_NAME: "Simulador Electoral José Brito"
+        NEXT_PUBLIC_SITE_DESCRIPTION: "Simulador de votación para las elecciones regionales de Anzoátegui 2025"
     container_name: simuladorbrito
     restart: always
     ports:
@@ -60,21 +60,6 @@ services:
     networks:
       - simuladorbrito-network
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
-
-  # Certbot para SSL/TLS
-  certbot:
-    image: certbot/certbot:latest
-    container_name: simuladorbrito-certbot
-    restart: unless-stopped
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/logs:/var/log/letsencrypt
-    networks:
-      - simuladorbrito-network
-    depends_on:
-      - nginx
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 networks:
   simuladorbrito-network:
