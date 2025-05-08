@@ -213,9 +213,7 @@ services:
       - simuladorbrito
       
   certbot:
-    build:
-      context: .
-      target: certbot
+    image: certbot/certbot:latest
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
@@ -224,6 +222,7 @@ services:
       - lotto-bueno-network
     depends_on:
       - nginx
+    entrypoint: "/bin/sh"
     command: "/app/ssl-init.sh"
 
   # --- Servicios de Monitoreo ---

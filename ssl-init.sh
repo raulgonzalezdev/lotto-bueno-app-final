@@ -6,40 +6,31 @@
 echo "Esperando a que Nginx esté listo..."
 sleep 10
 
-# Dominios a certificar
-DOMAINS=("applottobueno.com" "www.applottobueno.com" "banempre.online" "www.banempre.online" "ahorasi.online" "www.ahorasi.online")
+# Obtener certificados para applottobueno.com
+echo "Intentando obtener certificados para applottobueno.com..."
+certbot certonly --webroot -w /var/www/certbot \
+  --email organizacionparametrica@gmail.com --agree-tos --no-eff-email \
+  -d applottobueno.com -d www.applottobueno.com \
+  --expand --non-interactive || echo "Error o certificado ya existente para applottobueno.com"
 
-# Correo para notificaciones
-EMAIL="organizacionparametrica@gmail.com"
+# Obtener certificados para banempre.online  
+echo "Intentando obtener certificados para banempre.online..."
+certbot certonly --webroot -w /var/www/certbot \
+  --email organizacionparametrica@gmail.com --agree-tos --no-eff-email \
+  -d banempre.online -d www.banempre.online \
+  --expand --non-interactive || echo "Error o certificado ya existente para banempre.online"
 
-# Comprobar si los certificados ya existen
-for DOMAIN in "${DOMAINS[@]}"
-do
-  # Extraer el dominio principal (sin www)
-  MAIN_DOMAIN=$(echo $DOMAIN | sed -E 's/^www\.//')
-  
-  # Verificar si ya existe el certificado
-  if [ ! -d "/etc/letsencrypt/live/$MAIN_DOMAIN" ]; then
-    echo "Obteniendo certificado para $DOMAIN..."
-    
-    # Usar el método webroot para validación
-    certbot certonly --webroot -w /var/www/certbot \
-      --email $EMAIL --agree-tos --no-eff-email \
-      -d $DOMAIN --expand
-      
-    echo "Certificado obtenido para $DOMAIN"
-  else
-    echo "El certificado para $DOMAIN ya existe"
-  fi
-done
+# Obtener certificados para ahorasi.online
+echo "Intentando obtener certificados para ahorasi.online..."
+certbot certonly --webroot -w /var/www/certbot \
+  --email organizacionparametrica@gmail.com --agree-tos --no-eff-email \
+  -d ahorasi.online -d www.ahorasi.online \
+  --expand --non-interactive || echo "Error o certificado ya existente para ahorasi.online"
 
-# Configurar renovación automática
-echo "Configurando renovación automática de certificados..."
-echo "0 0,12 * * * certbot renew --quiet" > /etc/crontabs/root
+echo "Certificados SSL procesados. Configurando renovación automática..."
 
-echo "Inicialización de certificados SSL completada."
-
-# Mantener el contenedor en ejecución para renovaciones
+# Mantener el contenedor en ejecución para renovaciones periódicas
+trap exit TERM
 while :; do
   certbot renew --quiet
   sleep 12h
