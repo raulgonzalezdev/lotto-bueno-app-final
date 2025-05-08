@@ -11,7 +11,7 @@ docker-compose stop nginx
 echo "Obteniendo certificados SSL para ahorasi.online..."
 certbot certonly --standalone \
   --preferred-challenges http \
-  --email admin@ahorasi.online \
+  --email organizacionparametrica@gmail.com \
   --agree-tos \
   --no-eff-email \
   -d ahorasi.online \
