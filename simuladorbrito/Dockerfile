@@ -21,7 +21,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Construye la aplicación
-RUN npm run build:standalone
+RUN npm run build
 
 # Expone el puerto que usa la aplicación banempre
 EXPOSE 3005
