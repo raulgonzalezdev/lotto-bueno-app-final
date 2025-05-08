@@ -179,6 +179,24 @@ services:
     depends_on:
       - app
 
+  simuladorbrito:
+    build:
+      context: .
+      target: simuladorbrito
+    container_name: simuladorbrito
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
+      - NEXT_PUBLIC_BASE_URL=https://ahorasi.online
+    volumes:
+      - ./simuladorbrito:/simuladorbrito
+    ports:
+      - "3005:3005"
+    restart: unless-stopped
+    networks:
+      - lotto-bueno-network
+
   nginx:
     image: nginx:latest
     ports:
@@ -192,6 +210,7 @@ services:
       - lotto-bueno-network
     depends_on:
       - app
+      - simuladorbrito
 
   # --- Servicios de Monitoreo ---
 
