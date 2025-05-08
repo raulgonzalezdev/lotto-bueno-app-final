@@ -58,10 +58,9 @@ services:
     container_name: simuladorbrito-cloudflared
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
+    network_mode: "service:nginx"
     depends_on:
       - nginx
-    networks:
-      - simuladorbrito-network
 
 networks:
   simuladorbrito-network:

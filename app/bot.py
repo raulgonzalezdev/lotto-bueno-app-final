@@ -228,105 +228,109 @@ def obtener_cedula(notification: Notification) -> None:
     print(f"Texto del mensaje: {notification.message_text}")
     print("----- DATOS DE NOTIFICACIÓN -----\n")
     
-    sender = notification.sender
-    message_data = notification.event.get("messageData", {})
-
-    # Actualizar tiempo de la última interacción
-    user_last_interaction[sender] = time.time()
-
-    # Resetear estado de verificación si existía
-    if sender in verification_message_sent:
-        verification_message_sent[sender] = False
-
-    # Obtener el nombre del remitente
-    sender_data = notification.event["senderData"]
-    sender_name = sender_data["senderName"]
-
-    # Verificar si hay datos de estado para este usuario
-    user_state = get_user_state(notification, sender)
-    print(f"Estado actual al recibir mensaje: {user_state}")
-
-    # Si no hay estado previo, enviar mensaje de bienvenida
-    if not user_state or not user_state.get("state"):
-        welcome_message = (
-            f"👋 *¡Hola {sender_name}! Bienvenido a Lotto Bueno*\n\n"
-            f"Somos la mejor plataforma de sorteos en Venezuela, creada para premiar a nuestros participantes con increíbles premios.\n\n"
-            f"Con Lotto Bueno tienes la oportunidad de ganar grandes premios con tan solo registrarte. "
-            f"Nuestro compromiso es transparencia y confiabilidad en cada sorteo.\n\n"
-            f"🎯 Para validar tu registro, por favor envíame tu número de cédula."
-        )
-
-        notification.answer(welcome_message)
-        set_user_state(notification, sender, {"state": "inicio", "nombre": sender_name})
-        return
-
-    # Verificar el estado del usuario y dirigir a la función correspondiente
-    if user_state:
-        state_value = user_state.get("state")
-        print(f"Estado del usuario: {state_value}")
-
-        if state_value == "esperando_telefono":
-            print("Procesando número de teléfono...")
-            handle_registro_telefono(notification, sender, message_data)
-            return
-        elif state_value == "esperando_promotor":
-            print("Procesando ID de promotor...")
-            handle_registro_promotor(notification, sender, message_data)
-            return
-        elif state_value == "menu_post_registro":
-            print("Procesando selección del menú post-registro...")
-            handle_post_registro_menu(notification, sender, message_data)
-            return
-        elif state_value == "menu_principal":
-            print("Procesando selección del menú principal...")
-            handle_menu_principal(notification, sender, message_data)
-            return
-        elif state_value == "inicio":
-            # El usuario ya vio el mensaje de bienvenida, proceder a procesar cédula
-            pass
-
-    # Obtener el texto del mensaje
-    message_text = None
-    extended_text_message_data = message_data.get("extendedTextMessageData", {})
-    if extended_text_message_data:
-        message_text = extended_text_message_data.get(
-            "textMessage"
-        ) or extended_text_message_data.get("text")
-
-    if not message_text:
-        text_message_data = message_data.get("textMessageData", {})
-        if text_message_data:
-            message_text = text_message_data.get("textMessage")
-
-    print(f"message_data: {message_data}")
-    print(f"Mensaje recibido: {message_text}")
-
-    # Si no hay texto o es solo /start, enviar mensaje de bienvenida
-    if not message_text or message_text.strip() == "/start":
-        notification.answer(
-            f"👋 Hola, {sender_name}. Para validar tu registro, por favor envíame tu número de cédula."
-        )
-        return
-
-    # Extraer la cédula del mensaje
-    cedula = extract_cedula(message_text)
-
-    if not cedula:
-        notification.answer(
-            f"No he podido identificar un número de cédula válido en tu mensaje. "
-            f"Por favor, envía solo tu número de cédula (entre 6 y 10 dígitos)."
-        )
-        notification.answer("Ejemplo de formato correcto: 12345678")
-        show_menu_principal(notification, sender_name)
-        notification.state_manager.set_state(
-            sender, {"state": "menu_principal", "nombre": sender_name}
-        )
-        return
-
-    print(f"Procesando cédula: {cedula}")
-    db = next(get_db())
-
+    # Establecer límite de procesamiento de mensajes para evitar sobrecarga del sistema
+    db = None
     try:
+        # Verificar la carga actual del sistema antes de procesar
+        db = next(get_db())
+        
+        sender = notification.sender
+        message_data = notification.event.get("messageData", {})
+
+        # Actualizar tiempo de la última interacción
+        user_last_interaction[sender] = time.time()
+
+        # Resetear estado de verificación si existía
+        if sender in verification_message_sent:
+            verification_message_sent[sender] = False
+
+        # Obtener el nombre del remitente
+        sender_data = notification.event["senderData"]
+        sender_name = sender_data["senderName"]
+
+        # Verificar si hay datos de estado para este usuario
+        user_state = get_user_state(notification, sender)
+        print(f"Estado actual al recibir mensaje: {user_state}")
+
+        # Si no hay estado previo, enviar mensaje de bienvenida
+        if not user_state or not user_state.get("state"):
+            welcome_message = (
+                f"👋 *¡Hola {sender_name}! Bienvenido a Lotto Bueno*\n\n"
+                f"Somos la mejor plataforma de sorteos en Venezuela, creada para premiar a nuestros participantes con increíbles premios.\n\n"
+                f"Con Lotto Bueno tienes la oportunidad de ganar grandes premios con tan solo registrarte. "
+                f"Nuestro compromiso es transparencia y confiabilidad en cada sorteo.\n\n"
+                f"🎯 Para validar tu registro, por favor envíame tu número de cédula."
+            )
+
+            notification.answer(welcome_message)
+            set_user_state(notification, sender, {"state": "inicio", "nombre": sender_name})
+            return
+
+        # Verificar el estado del usuario y dirigir a la función correspondiente
+        if user_state:
+            state_value = user_state.get("state")
+            print(f"Estado del usuario: {state_value}")
+
+            if state_value == "esperando_telefono":
+                print("Procesando número de teléfono...")
+                handle_registro_telefono(notification, sender, message_data)
+                return
+            elif state_value == "esperando_promotor":
+                print("Procesando ID de promotor...")
+                handle_registro_promotor(notification, sender, message_data)
+                return
+            elif state_value == "menu_post_registro":
+                print("Procesando selección del menú post-registro...")
+                handle_post_registro_menu(notification, sender, message_data)
+                return
+            elif state_value == "menu_principal":
+                print("Procesando selección del menú principal...")
+                handle_menu_principal(notification, sender, message_data)
+                return
+            elif state_value == "inicio":
+                # El usuario ya vio el mensaje de bienvenida, proceder a procesar cédula
+                pass
+
+        # Obtener el texto del mensaje
+        message_text = None
+        extended_text_message_data = message_data.get("extendedTextMessageData", {})
+        if extended_text_message_data:
+            message_text = extended_text_message_data.get(
+                "textMessage"
+            ) or extended_text_message_data.get("text")
+
+        if not message_text:
+            text_message_data = message_data.get("textMessageData", {})
+            if text_message_data:
+                message_text = text_message_data.get("textMessage")
+
+        print(f"message_data: {message_data}")
+        print(f"Mensaje recibido: {message_text}")
+
+        # Si no hay texto o es solo /start, enviar mensaje de bienvenida
+        if not message_text or message_text.strip() == "/start":
+            notification.answer(
+                f"👋 Hola, {sender_name}. Para validar tu registro, por favor envíame tu número de cédula."
+            )
+            return
+
+        # Extraer la cédula del mensaje
+        cedula = extract_cedula(message_text)
+
+        if not cedula:
+            notification.answer(
+                f"No he podido identificar un número de cédula válido en tu mensaje. "
+                f"Por favor, envía solo tu número de cédula (entre 6 y 10 dígitos)."
+            )
+            notification.answer("Ejemplo de formato correcto: 12345678")
+            show_menu_principal(notification, sender_name)
+            notification.state_manager.set_state(
+                sender, {"state": "menu_principal", "nombre": sender_name}
+            )
+            return
+
+        print(f"Procesando cédula: {cedula}")
+
         # 1. Primero verificamos si la cédula existe en la base de datos de electores
         print(f"Enviando cédula {cedula} para verificación")
         elector_response = asyncio.run(
@@ -461,15 +465,29 @@ def obtener_cedula(notification: Notification) -> None:
             )
 
     except Exception as e:
-        print(f"Error al verificar cédula: {e}")
-        notification.answer(f"Ha ocurrido un error al procesar tu solicitud: {str(e)}")
-        notification.answer(
-            "Por favor intenta nuevamente con solo tu número de cédula."
-        )
+        print(f"Error en obtener_cedula: {e}")
+        if "QueuePool limit of size" in str(e) or "connection timed out" in str(e):
+            notification.answer(
+                "Nuestro sistema está experimentando alta demanda en este momento. "
+                "Por favor, intenta nuevamente en unos minutos."
+            )
+        else:
+            notification.answer(
+                "Ha ocurrido un error al procesar tu mensaje. Por favor, intenta nuevamente."
+            )
+        
+        # Recuperar el nombre del remitente para el menú principal
+        sender_name = notification.event["senderData"]["senderName"]
+        
+        # Mostrar menú principal y actualizar estado
         show_menu_principal(notification, sender_name)
         notification.state_manager.set_state(
             sender, {"state": "menu_principal", "nombre": sender_name}
         )
+    finally:
+        # Asegurarse de cerrar la conexión a la base de datos
+        if db is not None:
+            db.close()
 
 
 def handle_registro_telefono(
@@ -1379,6 +1397,17 @@ if __name__ == "__main__":
                     "outgoingAPIMessageWebhook": "yes"
                 })
                 print("Configuración de webhooks actualizada")
+            
+            # Probar conexión a la base de datos
+            print("\nVerificando conexión a la base de datos...")
+            try:
+                db = next(get_db())
+                # Realizar una consulta simple para verificar la conexión
+                result = db.execute("SELECT 1").scalar()
+                print(f"Conexión a la base de datos establecida: {result == 1}")
+                db.close()  # Importante: cerrar la conexión después de usarla
+            except Exception as db_err:
+                print(f"Error al verificar la conexión a la base de datos: {db_err}")
             
             # Probar envío de un mensaje al teléfono del sistema
             system_phone = "584262831867"

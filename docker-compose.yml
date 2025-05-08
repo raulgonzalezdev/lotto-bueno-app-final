@@ -9,6 +9,12 @@ services:
       POSTGRES_USER: lottobueno
       POSTGRES_PASSWORD: lottobueno
       POSTGRES_DB: lottobueno
+      POSTGRES_MAX_CONNECTIONS: "200"           # Aumentar conexiones máximas
+      POSTGRES_SHARED_BUFFERS: "256MB"          # Más memoria compartida
+      POSTGRES_WORK_MEM: "64MB"                 # Más memoria para operaciones
+      POSTGRES_MAINTENANCE_WORK_MEM: "128MB"    # Más memoria para mantenimiento
+      POSTGRES_MAX_WORKER_PROCESSES: "8"        # Más procesos trabajadores
+      POSTGRES_MAX_PARALLEL_WORKERS: "8"        # Más trabajadores en paralelo
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./lottobueno_backup.dump:/docker-entrypoint-initdb.d/lottobueno_backup.dump
@@ -21,6 +27,13 @@ services:
       test: ["CMD-SHELL", "pg_isready -U lottobueno -h postgres"]
       interval: 10s
       retries: 5
+    # Configuración de recursos de Docker para PostgreSQL
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     networks:
       - lotto-bueno-network
 

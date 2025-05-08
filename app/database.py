@@ -19,7 +19,15 @@ SessionLocal = None
 
 for db_url in DATABASE_URLS:
     try:
-        engine = create_engine(db_url)
+        # Aumentar el tamaño del pool y timeout para evitar errores de conexión
+        engine = create_engine(
+            db_url,
+            pool_size=20,           # Aumentar el tamaño del pool (default: 5)
+            max_overflow=20,        # Aumentar el overflow máximo (default: 10)
+            pool_timeout=60,        # Aumentar el timeout del pool (default: 30)
+            pool_recycle=1800,      # Reciclar conexiones cada 30 minutos
+            pool_pre_ping=True      # Verificar conexiones antes de usarlas
+        )
         # Probar la conexión
         with engine.connect() as conn:
             print(f"Conectado exitosamente usando: {db_url}")
