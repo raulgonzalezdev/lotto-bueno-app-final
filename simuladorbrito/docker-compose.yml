@@ -67,8 +67,8 @@ services:
     container_name: simuladorbrito-certbot
     restart: unless-stopped
     volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ../nginx/certs/ahorasi.fullchain.pem:/etc/nginx/ssl/ahorasi.fullchain.pem:ro
+      - ../nginx/certs/ahorasi.privkey.pem:/etc/nginx/ssl/ahorasi.privkey.pem:ro
       - ./certbot/logs:/var/log/letsencrypt
     networks:
       - simuladorbrito-network
