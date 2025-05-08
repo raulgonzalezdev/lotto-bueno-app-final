@@ -119,11 +119,11 @@ COPY ./simuladorbrito /simuladorbrito
 # Instala dependencias
 RUN npm install --legacy-peer-deps
 
-# Construye la aplicación
-RUN npm run build
+# Construye la aplicación - usar build:standalone igual que banempre
+RUN npm run build:standalone
 
 # Expone el puerto que usa la aplicación
 EXPOSE 3005
 
-# Comando para iniciar la aplicación
-CMD ["node", ".next/standalone/server.js"]
+# Comando para iniciar la aplicación - mismo comando que banempre
+CMD ["npm", "run", "start"]

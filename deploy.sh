@@ -27,5 +27,4 @@ docker-compose exec app alembic upgrade head
 
 echo "All services are up and running with latest database schema."
 
-echo "Cloudflare tunnel for simuladorbrito is running with ID: 2b59f68e-27b4-4738-afa9-12894418b128"
 
