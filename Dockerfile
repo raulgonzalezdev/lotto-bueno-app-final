@@ -13,6 +13,13 @@ ENV POSTGRES_PASSWORD=lottobueno
 #RUN chmod +x /docker-entrypoint-initdb.d/init-db.sh
 #RUN chmod +x /docker-entrypoint-initdb.d/wait-for-it.sh
 
+# Etapa de certificados SSL
+FROM certbot/certbot:latest as certbot
+RUN mkdir -p /etc/letsencrypt
+WORKDIR /app
+COPY ./ssl-init.sh /app/
+RUN chmod +x /app/ssl-init.sh
+
 # Etapa 2: Configuración de la aplicación backend
 FROM python:3.10-slim as app
 
