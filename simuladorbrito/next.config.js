@@ -16,11 +16,11 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['simuladorparametrica.com', 'localhost'],
+    domains: ['ahorasi.online', 'localhost'],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'simuladorparametrica.com',
+        hostname: 'ahorasi.online',
         pathname: '/**',
       },
       {
@@ -31,7 +31,7 @@ const nextConfig = {
     ]
   },
   // Configurar correctamente assetPrefix
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://simuladorparametrica.com' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://ahorasi.online' : '',
   // Mantener basePath vacío
   basePath: '',
   async headers() {

@@ -30,6 +30,7 @@ services:
       - "8081:80"    # Puerto 8081 para HTTP
       - "8443:443"  # Puerto 8443 para HTTPS
     volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/html:/usr/share/nginx/html
       # Usar los certificados existentes en lugar de los de certbot

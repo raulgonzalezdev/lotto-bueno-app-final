@@ -23,8 +23,8 @@ COPY . .
 # Construye la aplicación
 RUN npm run build
 
-# Expone el puerto que usa la aplicación banempre
+# Expone el puerto que usa la aplicación
 EXPOSE 3005
 
-# Comando para iniciar la aplicación
-CMD ["npm", "run", "start"]
+# Comando para iniciar la aplicación correctamente para output: standalone
+CMD ["node", ".next/standalone/server.js"]
