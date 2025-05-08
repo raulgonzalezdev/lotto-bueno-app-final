@@ -192,8 +192,11 @@ origins = [
     "https://lottobueno.com",
     "https://banempre.online",
     "https://www.banempre.online",
+    "https://ahorasi.online",
+    "https://www.ahorasi.online",
     "http://localhost:3000",
-    "http://localhost:3002"
+    "http://localhost:3002",
+    "http://localhost:3005"
 ]
 
 # Configuración centralizada de CORS para toda la aplicación.
