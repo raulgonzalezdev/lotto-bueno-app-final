@@ -16,8 +16,8 @@ services:
       - NODE_ENV=production
       - PORT=3005
       - HOST=0.0.0.0
-      - NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
-      - NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
+      - NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
+      - NEXT_PUBLIC_BASE_URL=https://ahorasi.online
       - NEXT_PUBLIC_SITE_NAME=Simulador Electoral José Brito
       - NEXT_PUBLIC_SITE_DESCRIPTION=Simulador de votación para las elecciones regionales de Anzoátegui 2025
     healthcheck:
@@ -35,11 +35,13 @@ services:
     container_name: simuladorbrito-nginx
     restart: always
     ports:
-      - "8080:80"    # Cambiado del puerto 80 al 8080 para evitar conflictos
-      - "8090:80"    # Puerto alternativo para pruebas locales
+      - "80:80"    # Puerto 80 para HTTP
+      - "443:443"  # Puerto 443 para HTTPS
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/html:/usr/share/nginx/html
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
       - /dev/null:/etc/nginx/conf.d/default.conf
     depends_on:
       - simuladorbrito
@@ -51,16 +53,22 @@ services:
       start_period: 10s
     networks:
       - simuladorbrito-network
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
 
-  # Cloudflare Tunnel para exponer la aplicación en internet
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: simuladorbrito-cloudflared
+  # Certbot para SSL/TLS
+  certbot:
+    image: certbot/certbot:latest
+    container_name: simuladorbrito-certbot
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token eyJhIjoiYzMzYWJjZTc5NWQ2MjMxYjE2MWQ1OWYyMmQ0NGRlZTUiLCJ0IjoiMmI1OWY2OGUtMjdiNC00NzM4LWFmYTktMTI4OTQ0MThiMTI4IiwicyI6Ik1qSTRNemc0WkdVdE1qVmtNQzAwTVRRNUxXRTFNbUl0WmpVM05qY3lOelptTURVMCJ9
-    network_mode: "service:nginx"
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/logs:/var/log/letsencrypt
+    networks:
+      - simuladorbrito-network
     depends_on:
       - nginx
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 networks:
   simuladorbrito-network:

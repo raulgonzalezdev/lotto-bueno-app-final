@@ -15,8 +15,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3005
 ENV HOST=0.0.0.0
-ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
-ENV NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
+ENV NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
+ENV NEXT_PUBLIC_BASE_URL=https://ahorasi.online
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,8 +36,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3005
 ENV HOST=0.0.0.0
-ENV NEXT_PUBLIC_ASSET_PREFIX=https://simuladorparametrica.com
-ENV NEXT_PUBLIC_BASE_URL=https://simuladorparametrica.com
+ENV NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
+ENV NEXT_PUBLIC_BASE_URL=https://ahorasi.online
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Crear un usuario no root para ejecutar la aplicación
