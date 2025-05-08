@@ -13,13 +13,6 @@ ENV POSTGRES_PASSWORD=lottobueno
 #RUN chmod +x /docker-entrypoint-initdb.d/init-db.sh
 #RUN chmod +x /docker-entrypoint-initdb.d/wait-for-it.sh
 
-# Etapa de certificados SSL
-FROM certbot/certbot:latest as certbot
-RUN mkdir -p /etc/letsencrypt
-WORKDIR /app
-COPY ./ssl-init.sh /app/
-RUN chmod +x /app/ssl-init.sh
-
 # Etapa 2: Configuración de la aplicación backend
 FROM python:3.10-slim as app
 
@@ -103,33 +96,6 @@ RUN npm run build:standalone
 
 # Expone el puerto que usa la aplicación banempre
 EXPOSE 3002
-
-# Comando para iniciar la aplicación
-CMD ["npm", "run", "start"]
-
-# Etapa 5: Configuración de la aplicación simuladorbrito
-FROM node:18-alpine as simuladorbrito
-
-# Configuración de variables de entorno
-ENV NODE_ENV=production
-ENV PORT=3005
-ENV NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
-ENV NEXT_PUBLIC_BASE_URL=https://ahorasi.online
-
-WORKDIR /simuladorbrito
-
-# Copia los archivos de configuración y el código fuente
-COPY ./simuladorbrito/package.json ./simuladorbrito/package-lock.json* ./
-COPY ./simuladorbrito /simuladorbrito
-
-# Instala dependencias
-RUN npm install --legacy-peer-deps
-
-# Construye la aplicación
-RUN npm run build
-
-# Expone el puerto 3005
-EXPOSE 3005
 
 # Comando para iniciar la aplicación
 CMD ["npm", "run", "start"]

@@ -179,23 +179,6 @@ services:
     depends_on:
       - app
 
-  simuladorbrito:
-    build:
-      context: .
-      target: simuladorbrito
-    environment:
-      - NODE_ENV=production
-      - PORT=3005
-      - NEXT_PUBLIC_ASSET_PREFIX=https://ahorasi.online
-      - NEXT_PUBLIC_BASE_URL=https://ahorasi.online
-    volumes:
-      - ./simuladorbrito:/simuladorbrito
-    ports:
-      - "3005:3005"
-    restart: unless-stopped
-    networks:
-      - lotto-bueno-network
-
   nginx:
     image: nginx:latest
     ports:
@@ -203,26 +186,11 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ./nginx/certs:/etc/nginx/certs
     networks:
       - lotto-bueno-network
     depends_on:
       - app
-      - simuladorbrito
-      
-  certbot:
-    image: certbot/certbot:latest
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-      - ./ssl-init.sh:/app/ssl-init.sh
-    networks:
-      - lotto-bueno-network
-    depends_on:
-      - nginx
-    entrypoint: "/bin/sh"
-    command: "/app/ssl-init.sh"
 
   # --- Servicios de Monitoreo ---
 
