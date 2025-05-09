@@ -10,24 +10,68 @@ import CardActionArea from '@mui/material/CardActionArea';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import { keyframes } from '@mui/system';
+
+// Definir la animación de latido
+const latido = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+`;
 
 export default function Simulador() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [orientationChanged, setOrientationChanged] = useState(false);
+  const containerRef = React.useRef(null);
   
   const logoCNE = "/cne/logo_cne.png"; // Añadir referencia al logo del CNE
   
   useEffect(() => {
     setMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    const checkOrientation = () => {
+      // En móviles, queremos la orientación horizontal
+      if (window.innerWidth <= 768) {
+        setOrientationChanged(true);
+      } else {
+        setOrientationChanged(false);
+      }
+    };
+    
+    checkMobile();
+    checkOrientation();
+    
+    window.addEventListener('resize', checkMobile);
+    window.addEventListener('resize', checkOrientation);
+    
+    // Bloquear la rotación automática en dispositivos móviles
+    if (typeof window !== 'undefined') {
+      if (window.screen && window.screen.orientation) {
+        try {
+          // Intentar bloquear en landscape
+          window.screen.orientation.lock('landscape').catch(() => {
+            console.log('Landscape lock not supported');
+          });
+        } catch (e) {
+          console.log('Orientation API not supported');
+        }
+      }
+    }
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('resize', checkOrientation);
+    };
   }, []);
   
   // Datos del tarjetón actualizados según la entrada del usuario
   const tarjetonData = [
-    // Fila 1 - todos vacíos
-    [null, null, null, null, null, null, null],
-    // Fila 2 - todos vacíos
-    [null, null, null, null, null, null, null],
-    // Fila 3
+    // Eliminamos las filas vacías
     [
       { id: 'union_cambio', nombre: 'UNIÓN CAMBIO', logo: '/partidos/union_cambio.png', apoyaBrito: false },
       { id: 'mra', nombre: 'MRA', logo: '/partidos/mra.png', apoyaBrito: false },
@@ -105,198 +149,535 @@ export default function Simulador() {
   if (!mounted) {
     return null;
   }
+  
+  // En móvil, reorganizar datos del tarjetón para formato horizontal
+  const mobileGridData = isMobile ? [
+    tarjetonData[0].slice(0, 2),
+    tarjetonData[0].slice(2, 5),
+    tarjetonData[0].slice(5, 7),
+    tarjetonData[1].slice(0, 2),
+    tarjetonData[1].slice(2, 5),
+    tarjetonData[1].slice(5, 7),
+    tarjetonData[2].slice(0, 2),
+    tarjetonData[2].slice(2, 5),
+    tarjetonData[2].slice(5, 7),
+    tarjetonData[3].slice(0, 2),
+    tarjetonData[3].slice(2, 5),
+    tarjetonData[3].slice(5, 7),
+    tarjetonData[4]
+  ] : [];
 
   return (
     <Box sx={{ 
       minHeight: '100vh', 
       display: 'flex', 
       flexDirection: 'column', 
-      backgroundImage: 'url(/fondovertical.jpg)', // Imagen de fondo global
-      backgroundSize:  'contain',
+      backgroundImage: isMobile ? 'none' : 'url(/fondovertical.jpg)',
+      backgroundSize: 'contain',
       backgroundPosition: 'center',
       backgroundRepeat: 'repeat',
-      backgroundColor: 'rgba(255,255,255,0.87)', // Ligera transparencia sobre la imagen
-      backgroundBlendMode: 'lighten', // Modo de mezcla para la transparencia
+      backgroundColor: '#25346d', // Fondo azul oscuro para móviles
+      backgroundBlendMode: 'lighten',
+      overflowX: 'auto',
+      position: 'relative',
     }}> 
       <Head>
         <title>Simulador Electoral 2025 - José Brito Gobernador</title>
         <meta name="description" content="Simulador de votación para las elecciones regionales 2025" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       </Head>
 
-      {/* Cabecera Fija */}
-      <Box 
-        sx={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          zIndex: 1200, 
-          backgroundColor: 'rgb(21, 40, 82)', 
-          color: 'white', 
-          py: 1, px: 2, 
-          textAlign: 'center', 
-          boxShadow: 3, 
-          height: headerHeight,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <div style={{ marginRight: '8px', width: '24px', height: '24px', position: 'relative' }}>
-          <img src={logoCNE} alt="CNE Logo" width={24} height={24} />
-        </div>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
-          ELECCIONES REGIONALES Y NACIONALES 2025
-        </Typography>
-      </Box>
-
-      {/* Contenido Principal (entre cabecera y pie de página) */}
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', // Apila el Paper del tarjetón y otros elementos si los hubiera
-        flexGrow: 1, 
-        pt: headerHeight, 
-        pb: footerHeight, 
-        width: '100%',
-        alignItems: { xs: 'center', md: 'center' }, // Centra en móvil Y en desktop
-        justifyContent: 'center', // Centra verticalmente el contenido si hay espacio
-        p: { xs: 1, sm: 2, md: 3 }, // Padding general
-        overflowY: 'auto' // Scroll si el contenido es muy alto
-      }}> 
-        
-        {/* Tarjetón */}
-        <Paper 
-          elevation={6} 
+      {/* Cabecera Fija - Visible en escritorio, oculta en móvil */}
+      {!isMobile && (
+        <Box 
           sx={{ 
-            p: { xs: 1, sm: 2 }, 
-            backgroundColor: 'white', 
-            borderRadius: 2, 
-            border: '3px solid rgb(21, 40, 82)',
-            maxWidth: { xs: '900px', md: '1600px' }, // Aumentado para desktop y centrado por el padre
-            width: '100%', // Ocupa el ancho disponible hasta maxWidth
-            height: { xs: 'auto', md: 'auto' }, // Permitir que crezca en altura en móviles
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1200, 
+            backgroundColor: '#25346d', 
+            color: '#ffcc00', 
+            py: 1, 
+            px: 2, 
+            textAlign: 'center', 
+            boxShadow: 3, 
+            height: headerHeight,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-          <Box sx={{ backgroundColor: 'rgb(21, 40, 82)', color: 'white', py: 1, px: 2, textAlign: 'center', mb: 2, borderRadius: 1 }}>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', fontSize: { xs: '1rem', md: '1.25rem' } }}>
-              TARJETÓN ELECTORAL 2025
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-              Seleccione un partido para votar por José Brito como Gobernador
-            </Typography>
-          </Box>
-          
+          <div style={{ marginRight: '8px', width: '24px', height: '24px', position: 'relative' }}>
+            <img src={logoCNE} alt="CNE Logo" width={24} height={24} />
+          </div>
+          <Typography variant="h5" component="h1" sx={{ 
+            fontWeight: 'bold', 
+            fontSize: { xs: '1rem', md: '1.5rem' },
+            textTransform: 'uppercase',
+          }}>
+            CONOCE LAS TARJETAS PARA EL PROGRESO DE <span style={{ color: 'white' }}>ANZOÁTEGUI</span>
+          </Typography>
+        </Box>
+      )}
+
+      {/* Contenido Principal */}
+      <Box 
+        ref={containerRef}
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          flexGrow: 1, 
+          pt: isMobile ? 0 : headerHeight, 
+          pb: isMobile ? 0 : footerHeight, 
+          width: '100%',
+          height: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: { xs: 0, sm: 2, md: 3 },
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      > 
+        {/* Vista móvil */}
+        {isMobile ? (
           <Box
-            display="grid"
-            gridTemplateColumns="repeat(7, 1fr)"
-            gap={{ xs: 0.8, sm: 1 }}
-            sx={{ 
-              border: '1px solid #ccc', 
-              p: {xs: 0.8, sm: 1}, 
-              backgroundColor: '#f0f0f0',
-              minHeight: { xs: '400px', sm: 'auto' } // Aumentar altura mínima en móviles
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              position: 'relative',
+              backgroundColor: '#25346d',
+              overflow: 'hidden',
             }}
           >
-            {tarjetonData.flat().map((partido, index) => (
-              <Box
-                key={index}
+            {/* Textos laterales */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                height: '100%',
+                width: '50px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: '#ffcc00',
+                textAlign: 'center',
+                zIndex: 2,
+                writingMode: 'vertical-rl',
+                textOrientation: 'mixed',
+                padding: '10px 0',
+              }}
+            >
+              <Typography
+                variant="h6"
                 sx={{
-                  aspectRatio: { xs: '1 / 1', sm: '1 / 0.7', md: '1.8 / 0.7' }, // Hacer cuadradas las tarjetas en móvil
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid #d1d5db',
-                  backgroundColor: (partido && partido.apoyaBrito) ? 'white' : '#e5e7eb',
-                  overflow: 'hidden',
-                  boxSizing: 'border-box',
-                  p: { xs: 0.3, sm: 0.4, md: 0.5 } // Reducir padding para dar más espacio a la imagen
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  fontSize: '0.7rem',
+                  letterSpacing: 1,
                 }}
               >
-                {partido && partido.apoyaBrito ? (
-                  <div style={{ 
-                    width: '100%', 
-                    height: '100%', 
+                CONOCE LAS TARJETAS PARA EL PROGRESO DE ANZOÁTEGUI
+              </Typography>
+              <Box 
+                component="img" 
+                src={logoCNE} 
+                alt="CNE Logo" 
+                sx={{ 
+                  width: '20px',
+                  height: '20px',
+                  margin: '10px 0',
+                }} 
+              />
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '0.6rem',
+                  letterSpacing: 1,
+                }}
+              >
+                ELECCIONES REGIONALES Y NACIONALES 2025
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '100%',
+                width: '50px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: '#ffcc00',
+                textAlign: 'center',
+                zIndex: 2,
+                writingMode: 'vertical-lr',
+                textOrientation: 'mixed',
+                padding: '10px 0',
+              }}
+            >
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  fontSize: '0.7rem',
+                  letterSpacing: 1,
+                }}
+              >
+                JOSÉ BRITO
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '0.6rem',
+                  marginTop: '5px',
+                }}
+              >
+                BIENESTAR • PROGRESO • DESARROLLO
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '0.6rem',
+                  marginTop: 'auto',
+                }}
+              >
+                MÁS
+              </Typography>
+            </Box>
+
+            {/* Tarjetón central rotado 90 grados */}
+            <Paper
+              elevation={6}
+              sx={{
+                width: 'calc(100% - 120px)',
+                height: '90%',
+                backgroundColor: 'white',
+                borderRadius: '10px',
+                margin: '0 60px',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Cabecera del tarjetón */}
+              <Box sx={{ 
+                backgroundColor: '#002147', 
+                color: 'white', 
+                py: 0.25,
+                px: 1, 
+                textAlign: 'center', 
+                borderRadius: '10px 10px 0 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Typography variant="subtitle2" component="h2" sx={{ 
+                  fontWeight: 'bold', 
+                  fontSize: '0.7rem',
+                  mr: 0.5,
+                }}>
+                  ELECCIONES REGIONALES Y NACIONALES 2025
+                </Typography>
+                <Box 
+                  component="img" 
+                  src={logoCNE} 
+                  alt="CNE Logo" 
+                  sx={{ 
+                    height: '12px',
+                    ml: 0.5
+                  }} 
+                />
+              </Box>
+
+              {/* Contenido del tarjetón - Rejilla de partidos */}
+              <Box
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '4px',
+                  backgroundColor: '#f5f5f5',
+                  overflow: 'auto',
+                }}
+              >
+                {tarjetonData.map((fila, filaIndex) => (
+                  <Box
+                    key={filaIndex}
+                    sx={{
+                      display: 'flex',
+                      flex: 1,
+                      mb: 0.25,
+                    }}
+                  >
+                    {fila.map((partido, colIndex) => (
+                      <Box
+                        key={`${filaIndex}-${colIndex}`}
+                        sx={{
+                          flex: 1,
+                          mx: 0.25,
+                          aspectRatio: '2/1',
+                          border: partido ? '1px solid #ddd' : 'none',
+                          backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0.25,
+                          '&:hover': partido && partido.apoyaBrito ? {
+                            backgroundColor: 'rgba(226,230,234,0.8)',
+                            transform: 'scale(1.05)',
+                            transition: 'all 0.3s ease',
+                          } : {},
+                        }}
+                        onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                      >
+                        {partido && partido.apoyaBrito && (
+                          <Box
+                            component="img"
+                            src={partido.logo}
+                            alt={partido.nombre}
+                            sx={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              objectFit: 'contain',
+                            }}
+                          />
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Botón de regresar */}
+              <Box sx={{ 
+                backgroundColor: 'white', 
+                p: 0.5, 
+                textAlign: 'center' 
+              }}>
+                <Button 
+                  variant="contained"
+                  onClick={goToInicio}
+                  disableElevation
+                  sx={{ 
+                    backgroundColor: '#25346d', 
+                    '&:hover': { backgroundColor: '#1c2851' },
+                    fontSize: '0.6rem',
+                    px: 1.5,
+                    py: 0.3,
+                    borderRadius: 1,
+                  }}
+                >
+                  REGRESAR
+                </Button>
+              </Box>
+            </Paper>
+          </Box>
+        ) : (
+          // Vista desktop original
+          <Paper 
+            elevation={6} 
+            sx={{ 
+              p: { xs: 0.25, sm: 1 },
+              backgroundColor: 'white', 
+              borderRadius: '10px 10px 0 0',
+              border: '1px solid #25346d',
+              width: { xs: '98%', md: '95%' },
+              maxWidth: { xs: '100%', sm: '900px', md: '1600px' },
+              mx: 'auto',
+              boxShadow: '0px 3px 10px rgba(0,0,0,0.15)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Cabecera horizontal del tarjetón */}
+            <Box sx={{ 
+              backgroundColor: '#002147', 
+              color: 'white', 
+              py: 0.25,
+              px: 1, 
+              textAlign: 'center', 
+              mb: 0.5, 
+              borderRadius: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Typography variant="h6" component="h2" sx={{ 
+                fontWeight: 'bold', 
+                fontSize: { xs: '0.75rem', md: '1.1rem' },
+                mr: 0.5,
+              }}>
+                ELECCIONES REGIONALES Y NACIONALES 2025
+              </Typography>
+              <Box 
+                component="img" 
+                src={logoCNE} 
+                alt="CNE Logo" 
+                sx={{ 
+                  height: '15px',
+                  ml: 0.5
+                }} 
+              />
+            </Box>
+            
+            <Box
+              display="grid"
+              gridTemplateColumns="repeat(7, 1fr)"
+              gridAutoRows="minmax(40px, auto)"
+              gap={0.25}
+              sx={{ 
+                border: '1px solid #ced4da', 
+                p: {xs: 0.25, sm: 0.5},
+                backgroundColor: '#f0f0f0',
+                flex: 1,
+                mt: 0.25,
+                overflow: 'auto',
+                width: '100%',
+              }}
+            >
+              {tarjetonData.flat().map((partido, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    aspectRatio: '2 / 1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid rgb(21, 40, 82)',
-                    padding: 0,
+                    border: partido ? '1px solid #ced4da' : 'none',
+                    backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                    overflow: 'hidden',
                     boxSizing: 'border-box',
-                    cursor: 'pointer'
+                    p: 0.25,
+                    borderRadius: 1,
+                    minHeight: {xs: '40px', sm: '40px'},
+                    height: '100%',
+                    cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                    transition: 'background-color 0.3s, transform 0.3s',
+                    '&:hover': partido && partido.apoyaBrito ? {
+                      backgroundColor: 'rgba(226,230,234,0.8)',
+                      transform: 'scale(1.05)',
+                      boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)',
+                    } : {},
                   }}
-                  onClick={() => handleSelectPartido(partido)}>
+                >
+                  {partido && partido.apoyaBrito ? (
                     <div style={{ 
-                      width: '95%', // Aumentado de 90% a 95%
-                      height: '95%', // Aumentado de 90% a 95%
-                      position: 'relative',
+                      width: '100%', 
+                      height: '100%', 
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Box
-                        component="img"
-                        src={partido.logo}
-                        alt={partido.nombre}
-                        sx={{ 
-                          maxWidth: '100%',
-                          maxHeight: '100%',
-                          width: 'auto',
-                          height: 'auto',
-                          objectFit: 'contain',
-                          '@media (max-width: 600px)': {
-                            objectFit: 'fill',
-                            width: '100%',
-                            height: '100%',
-                            aspectRatio: '1 / 1'
-                          }
-                        }}
-                      />
+                      justifyContent: 'center',
+                      backgroundSize: '100% 100%',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      padding: 0,
+                      boxSizing: 'border-box',
+                    }}
+                    onClick={() => handleSelectPartido(partido)}>
+                      <div style={{ 
+                        width: '95%',
+                        height: '95%',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Box
+                          component="img"
+                          src={partido.logo}
+                          alt={partido.nombre}
+                          sx={{ 
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            '@media (max-width: 600px)': {
+                              objectFit: 'contain',
+                              width: '100%',
+                              height: '100%',
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  null 
-                )}
-              </Box>
-            ))}
-          </Box>
-          
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Button 
-              variant="contained"
-              onClick={goToInicio}
-              disableElevation
-              sx={{ 
-                backgroundColor: 'rgb(21, 40, 82)', 
-                '&:hover': { backgroundColor: 'rgb(15, 30, 62)' },
-                fontSize: {xs: '0.8rem', sm:'0.9rem', md: '1rem'},
-                px: {xs: 2, sm:3, md: 4},
-                py: {xs: 0.8, sm:1, md: 1.2}
-              }}
-            >
-              REGRESAR
-            </Button>
-          </Box>
-        </Paper>
+                  ) : null}
+                </Box>
+              ))}
+            </Box>
+            
+            <Box sx={{ textAlign: 'center', mt: 1 }}>
+              <Button 
+                variant="contained"
+                onClick={goToInicio}
+                disableElevation
+                sx={{ 
+                  backgroundColor: '#25346d', 
+                  '&:hover': { backgroundColor: '#1c2851' },
+                  fontSize: {xs: '0.7rem', sm:'0.8rem', md: '0.9rem'},
+                  px: {xs: 1.5, sm:2, md: 3},
+                  py: {xs: 0.5, sm:0.7, md: 1},
+                  borderRadius: 1,
+                }}
+              >
+                REGRESAR
+              </Button>
+            </Box>
+          </Paper>
+        )}
       </Box>
       
-      {/* Pie de Página Fijo */}
-      <Box 
-        sx={{ 
-          position: 'fixed', 
-          bottom: 0, 
-          left: 0, 
-          right: 0, 
-          zIndex: 1200, 
-          backgroundColor: 'rgb(21, 40, 82)', 
-          color: 'white', 
-          py: 1.5, 
-          height: footerHeight
-        }}
-      >
-        <Typography variant="body2" align="center" sx={{ fontSize: {xs: '0.7rem', sm:'0.75rem', md: '0.875rem'} }}>
-          &copy; 2025 Simulador Electoral - José Brito Gobernador
-        </Typography>
-      </Box>
+      {/* Pie de Página Fijo - Visible en escritorio, oculto en móvil */}
+      {!isMobile && (
+        <Box 
+          sx={{ 
+            position: 'fixed', 
+            bottom: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1200, 
+            backgroundColor: '#25346d', 
+            color: 'white', 
+            py: 1, 
+            height: footerHeight,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            align="center" 
+            sx={{ 
+              fontSize: {xs: '0.7rem', sm:'0.75rem', md: '0.875rem'},
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+            }}
+          >
+            <Box component="span" sx={{ animation: `${latido} 1s infinite ease-in-out`, fontWeight: 'bold' }}>
+              JOSÉ BRITO
+            </Box>
+            <span style={{ color: '#ffcc00' }}> BIENESTAR • PROGRESO • DESARROLLO</span>
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 } 
