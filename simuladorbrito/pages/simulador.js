@@ -170,23 +170,6 @@ export default function Simulador() {
     return null;
   }
   
-  // En móvil, reorganizar datos del tarjetón para formato horizontal
-  const mobileGridData = isMobile ? [
-    tarjetonData[2].slice(0, 2),
-    tarjetonData[2].slice(2, 5),
-    tarjetonData[2].slice(5, 7),
-    tarjetonData[3].slice(0, 2),
-    tarjetonData[3].slice(2, 5),
-    tarjetonData[3].slice(5, 7),
-    tarjetonData[4].slice(0, 2),
-    tarjetonData[4].slice(2, 5),
-    tarjetonData[4].slice(5, 7),
-    tarjetonData[5].slice(0, 2),
-    tarjetonData[5].slice(2, 5),
-    tarjetonData[5].slice(5, 7),
-    tarjetonData[6]
-  ] : [];
-
   return (
     <Box sx={{ 
       minHeight: '100vh', 
@@ -306,20 +289,15 @@ export default function Simulador() {
                 CONOCE LAS TARJETAS PARA EL PROGRESO DE ANZOÁTEGUI
               </Typography>
             
-            
-                <Typography
-                variant="body2"
+              <Box
                 sx={{
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase',
-                  fontSize: 'inherit',
                   marginTop: '10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  flexDirection: 'row',
                 }}
               >
-                ELECCIONES REGIONALES Y NACIONALES 2025
                 <Box 
                   component="img" 
                   src={logoCNE} 
@@ -327,10 +305,20 @@ export default function Simulador() {
                   sx={{ 
                     width: '15px',
                     height: '15px',
-                    marginLeft: '5px',
+                    marginRight: '5px',
                   }} 
                 />
-              </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    fontSize: 'inherit',
+                  }}
+                >
+                  ELECCIONES REGIONALES Y NACIONALES 2025
+                </Typography>
+              </Box>
             </Box>
 
             {/* Texto lateral izquierdo */}
@@ -361,12 +349,23 @@ export default function Simulador() {
                   textTransform: 'uppercase',
                   fontSize: 'inherit',
                   letterSpacing: 1,
+                  animation: `${latido} 2s infinite ease-in-out`,
                 }}
               >
-                JOSÉ BRITO BIENESTAR • PROGRESO • DESARROLLO
+                JOSÉ BRITO
               </Typography>
-            
-          
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  fontSize: 'inherit',
+                  letterSpacing: 1,
+                  marginTop: '5px',
+                }}
+              >
+                BIENESTAR • PROGRESO • DESARROLLO
+              </Typography>
             </Box>
 
             {/* Tarjetón central */}
@@ -389,232 +388,66 @@ export default function Simulador() {
                 sx={{
                   flex: 1,
                   backgroundColor: '#f5f5f5',
-                  padding: '6px',
-                  overflowY: 'auto',
+                  padding: '3px', // Ajustado para mejor encaje de columnas
+                  overflowX: 'auto', // Permitir scroll horizontal si las columnas no caben
                   display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
+                  flexDirection: 'row', // Las columnas se alinean horizontalmente
+                  justifyContent: 'flex-start', // Empezar desde la izquierda
+                  height: '100%', // Ocupar toda la altura del Paper
                 }}
               >
-                {/* Primera fila */}
-                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[2].map((partido, index) => (
-                    <Box
-                      key={`row1-${index}`}
+                {[6, 5, 4, 3, 2, 1, 0].map((originalRowIndex, columnIndex) => {
+                  const partidosDeLaFilaOriginal = tarjetonData[originalRowIndex];
+
+                  return (
+                    <Box // Esto es una COLUMNA en la vista móvil
+                      key={`mobile-column-${columnIndex}`}
                       sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
-                        borderRadius: '5px',
-                        border: partido ? '1px solid #ddd' : 'none',
-                        overflow: 'hidden',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                        flexDirection: 'column', // Los items dentro de la columna van verticalmente
+                        flex: '0 0 auto', // No crecer ni encoger, basar en width
+                        width: 'calc(100% / 7 - 4px)', // 7 columnas, restando márgenes
+                        // height: '100%', // Cada columna ocupa toda la altura del contenedor padre
+                        margin: '0 2px', // Espacio horizontal entre columnas
+                        justifyContent: 'flex-start',
                       }}
-                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
                     >
-                      {partido && partido.apoyaBrito && (
-                        <Box
-                          component="img"
-                          src={partido.logo}
-                          alt={partido.nombre}
+                      {partidosDeLaFilaOriginal.map((partido, itemIndexInColumn) => (
+                        <Box // Esto es una CELDA dentro de la columna
+                          key={`mobile-column-${columnIndex}-item-${itemIndexInColumn}`}
                           sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            transform: 'rotate(90deg)',
-                            padding: '2px',
+                            height: 'calc(100% / 7 - 4px)', // 7 celdas por columna, restando márgenes
+                            margin: '2px 0', // Espacio vertical entre celdas
+                            backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                            borderRadius: '5px',
+                            border: partido ? '1px solid #ddd' : 'none',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
                           }}
-                        />
-                      )}
+                          onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                        >
+                          {partido && partido.apoyaBrito && (
+                            <Box
+                              component="img"
+                              src={partido.logo}
+                              alt={partido.nombre}
+                              sx={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                transform: 'rotate(90deg)',
+                                padding: '2px',
+                              }}
+                            />
+                          )}
+                        </Box>
+                      ))}
                     </Box>
-                  ))}
-                </Box>
-
-                {/* Segunda fila */}
-                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[3].map((partido, index) => (
-                    <Box
-                      key={`row2-${index}`}
-                      sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
-                        borderRadius: '5px',
-                        border: partido ? '1px solid #ddd' : 'none',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
-                      }}
-                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
-                    >
-                      {partido && partido.apoyaBrito && (
-                        <Box
-                          component="img"
-                          src={partido.logo}
-                          alt={partido.nombre}
-                          sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            transform: 'rotate(90deg)',
-                            padding: '2px',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-
-                {/* Tercera fila */}
-                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[4].map((partido, index) => (
-                    <Box
-                      key={`row3-${index}`}
-                      sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
-                        borderRadius: '5px',
-                        border: partido ? '1px solid #ddd' : 'none',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
-                      }}
-                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
-                    >
-                      {partido && partido.apoyaBrito && (
-                        <Box
-                          component="img"
-                          src={partido.logo}
-                          alt={partido.nombre}
-                          sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            transform: 'rotate(90deg)',
-                            padding: '2px',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-
-                {/* Cuarta fila */}
-                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[5].map((partido, index) => (
-                    <Box
-                      key={`row4-${index}`}
-                      sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
-                        borderRadius: '5px',
-                        border: partido ? '1px solid #ddd' : 'none',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
-                      }}
-                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
-                    >
-                      {partido && partido.apoyaBrito && (
-                        <Box
-                          component="img"
-                          src={partido.logo}
-                          alt={partido.nombre}
-                          sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            transform: 'rotate(90deg)',
-                            padding: '2px',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-
-                {/* Quinta fila */}
-                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[6].map((partido, index) => (
-                    <Box
-                      key={`row5-${index}`}
-                      sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
-                        borderRadius: '5px',
-                        border: partido ? '1px solid #ddd' : 'none',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
-                      }}
-                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
-                    >
-                      {partido && partido.apoyaBrito && (
-                        <Box
-                          component="img"
-                          src={partido.logo}
-                          alt={partido.nombre}
-                          sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            transform: 'rotate(90deg)',
-                            padding: '2px',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-
-                {/* Sexta fila */}
-                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {Array(7).fill(null).map((_, index) => (
-                    <Box
-                      key={`row6-${index}`}
-                      sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: '#e5e7eb',
-                        borderRadius: '5px',
-                      }}
-                    />
-                  ))}
-                </Box>
-
-                {/* Séptima fila */}
-                <Box sx={{ display: 'flex', height: '14.28%' }}>
-                  {Array(7).fill(null).map((_, index) => (
-                    <Box
-                      key={`row7-${index}`}
-                      sx={{
-                        flex: 1,
-                        mx: '2px',
-                        backgroundColor: '#e5e7eb',
-                        borderRadius: '5px',
-                      }}
-                    />
-                  ))}
-                </Box>
+                  );
+                })}
               </Box>
             </Paper>
             
