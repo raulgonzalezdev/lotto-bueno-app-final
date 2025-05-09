@@ -71,7 +71,27 @@ export default function Simulador() {
   
   // Datos del tarjetón actualizados según la entrada del usuario
   const tarjetonData = [
-    // Eliminamos las filas vacías
+    // Fila 1 - Primera fila en blanco
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    // Fila 2 - Segunda fila en blanco
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    // Fila 3
     [
       { id: 'union_cambio', nombre: 'UNIÓN CAMBIO', logo: '/partidos/union_cambio.png', apoyaBrito: false },
       { id: 'mra', nombre: 'MRA', logo: '/partidos/mra.png', apoyaBrito: false },
@@ -152,19 +172,19 @@ export default function Simulador() {
   
   // En móvil, reorganizar datos del tarjetón para formato horizontal
   const mobileGridData = isMobile ? [
-    tarjetonData[0].slice(0, 2),
-    tarjetonData[0].slice(2, 5),
-    tarjetonData[0].slice(5, 7),
-    tarjetonData[1].slice(0, 2),
-    tarjetonData[1].slice(2, 5),
-    tarjetonData[1].slice(5, 7),
     tarjetonData[2].slice(0, 2),
     tarjetonData[2].slice(2, 5),
     tarjetonData[2].slice(5, 7),
     tarjetonData[3].slice(0, 2),
     tarjetonData[3].slice(2, 5),
     tarjetonData[3].slice(5, 7),
-    tarjetonData[4]
+    tarjetonData[4].slice(0, 2),
+    tarjetonData[4].slice(2, 5),
+    tarjetonData[4].slice(5, 7),
+    tarjetonData[5].slice(0, 2),
+    tarjetonData[5].slice(2, 5),
+    tarjetonData[5].slice(5, 7),
+    tarjetonData[6]
   ] : [];
 
   return (
@@ -378,7 +398,7 @@ export default function Simulador() {
               >
                 {/* Primera fila */}
                 <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[0].map((partido, index) => (
+                  {tarjetonData[2].map((partido, index) => (
                     <Box
                       key={`row1-${index}`}
                       sx={{
@@ -402,12 +422,11 @@ export default function Simulador() {
                           src={partido.logo}
                           alt={partido.nombre}
                           sx={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: '85%',
-                            height: '85%',
+                            width: '100%',
+                            height: '100%',
                             objectFit: 'contain',
                             transform: 'rotate(90deg)',
+                            padding: '2px',
                           }}
                         />
                       )}
@@ -417,7 +436,7 @@ export default function Simulador() {
 
                 {/* Segunda fila */}
                 <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[1].map((partido, index) => (
+                  {tarjetonData[3].map((partido, index) => (
                     <Box
                       key={`row2-${index}`}
                       sx={{
@@ -441,12 +460,11 @@ export default function Simulador() {
                           src={partido.logo}
                           alt={partido.nombre}
                           sx={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: '85%',
-                            height: '85%',
+                            width: '100%',
+                            height: '100%',
                             objectFit: 'contain',
                             transform: 'rotate(90deg)',
+                            padding: '2px',
                           }}
                         />
                       )}
@@ -456,7 +474,7 @@ export default function Simulador() {
 
                 {/* Tercera fila */}
                 <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[2].map((partido, index) => (
+                  {tarjetonData[4].map((partido, index) => (
                     <Box
                       key={`row3-${index}`}
                       sx={{
@@ -480,12 +498,11 @@ export default function Simulador() {
                           src={partido.logo}
                           alt={partido.nombre}
                           sx={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: '85%',
-                            height: '85%',
+                            width: '100%',
+                            height: '100%',
                             objectFit: 'contain',
                             transform: 'rotate(90deg)',
+                            padding: '2px',
                           }}
                         />
                       )}
@@ -495,7 +512,7 @@ export default function Simulador() {
 
                 {/* Cuarta fila */}
                 <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[3].map((partido, index) => (
+                  {tarjetonData[5].map((partido, index) => (
                     <Box
                       key={`row4-${index}`}
                       sx={{
@@ -519,12 +536,11 @@ export default function Simulador() {
                           src={partido.logo}
                           alt={partido.nombre}
                           sx={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: '85%',
-                            height: '85%',
+                            width: '100%',
+                            height: '100%',
                             objectFit: 'contain',
                             transform: 'rotate(90deg)',
+                            padding: '2px',
                           }}
                         />
                       )}
@@ -534,7 +550,7 @@ export default function Simulador() {
 
                 {/* Quinta fila */}
                 <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
-                  {tarjetonData[4].map((partido, index) => (
+                  {tarjetonData[6].map((partido, index) => (
                     <Box
                       key={`row5-${index}`}
                       sx={{
@@ -558,12 +574,11 @@ export default function Simulador() {
                           src={partido.logo}
                           alt={partido.nombre}
                           sx={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: '85%',
-                            height: '85%',
+                            width: '100%',
+                            height: '100%',
                             objectFit: 'contain',
                             transform: 'rotate(90deg)',
+                            padding: '2px',
                           }}
                         />
                       )}
@@ -602,6 +617,38 @@ export default function Simulador() {
                 </Box>
               </Box>
             </Paper>
+            
+            {/* Botón REGRESAR para vista móvil - Fuera del tarjetón */}
+            <Box
+              sx={{
+                position: 'fixed',
+                bottom: '10px',
+                left: '0',
+                right: '0',
+                display: 'flex',
+                justifyContent: 'center',
+                zIndex: 10,
+              }}
+            >
+              <Button 
+                variant="contained"
+                onClick={goToInicio}
+                disableElevation
+                sx={{ 
+                  backgroundColor: '#25346d', 
+                  '&:hover': { backgroundColor: '#1c2851' },
+                  fontSize: '0.8rem',
+                  py: 0.8,
+                  px: 5,
+                  borderRadius: 1,
+                  textTransform: 'uppercase',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                }}
+              >
+                REGRESAR
+              </Button>
+            </Box>
           </Box>
         ) : (
           // Vista desktop original
