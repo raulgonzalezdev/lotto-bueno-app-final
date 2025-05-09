@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
@@ -25,9 +25,6 @@ export default function SeleccionCargos() {
   const [partidoSeleccionado, setPartidoSeleccionado] = useState(null);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showWarningDialog, setShowWarningDialog] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [orientationChanged, setOrientationChanged] = useState(false);
-  const containerRef = useRef(null);
 
   useEffect(() => {
     if (router.query.partido) {
@@ -39,14 +36,6 @@ export default function SeleccionCargos() {
         router.push('/simulador');
       }
     }
-
-    // Detectar si es dispositivo móvil
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, [router.query.partido, router]);
 
   const handleVotar = () => {
@@ -86,35 +75,32 @@ export default function SeleccionCargos() {
   const footerHeight = '40px'; // Estimación para el pie de página
 
   // Tamaños base (móvil)
-  const baseTitlePaddingTop = '2px';
-  const baseLogoHeight = { xs: '42px', sm: '50px' };
-  const baseFontSize = '0.6rem';
-  const baseCardPadding = 0.15;
-  const baseLogoMarginY = 0.25;
-  const baseLogoMarginX = 0.25;
+  const baseTitlePaddingTop = '4px';
+  const baseLogoHeight = { xs: '52px', sm: '60px' }; // sm podría ser igual a xs si se prefiere
+  const baseFontSize = '0.65rem';
+  const baseCardPadding = 0.25;
+  const baseLogoMarginY = 0.5;
+  const baseLogoMarginX = 0.5;
   const baseImageWidth = 90;
   const baseImageHeight = 45;
 
   // Tamaños para desktop (md y superior)
-  const mdTitlePaddingTop = '8px';
-  const mdLogoHeight = '110px';
-  const mdFontSize = '0.9rem';
-  const mdCardPadding = 0.75;
-  const mdLogoMarginY = 1;
-  const mdLogoMarginX = 1;
+  const mdTitlePaddingTop = '12px';
+  const mdLogoHeight = '130px';
+  const mdFontSize = '1.1rem';
+  const mdCardPadding = 1;
+  const mdLogoMarginY = 1.5;
+  const mdLogoMarginX = 1.5;
 
   const SectionHeader = ({ title, sx }) => (
     <Box sx={{
       backgroundColor: 'black',
       color: 'white',
       textAlign: 'center',
-      py: {xs: 0.25, md: 0.5},
-      fontSize: { xs: '0.55rem', sm: '0.6rem', md: '1rem' },
+      py: {xs: 0.5, md: 0.75},
+      fontSize: { xs: '0.6rem', sm: '0.7rem', md: '1.2rem' },
       fontWeight: 'bold',
       borderRadius: 0,
-      position: 'sticky',
-      top: 0,
-      zIndex: 1,
       ...sx
     }}>
       {title}
@@ -122,23 +108,7 @@ export default function SeleccionCargos() {
   );
 
   const VotoCard = ({ cardTitle, subText, titlePaddingTop = {xs: baseTitlePaddingTop, md: mdTitlePaddingTop}, logoHeight = {xs: baseLogoHeight.xs, sm: baseLogoHeight.sm, md: mdLogoHeight} }) => (
-    <Card 
-      variant="outlined" 
-      sx={{ 
-        borderColor: brandBlueColor, 
-        borderWidth: 2, 
-        borderRadius: 1, 
-        height: '100%', 
-        p: {xs: baseCardPadding, md: mdCardPadding}, 
-        display: 'flex', 
-        flexDirection: 'column',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': {
-          transform: 'scale(1.05)',
-          boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)',
-        }
-      }}
-    >
+    <Card variant="outlined" sx={{ borderColor: brandBlueColor, borderWidth: 2, borderRadius: 0, height: '100%', p: {xs: baseCardPadding, md: mdCardPadding}, display: 'flex', flexDirection: 'column' }}>
       <CardContent 
         sx={{ p: '2px !important', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexGrow: 1, cursor: 'pointer' }}
         onClick={handleCardClick}
@@ -154,9 +124,7 @@ export default function SeleccionCargos() {
           my: {xs: baseLogoMarginY, md: mdLogoMarginY},
           borderRadius: '4px',
           mx: {xs: baseLogoMarginX, md: mdLogoMarginX},
-          position: 'relative',
-          border: `1px solid ${brandBlueColor}`,
-          aspectRatio: '2 / 1', // Cambiado a rectangular (2:1)
+          position: 'relative'
         }}>
           <Image 
             src={logoPartido} 
@@ -165,12 +133,7 @@ export default function SeleccionCargos() {
             style={{ objectFit: 'contain' }} 
           />
         </Box>
-        <Typography sx={{ 
-          fontSize: isMobile ? '0.4rem' : {xs: baseFontSize, md: mdFontSize}, 
-          fontWeight: 'bold', 
-          lineHeight: 1.2, 
-          pb: isMobile ? '1px' : '2px' 
-        }}>
+        <Typography sx={{ fontSize: {xs: baseFontSize, md: mdFontSize}, fontWeight: 'bold', lineHeight: 1.2, pb: '2px' }}>
           {subText}
         </Typography>
       </CardContent>
@@ -178,46 +141,31 @@ export default function SeleccionCargos() {
   );
 
   // Tamaños Gobernador Base (móvil)
-  const baseGobernadorPadding = 0.25;
-  const baseGobernadorContentPadding = '1px !important';
-  const baseGobernadorGridMinHeight = {xs: '60px', sm: '75px'};
-  const baseGobernadorImgContainerHeight = { xs: '55px', sm: '70px' };
-  const baseGobernadorImgContainerWidth = { xs: '40px', sm: '50px' };
-  const baseGobernadorImgWidth = 40;
-  const baseGobernadorImgHeight = 60;
-  const baseGobernadorLogoHeight = { xs: '50px', sm: '65px' };
-  const baseGobernadorLogoImgWidth = 100;
-  const baseGobernadorLogoImgHeight = 50;
-  const baseGobernadorTextFontSize = '0.6rem';
-  const baseGobernadorTextMarginTop = 0.25;
+  const baseGobernadorPadding = 0.5;
+  const baseGobernadorContentPadding = '2px !important';
+  const baseGobernadorGridMinHeight = {xs: '70px', sm: '85px'};
+  const baseGobernadorImgContainerHeight = { xs: '65px', sm: '80px' };
+  const baseGobernadorImgContainerWidth = { xs: '50px', sm: '60px' };
+  const baseGobernadorImgWidth = 50;
+  const baseGobernadorImgHeight = 70;
+  const baseGobernadorLogoHeight = { xs: '60px', sm: '75px' };
+  const baseGobernadorLogoImgWidth = 110;
+  const baseGobernadorLogoImgHeight = 55;
+  const baseGobernadorTextFontSize = '0.65rem';
+  const baseGobernadorTextMarginTop = 0.5;
 
   // Tamaños Gobernador Desktop (md y superior)
-  const mdGobernadorPadding = 1.5;
-  const mdGobernadorContentPadding = '8px !important';
-  const mdGobernadorGridMinHeight = '160px';
-  const mdGobernadorImgContainerHeight = '140px';
-  const mdGobernadorImgContainerWidth = '100px';
-  const mdGobernadorLogoHeight = '130px';
-  const mdGobernadorTextFontSize = '1rem';
-  const mdGobernadorTextMarginTop = 1.5;
+  const mdGobernadorPadding = 2;
+  const mdGobernadorContentPadding = '10px !important';
+  const mdGobernadorGridMinHeight = '180px';
+  const mdGobernadorImgContainerHeight = '160px';
+  const mdGobernadorImgContainerWidth = '120px';
+  const mdGobernadorLogoHeight = '150px';
+  const mdGobernadorTextFontSize = '1.2rem';
+  const mdGobernadorTextMarginTop = 2;
 
   const GobernadorCardContent = () => (
-    <Card 
-      variant="outlined" 
-      sx={{ 
-        borderColor: brandBlueColor, 
-        borderWidth: 2, 
-        borderRadius: 1, 
-        p: {xs: baseGobernadorPadding, md: mdGobernadorPadding}, 
-        width: '100%', 
-        mx: 'auto',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': {
-          transform: 'scale(1.05)',
-          boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)',
-        }
-      }}
-    >
+    <Card variant="outlined" sx={{ borderColor: brandBlueColor, borderWidth: 2, borderRadius: 0, p: {xs:baseGobernadorPadding, md: mdGobernadorPadding}, width: '100%', mx: 'auto' }}>
       <CardContent 
         sx={{ p: {xs: baseGobernadorContentPadding, md: mdGobernadorContentPadding}, cursor: 'pointer' }}
         onClick={handleCardClick}
@@ -226,15 +174,14 @@ export default function SeleccionCargos() {
           {imagenCandidatoGobernador && (
             <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                p: 0, 
-                height: { xs: '160px', sm: '200px', md: '250px' }, 
-                width: { xs: '180px', sm: '240px', md: '300px' }, // Ajustado a proporción rectangular
-                mx: 'auto',
-                border: `1px solid ${brandBlueColor}`,
-              }}>
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          alignItems: 'center', 
+                          p: 0, 
+                          height: { xs: '160px', sm: '200px', md: '250px' }, 
+                          width: { xs: '160px', sm: '200px', md: '250px' },
+                          mx: 'auto'
+                        }}>
                 <Image 
                   src={imagenCandidatoGobernador} 
                   alt={nombreCandidatoGobernador || "Candidato"} 
@@ -252,12 +199,10 @@ export default function SeleccionCargos() {
             display: 'flex', 
             justifyContent: 'center', 
             mb: {xs: 1, md: 1.5},
-            height: { xs: '80px', sm: '100px', md: '140px' }, 
+            height: { xs: '100px', sm: '120px', md: '160px' }, 
             backgroundColor: 'transparent',
             mx: 'auto',
             width: { xs: '180px', sm: '220px', md: '300px' },
-            border: `1px solid ${brandBlueColor}`,
-            aspectRatio: '2 / 1', // Proporción rectangular
           }}>
             <Image 
               src={logoPartido}
@@ -306,111 +251,90 @@ export default function SeleccionCargos() {
           </Typography>
         </Box>
         <Box sx={{ backgroundColor: brandBlueColor, color: 'white', py: 0.5, textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-          <Typography sx={{ fontSize: { xs: '0.7rem', sm: '0.9rem', md: '1.1rem' }, fontWeight: 'bold' }}>
+          <Typography sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1.1rem' }, fontWeight: 'bold' }}>
             REVISE SUS OPCIONES Y PRESIONE EL BOTÓN "VOTAR"
           </Typography>
         </Box>
       </Box>
 
-      <Box 
-        component="main"
-        ref={containerRef} 
-        sx={{ 
+      <Box component="main" sx={{ 
           flexGrow: 1, 
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
           justifyContent: 'center',
-          p: { xs: 0.25, sm: 0.5, md: 1 },
+          p: { xs: 0.5, sm: 1, md: 2 }, // Aumentado padding en md
           width: '100%', 
-          pt: orientationChanged ? 0 : `calc(${headerHeight} + 8px)`,
-          pb: orientationChanged ? 0 : `calc(${footerHeight} + 8px)`,
-          overflow: 'auto',
-          position: orientationChanged ? 'absolute' : 'relative',
-          top: orientationChanged ? '50%' : 'auto',
-          left: orientationChanged ? '50%' : 'auto',
-          transform: orientationChanged ? 'translate(-50%, -50%)' : 'none',
-          zIndex: 10,
-        }}
-      >
+          pt: `calc(${headerHeight} + 8px)`, // Padding top para dejar espacio a la cabecera fija (8px de margen extra)
+          pb: `calc(${footerHeight} + 8px)`, // Padding bottom para dejar espacio al pie de página fijo
+          overflowY: 'auto' // Scroll si el contenido es largo
+      }}>
         <Paper elevation={0} sx={{
-          p: { xs: 0.25, sm: 0.5, md: 1 },
+          p: { xs: 0.5, sm: 1, md: 3 }, // Original md: 2
           backgroundColor: 'white',
-          width: { xs: '98%', md: '100%' },
-          maxWidth: { xs: '100%', sm: '900px', md: '1600px' },
-          borderRadius: '10px 10px 0 0',
-          border: `2px solid ${brandBlueColor}`,
-          boxShadow: '0px 3px 10px rgba(0,0,0,0.15)',
-          position: 'relative',
-          left: orientationChanged && isMobile ? '50%' : 'auto',
-          transform: orientationChanged && isMobile ? 'translateX(-50%)' : 'none',
+          width: '100%',
+          maxWidth: {xs: '900px', md: '1600px'}, // Original md: '1100px'
+          borderRadius: 2,
+          border: `3px solid ${brandBlueColor}`,
         }}>
-          <Grid container spacing={{ xs: 0.5, sm: 0.75, md: 2 }} sx={{
-            overflowX: { xs: 'auto', sm: 'visible' }, 
-            width: '100%',
-          }}>
+          <Grid container spacing={{ xs: 1, sm: 1.5, md: 4 }}> {/* Original md: 2.5 */}
 
             {/* Columna 1: DIPUTADO ASAMBLEA NACIONAL */}
-            <Grid item xs={12} sm={12} md={3}>
+            <Grid item xs={12} sm={12} md={3}> {/* sm={12} para apilar en tablet */}
               <SectionHeader title="DIPUTADO ASAMBLEA NACIONAL" />
-              <Grid container spacing={{ xs: 0.25, sm: 0.5, md: 0.75 }} sx={{ mt: { xs: 0.1, sm: 0.2, md: 0.3 } }}>
+              <Grid container spacing={{ xs: 0.5, sm: 1, md: 1.5 }} sx={{ mt: { xs: 0.25, sm: 0.5, md: 0.75 } }}>
                 <Grid item xs={12}>
                   <VotoCard cardTitle="DIPUTADO A LISTA" subText="LISTA" titlePaddingTop={{xs:baseTitlePaddingTop, md:mdTitlePaddingTop}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
                 </Grid>
-                <Grid item xs={12} sx={{mt: {xs: 0.25, sm: 0.5, md:0.75}}}>
+                <Grid item xs={12} sx={{mt: {xs: 0.5, sm: 1, md:1.5}}}>
                   <VotoCard cardTitle="DIPUTADO NOMINAL" subText="CANDIDATO" titlePaddingTop={{xs:baseTitlePaddingTop, md:mdTitlePaddingTop}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
                 </Grid>
               </Grid>
             </Grid>
 
             {/* Columna 2: GOBERNADOR y CONSEJO LEGISLATIVO LISTA */}
-            <Grid item xs={12} sm={12} md={6}>
+            <Grid item xs={12} sm={12} md={6}> {/* sm={12} para apilar en tablet */}
               <SectionHeader title="GOBERNADOR" />
-              <Box sx={{ mt: { xs: 0.1, sm: 0.2, md:0.3 }, mb: { xs: 0.5, sm: 0.75, md:1 } }}>
+              <Box sx={{ mt: { xs: 0.25, sm: 0.5, md:0.75 }, mb: { xs: 1, sm: 1.5, md:2 } }}>
                 <GobernadorCardContent />
               </Box>
               <SectionHeader title="CONSEJO LEGISLATIVO LISTA" />
-              <Box sx={{ mt: { xs: 0.1, sm: 0.2, md:0.3 } }}>
-                <VotoCard subText="LISTA" titlePaddingTop={{xs:'1.5em', md:'2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
+              <Box sx={{ mt: { xs: 0.25, sm: 0.5, md:0.75 } }}>
+                <VotoCard subText="LISTA" titlePaddingTop={{xs:'1.9em', md:'2.2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
               </Box>
             </Grid>
 
             {/* Columna 3: CONSEJO LEGISLATIVO NOMINAL (3 tarjetas) */}
-            <Grid item xs={12} sm={12} md={3}>
-              <SectionHeader title="CONSEJO LEGISLATIVO NOMINAL" sx={{mb: {xs: 0.1, sm: 0.2, md:0.3}}}/>
-              <Grid container direction="column" spacing={{ xs: 0.25, sm: 0.5, md:0.75 }}>
+            <Grid item xs={12} sm={12} md={3}> {/* sm={12} para apilar en tablet */}
+              <SectionHeader title="CONSEJO LEGISLATIVO NOMINAL" sx={{mb: {xs: 0.25, sm: 0.5, md:0.75}}}/>
+              <Grid container direction="column" spacing={{ xs: 0.5, sm: 1, md:1.5 }}>
                 <Grid item xs={12}>
-                   <VotoCard subText="CANDIDATO" titlePaddingTop={{xs:'1.5em', md:'2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
+                   <VotoCard subText="CANDIDATO" titlePaddingTop={{xs:'1.9em', md:'2.2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
                 </Grid>
                 <Grid item xs={12}>
-                   <VotoCard subText="CANDIDATO" titlePaddingTop={{xs:'1.5em', md:'2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
+                   <VotoCard subText="CANDIDATO" titlePaddingTop={{xs:'1.9em', md:'2.2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
                 </Grid>
                 <Grid item xs={12}>
-                   <VotoCard subText="CANDIDATO" titlePaddingTop={{xs:'1.5em', md:'2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
+                   <VotoCard subText="CANDIDATO" titlePaddingTop={{xs:'1.9em', md:'2.2em'}} logoHeight={{xs:baseLogoHeight.xs, sm:baseLogoHeight.sm, md:mdLogoHeight}}/>
                 </Grid>
               </Grid>
             </Grid>
           </Grid>
         </Paper>
         
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 0.75, sm: 1, md: 1.5 }, mb: { xs: 0.25, sm: 0.5, md: 0.75 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 1.5, sm: 2, md: 3 }, mb: { xs: 0.5, sm: 1, md: 1.5 } }}>
             <Button
             variant="contained"
             onClick={handleVotar}
             sx={{
-                backgroundColor: '#25346d',
+                backgroundColor: brandBlueColor,
                 color: 'white',
                 fontWeight: 'bold',
-                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
-                px: { xs: 3, sm: 5, md: 6 },
-                py: { xs: 0.5, sm: 0.75, md: 1 },
+                fontSize: { xs: '0.75rem', sm: '0.85rem', md: '1rem' },
+                px: { xs: 5, sm: 7, md: 8 },
+                py: { xs: 0.75, sm: 1, md: 1.25 },
                 borderRadius: '2px',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                '&:hover': { 
-                  backgroundColor: '#1c2851',
-                  transform: 'scale(1.05)',
-                  boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)',
-                }
+                '&:hover': { backgroundColor: brandBlueHoverColor }
             }}
             >
             VOTAR
