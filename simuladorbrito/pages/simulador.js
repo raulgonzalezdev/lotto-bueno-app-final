@@ -162,8 +162,8 @@ export default function Simulador() {
     }, 50);
   }, [router]);
 
-  const headerHeight = '56px'; // Estimación, ajustar según el contenido real de la cabecera
-  const footerHeight = '48px'; // Estimación, ajustar según el contenido real del pie de página
+  const headerHeight = '40px'; // Reducido desde 56px
+  const footerHeight = '30px'; // Reducido desde 48px
 
   // No renderizar hasta que el componente esté montado en el cliente
   if (!mounted) {
@@ -201,22 +201,22 @@ export default function Simulador() {
             zIndex: 1200, 
             backgroundColor: '#25346d', 
             color: '#ffcc00', 
-            py: 1, 
+            py: 0.5, // Reducido desde 1
             px: 2, 
             textAlign: 'center', 
             boxShadow: 3, 
-            height: headerHeight,
+            height: headerHeight, // Usando la nueva altura reducida
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <div style={{ marginRight: '8px', width: '24px', height: '24px', position: 'relative' }}>
-            <img src={logoCNE} alt="CNE Logo" width={24} height={24} />
+          <div style={{ marginRight: '8px', width: '20px', height: '20px', position: 'relative' }}> 
+            <img src={logoCNE} alt="CNE Logo" width={20} height={20} /> {/* Reducido desde 24x24 */}
           </div>
           <Typography variant="h5" component="h1" sx={{ 
             fontWeight: 'bold', 
-            fontSize: { xs: '1rem', md: '1.5rem' },
+            fontSize: { xs: '0.9rem', md: '1.2rem' }, // Reducido desde 1rem y 1.5rem
             textTransform: 'uppercase',
           }}>
             CONOCE LAS TARJETAS PARA EL PROGRESO DE <span style={{ color: 'white' }}>ANZOÁTEGUI</span>
@@ -237,7 +237,7 @@ export default function Simulador() {
           height: '100vh',
           alignItems: 'center',
           justifyContent: 'center',
-          p: { xs: 0, sm: 2, md: 3 },
+          p: { xs: 0, sm: 1, md: 2 }, // Reducido padding en sm y md (md: 3 -> 2)
           overflow: 'hidden',
           position: 'relative',
         }}
@@ -492,20 +492,22 @@ export default function Simulador() {
               backgroundColor: 'white', 
               borderRadius: '10px 10px 0 0',
               border: '1px solid #25346d',
-              width: { xs: '98%', md: '95%' },
+              width: { xs: '98%', md: '98%' },
               maxWidth: { xs: '100%', sm: '900px', md: '1600px' },
               mx: 'auto',
               boxShadow: '0px 3px 10px rgba(0,0,0,0.15)',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
+              my: { md: 1 },
+              maxHeight: { md: `calc(100vh - ${headerHeight} - ${footerHeight} - 32px - 16px)` }, // Ajustado maxHeight (parent padding md:2 -> 16px*2=32px, self margin my:1 -> 8px*2=16px)
             }}
           >
             {/* Cabecera horizontal del tarjetón */}
             <Box sx={{ 
               backgroundColor: '#002147', 
               color: 'white', 
-              py: 0.25,
+              py: 0.15,
               px: 1, 
               textAlign: 'center', 
               mb: 0.5, 
@@ -516,7 +518,7 @@ export default function Simulador() {
             }}>
               <Typography variant="h6" component="h2" sx={{ 
                 fontWeight: 'bold', 
-                fontSize: { xs: '0.75rem', md: '1.1rem' },
+                fontSize: { xs: '0.75rem', md: '1rem' },
                 mr: 0.5,
               }}>
                 ELECCIONES REGIONALES Y NACIONALES 2025
@@ -536,10 +538,10 @@ export default function Simulador() {
               display="grid"
               gridTemplateColumns="repeat(7, 1fr)"
               gridAutoRows="minmax(40px, auto)"
-              gap={0.25}
+              gap={0.125}
               sx={{ 
                 border: '1px solid #ced4da', 
-                p: {xs: 0.25, sm: 0.5},
+                p: {xs: 0.125, sm: 0.25},
                 backgroundColor: '#f0f0f0',
                 flex: 1,
                 mt: 0.25,
@@ -551,7 +553,6 @@ export default function Simulador() {
                 <Box
                   key={index}
                   sx={{
-                    aspectRatio: '2 / 1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -559,7 +560,7 @@ export default function Simulador() {
                     backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
                     overflow: 'hidden',
                     boxSizing: 'border-box',
-                    p: 0.25,
+                    p: 0.125,
                     borderRadius: 1,
                     minHeight: {xs: '40px', sm: '40px'},
                     height: '100%',
@@ -587,8 +588,8 @@ export default function Simulador() {
                     }}
                     onClick={() => handleSelectPartido(partido)}>
                       <div style={{ 
-                        width: '95%',
-                        height: '95%',
+                        width: '100%',
+                        height: '100%',
                         position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
@@ -620,10 +621,11 @@ export default function Simulador() {
             
             {/* Botón de REGRESAR fuera del tarjetón */}
             <Box sx={{ 
-              width: 'calc(100% - 100px)',
-              mt: 2,
+              width: 'auto',
+              mt: 1.5,
               mb: 1,
               textAlign: 'center',
+              alignSelf: 'center'
             }}>
               <Button 
                 variant="contained"
@@ -632,10 +634,10 @@ export default function Simulador() {
                 sx={{ 
                   backgroundColor: '#25346d', 
                   '&:hover': { backgroundColor: '#1c2851' },
-                  fontSize: '0.8rem',
-                  py: 0.8,
-                  borderRadius: 0,
-                  width: '100%',
+                  fontSize: '0.75rem',
+                  py: 0.6,
+                  px: 4,
+                  borderRadius: 1,
                   textTransform: 'uppercase',
                   fontWeight: 'bold',
                 }}
@@ -658,8 +660,8 @@ export default function Simulador() {
             zIndex: 1200, 
             backgroundColor: '#25346d', 
             color: 'white', 
-            py: 1, 
-            height: footerHeight,
+            py: 0.25, // Reducido desde 1
+            height: footerHeight, // Usando la nueva altura reducida
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -669,7 +671,7 @@ export default function Simulador() {
             variant="body2" 
             align="center" 
             sx={{ 
-              fontSize: {xs: '0.7rem', sm:'0.75rem', md: '0.875rem'},
+              fontSize: {xs: '0.65rem', sm:'0.7rem', md: '0.75rem'}, // Reducido
               fontWeight: 'bold',
               textTransform: 'uppercase',
             }}
