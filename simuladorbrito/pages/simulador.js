@@ -253,14 +253,14 @@ export default function Simulador() {
               overflow: 'hidden',
             }}
           >
-            {/* Textos laterales */}
+            {/* Texto lateral derecho */}
             <Box
               sx={{
                 position: 'absolute',
                 top: 0,
-                right: 0,
+                right: 10,
                 height: '100%',
-                width: '50px',
+                width: '40px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
@@ -270,49 +270,57 @@ export default function Simulador() {
                 zIndex: 2,
                 writingMode: 'vertical-rl',
                 textOrientation: 'mixed',
-                padding: '10px 0',
+                fontSize: '0.7rem',
+                padding: '5px 0',
               }}
             >
               <Typography
-                variant="h6"
+                variant="body2"
                 sx={{
                   fontWeight: 'bold',
                   textTransform: 'uppercase',
-                  fontSize: '0.7rem',
+                  fontSize: 'inherit',
                   letterSpacing: 1,
                 }}
               >
                 CONOCE LAS TARJETAS PARA EL PROGRESO DE ANZOÁTEGUI
               </Typography>
-              <Box 
-                component="img" 
-                src={logoCNE} 
-                alt="CNE Logo" 
-                sx={{ 
-                  width: '20px',
-                  height: '20px',
-                  margin: '10px 0',
-                }} 
-              />
-              <Typography
+            
+            
+                <Typography
                 variant="body2"
                 sx={{
                   fontWeight: 'bold',
-                  fontSize: '0.6rem',
-                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  fontSize: 'inherit',
+                  marginTop: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 ELECCIONES REGIONALES Y NACIONALES 2025
+                <Box 
+                  component="img" 
+                  src={logoCNE} 
+                  alt="CNE Logo" 
+                  sx={{ 
+                    width: '15px',
+                    height: '15px',
+                    marginLeft: '5px',
+                  }} 
+                />
               </Typography>
             </Box>
 
+            {/* Texto lateral izquierdo */}
             <Box
               sx={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 height: '100%',
-                width: '50px',
+                width: '40px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
@@ -322,169 +330,276 @@ export default function Simulador() {
                 zIndex: 2,
                 writingMode: 'vertical-lr',
                 textOrientation: 'mixed',
-                padding: '10px 0',
+                fontSize: '0.7rem',
+                padding: '5px 0',
               }}
             >
               <Typography
-                variant="body1"
+                variant="body2"
                 sx={{
                   fontWeight: 'bold',
                   textTransform: 'uppercase',
-                  fontSize: '0.7rem',
+                  fontSize: 'inherit',
                   letterSpacing: 1,
                 }}
               >
-                JOSÉ BRITO
+                JOSÉ BRITO BIENESTAR • PROGRESO • DESARROLLO
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 'bold',
-                  fontSize: '0.6rem',
-                  marginTop: '5px',
-                }}
-              >
-                BIENESTAR • PROGRESO • DESARROLLO
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 'bold',
-                  fontSize: '0.6rem',
-                  marginTop: 'auto',
-                }}
-              >
-                MÁS
-              </Typography>
+            
+          
             </Box>
 
-            {/* Tarjetón central rotado 90 grados */}
+            {/* Tarjetón central */}
             <Paper
               elevation={6}
               sx={{
-                width: 'calc(100% - 120px)',
-                height: '90%',
+                width: 'calc(100% - 100px)',
+                height: '95%',
                 backgroundColor: 'white',
                 borderRadius: '10px',
-                margin: '0 60px',
+                margin: '0 50px',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
               }}
             >
-              {/* Cabecera del tarjetón */}
-              <Box sx={{ 
-                backgroundColor: '#002147', 
-                color: 'white', 
-                py: 0.25,
-                px: 1, 
-                textAlign: 'center', 
-                borderRadius: '10px 10px 0 0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Typography variant="subtitle2" component="h2" sx={{ 
-                  fontWeight: 'bold', 
-                  fontSize: '0.7rem',
-                  mr: 0.5,
-                }}>
-                  ELECCIONES REGIONALES Y NACIONALES 2025
-                </Typography>
-                <Box 
-                  component="img" 
-                  src={logoCNE} 
-                  alt="CNE Logo" 
-                  sx={{ 
-                    height: '12px',
-                    ml: 0.5
-                  }} 
-                />
-              </Box>
-
-              {/* Contenido del tarjetón - Rejilla de partidos */}
+              
+              {/* Contenido del tarjetón con formato horizontal como la competencia */}
               <Box
                 sx={{
                   flex: 1,
+                  backgroundColor: '#f5f5f5',
+                  padding: '6px',
+                  overflowY: 'auto',
                   display: 'flex',
                   flexDirection: 'column',
-                  padding: '4px',
-                  backgroundColor: '#f5f5f5',
-                  overflow: 'auto',
+                  justifyContent: 'space-between',
                 }}
               >
-                {tarjetonData.map((fila, filaIndex) => (
-                  <Box
-                    key={filaIndex}
-                    sx={{
-                      display: 'flex',
-                      flex: 1,
-                      mb: 0.25,
-                    }}
-                  >
-                    {fila.map((partido, colIndex) => (
-                      <Box
-                        key={`${filaIndex}-${colIndex}`}
-                        sx={{
-                          flex: 1,
-                          mx: 0.25,
-                          aspectRatio: '2/1',
-                          border: partido ? '1px solid #ddd' : 'none',
-                          backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
-                          borderRadius: '4px',
-                          overflow: 'hidden',
-                          cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: 0.25,
-                          '&:hover': partido && partido.apoyaBrito ? {
-                            backgroundColor: 'rgba(226,230,234,0.8)',
-                            transform: 'scale(1.05)',
-                            transition: 'all 0.3s ease',
-                          } : {},
-                        }}
-                        onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
-                      >
-                        {partido && partido.apoyaBrito && (
-                          <Box
-                            component="img"
-                            src={partido.logo}
-                            alt={partido.nombre}
-                            sx={{
-                              maxWidth: '100%',
-                              maxHeight: '100%',
-                              objectFit: 'contain',
-                            }}
-                          />
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-                ))}
-              </Box>
+                {/* Primera fila */}
+                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
+                  {tarjetonData[0].map((partido, index) => (
+                    <Box
+                      key={`row1-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                        borderRadius: '5px',
+                        border: partido ? '1px solid #ddd' : 'none',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                      }}
+                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                    >
+                      {partido && partido.apoyaBrito && (
+                        <Box
+                          component="img"
+                          src={partido.logo}
+                          alt={partido.nombre}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: '85%',
+                            height: '85%',
+                            objectFit: 'contain',
+                            transform: 'rotate(90deg)',
+                          }}
+                        />
+                      )}
+                    </Box>
+                  ))}
+                </Box>
 
-              {/* Botón de regresar */}
-              <Box sx={{ 
-                backgroundColor: 'white', 
-                p: 0.5, 
-                textAlign: 'center' 
-              }}>
-                <Button 
-                  variant="contained"
-                  onClick={goToInicio}
-                  disableElevation
-                  sx={{ 
-                    backgroundColor: '#25346d', 
-                    '&:hover': { backgroundColor: '#1c2851' },
-                    fontSize: '0.6rem',
-                    px: 1.5,
-                    py: 0.3,
-                    borderRadius: 1,
-                  }}
-                >
-                  REGRESAR
-                </Button>
+                {/* Segunda fila */}
+                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
+                  {tarjetonData[1].map((partido, index) => (
+                    <Box
+                      key={`row2-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                        borderRadius: '5px',
+                        border: partido ? '1px solid #ddd' : 'none',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                      }}
+                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                    >
+                      {partido && partido.apoyaBrito && (
+                        <Box
+                          component="img"
+                          src={partido.logo}
+                          alt={partido.nombre}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: '85%',
+                            height: '85%',
+                            objectFit: 'contain',
+                            transform: 'rotate(90deg)',
+                          }}
+                        />
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Tercera fila */}
+                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
+                  {tarjetonData[2].map((partido, index) => (
+                    <Box
+                      key={`row3-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                        borderRadius: '5px',
+                        border: partido ? '1px solid #ddd' : 'none',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                      }}
+                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                    >
+                      {partido && partido.apoyaBrito && (
+                        <Box
+                          component="img"
+                          src={partido.logo}
+                          alt={partido.nombre}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: '85%',
+                            height: '85%',
+                            objectFit: 'contain',
+                            transform: 'rotate(90deg)',
+                          }}
+                        />
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Cuarta fila */}
+                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
+                  {tarjetonData[3].map((partido, index) => (
+                    <Box
+                      key={`row4-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                        borderRadius: '5px',
+                        border: partido ? '1px solid #ddd' : 'none',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                      }}
+                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                    >
+                      {partido && partido.apoyaBrito && (
+                        <Box
+                          component="img"
+                          src={partido.logo}
+                          alt={partido.nombre}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: '85%',
+                            height: '85%',
+                            objectFit: 'contain',
+                            transform: 'rotate(90deg)',
+                          }}
+                        />
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Quinta fila */}
+                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
+                  {tarjetonData[4].map((partido, index) => (
+                    <Box
+                      key={`row5-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: (partido && partido.apoyaBrito) ? '#f8f9fa' : '#e5e7eb',
+                        borderRadius: '5px',
+                        border: partido ? '1px solid #ddd' : 'none',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        cursor: partido && partido.apoyaBrito ? 'pointer' : 'default',
+                      }}
+                      onClick={() => partido && partido.apoyaBrito && handleSelectPartido(partido)}
+                    >
+                      {partido && partido.apoyaBrito && (
+                        <Box
+                          component="img"
+                          src={partido.logo}
+                          alt={partido.nombre}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: '85%',
+                            height: '85%',
+                            objectFit: 'contain',
+                            transform: 'rotate(90deg)',
+                          }}
+                        />
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Sexta fila */}
+                <Box sx={{ display: 'flex', height: '14.28%', mb: '4px' }}>
+                  {Array(7).fill(null).map((_, index) => (
+                    <Box
+                      key={`row6-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: '5px',
+                      }}
+                    />
+                  ))}
+                </Box>
+
+                {/* Séptima fila */}
+                <Box sx={{ display: 'flex', height: '14.28%' }}>
+                  {Array(7).fill(null).map((_, index) => (
+                    <Box
+                      key={`row7-${index}`}
+                      sx={{
+                        flex: 1,
+                        mx: '2px',
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: '5px',
+                      }}
+                    />
+                  ))}
+                </Box>
               </Box>
             </Paper>
           </Box>
@@ -623,7 +738,13 @@ export default function Simulador() {
               ))}
             </Box>
             
-            <Box sx={{ textAlign: 'center', mt: 1 }}>
+            {/* Botón de REGRESAR fuera del tarjetón */}
+            <Box sx={{ 
+              width: 'calc(100% - 100px)',
+              mt: 2,
+              mb: 1,
+              textAlign: 'center',
+            }}>
               <Button 
                 variant="contained"
                 onClick={goToInicio}
@@ -631,10 +752,12 @@ export default function Simulador() {
                 sx={{ 
                   backgroundColor: '#25346d', 
                   '&:hover': { backgroundColor: '#1c2851' },
-                  fontSize: {xs: '0.7rem', sm:'0.8rem', md: '0.9rem'},
-                  px: {xs: 1.5, sm:2, md: 3},
-                  py: {xs: 0.5, sm:0.7, md: 1},
-                  borderRadius: 1,
+                  fontSize: '0.8rem',
+                  py: 0.8,
+                  borderRadius: 0,
+                  width: '100%',
+                  textTransform: 'uppercase',
+                  fontWeight: 'bold',
                 }}
               >
                 REGRESAR
