@@ -191,7 +191,14 @@ export default function SeleccionCargos() {
   }, [router.query.partido, router]);
 
   const handleVotar = () => setShowConf(true);
-  const handleCardClick = e => { e.preventDefault(); setShowWarn(true); };
+  
+  const handlePageClick = (e) => {
+    // Si el clic no fue en el botón VOTAR ni en el diálogo, mostrar advertencia
+    if (!e.target.closest('button') && !e.target.closest('.MuiDialog-root')) {
+      setShowWarn(true);
+    }
+  };
+
   const handleCloseAndRedirect = () => {
     setShowConf(false);
     setTimeout(() => router.push('/'), 1500);
@@ -219,17 +226,20 @@ export default function SeleccionCargos() {
   console.log('Ruta de imagen:', imagePath);
 
   return (
-    <Box sx={{
-      height: '100vh',
-      width: '100vw',
-      position: 'relative',
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
+    <Box 
+      onClick={handlePageClick}
+      sx={{
+        height: '100vh',
+        width: '100vw',
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       <Head>
         <title>Selección de Voto - {partido.nombre}</title>
         <meta name="description" content={`Simulador de voto para ${partido.nombre}`} />
@@ -241,9 +251,13 @@ export default function SeleccionCargos() {
         left: 0,
         width: '100vw',
         height: '100vh',
-        transform: isMobile ? 'rotate(90deg)' : 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: isMobile ? 'rotate(90deg) scale(1.8)' : 'scale(1.07)',
         transformOrigin: 'center center',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        padding: isMobile ? 0 : '20px'
       }}>
         <Image
           src={imagePath}
@@ -251,7 +265,7 @@ export default function SeleccionCargos() {
           fill
           priority
           style={{
-            objectFit: 'cover',
+            objectFit: 'contain',
             width: '100%',
             height: '100%'
           }}
@@ -260,8 +274,8 @@ export default function SeleccionCargos() {
 
       <Box sx={{
         position: 'absolute',
-        top: '50%',
-        left: isMobile ? '10px' : '50%',
+        top: isMobile ? '45%' : '80%',
+        left: isMobile ? '55px' : '50%',
         transform: isMobile ? 
           'translateY(-50%) rotate(90deg)' : 
           'translateX(-50%)',
@@ -287,13 +301,43 @@ export default function SeleccionCargos() {
         </Button>
       </Box>
 
-      <Dialog open={showWarningDialog} onClose={() => setShowWarn(false)}>
-        <DialogTitle>¡No lo pienses!</DialogTitle>
+      <Dialog 
+        open={showWarningDialog} 
+        onClose={() => setShowWarn(false)}
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: 1,
+            padding: 2,
+            minWidth: { xs: '250px', md: '300px' }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          textAlign: 'center',
+          fontWeight: 'bold',
+          pb: 1
+        }}>
+          ¡No lo pienses!
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>No inventes. Presiona VOTAR.</DialogContentText>
+          <DialogContentText sx={{ 
+            textAlign: 'center',
+            pb: 2
+          }}>
+            No inventes. Presiona VOTAR.
+          </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowWarn(false)} color="error" variant="contained">
+        <DialogActions sx={{ justifyContent: 'center' }}>
+          <Button 
+            onClick={() => setShowWarn(false)} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#dc3545',
+              '&:hover': {
+                backgroundColor: '#c82333'
+              }
+            }}
+          >
             Cerrar
           </Button>
         </DialogActions>
