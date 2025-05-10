@@ -179,7 +179,7 @@ export default function Simulador() {
       backgroundSize: 'contain',
       backgroundPosition: 'center',
       backgroundRepeat: 'repeat',
-      backgroundColor: '#25346d', // Fondo azul oscuro para móviles
+      backgroundColor: isMobile ? '#25346d' : 'rgba(255,255,255,0.65)', // Fondo más transparente para ver mejor la imagen en desktop
       backgroundBlendMode: 'lighten',
       overflowX: 'auto',
       position: 'relative',
@@ -286,7 +286,7 @@ export default function Simulador() {
                   letterSpacing: 1,
                 }}
               >
-                CONOCE LAS TARJETAS PARA EL PROGRESO DE ANZOÁTEGUI
+                 ELECCIONES REGIONALES Y NACIONALES 2025
               </Typography>
             
               <Box
@@ -316,7 +316,7 @@ export default function Simulador() {
                     fontSize: 'inherit',
                   }}
                 >
-                  ELECCIONES REGIONALES Y NACIONALES 2025
+                   ELECCIONES REGIONALES Y NACIONALES 2025
                 </Typography>
               </Box>
             </Box>
@@ -521,7 +521,7 @@ export default function Simulador() {
                 fontSize: { xs: '0.75rem', md: '1rem' },
                 mr: 0.5,
               }}>
-                ELECCIONES REGIONALES Y NACIONALES 2025
+                 ELECCIONES REGIONALES Y NACIONALES 2025
               </Typography>
               <Box 
                 component="img" 
@@ -679,7 +679,7 @@ export default function Simulador() {
             <Box component="span" sx={{ animation: `${latido} 1s infinite ease-in-out`, fontWeight: 'bold' }}>
               JOSÉ BRITO
             </Box>
-            <span style={{ color: '#ffcc00' }}> BIENESTAR • PROGRESO • DESARROLLO</span>
+            © 2025 Simulador Electoral - José Brito Gobernador
           </Typography>
         </Box>
       )}
