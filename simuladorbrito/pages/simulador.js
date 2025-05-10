@@ -277,17 +277,39 @@ export default function Simulador() {
                 padding: '5px 0',
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase',
-                  fontSize: 'inherit',
-                  letterSpacing: 1,
-                }}
-              >
-                 ELECCIONES REGIONALES Y NACIONALES 2025
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    fontSize: 'inherit',
+                    letterSpacing: 1,
+                  }}
+                >
+                  ELECCIONES REGIONALES Y NACIONALES 2025
+                </Typography>
+                <Button
+                  onClick={goToInicio}
+                  sx={{
+                    minWidth: '24px',
+                    width: '24px',
+                    height: '24px',
+                    p: 0,
+                    color: '#ffcc00',
+                    border: '2px solid #ffcc00',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 204, 0, 0.1)',
+                    },
+                  }}
+                >
+                  X
+                </Button>
+              </Box>
             
               <Box
                 sx={{
@@ -435,11 +457,17 @@ export default function Simulador() {
                               src={partido.logo}
                               alt={partido.nombre}
                               sx={{
-                                width: '100%',
-                                height: '100%',
+                                width: '110%',
+                                height: '110%',
+                                minWidth: '48px',
+                                minHeight: '48px',
+                                maxWidth: '200px',
+                                maxHeight: '200px',
                                 objectFit: 'contain',
                                 transform: 'rotate(90deg)',
                                 padding: '2px',
+                                margin: 'auto',
+                                display: 'block',
                               }}
                             />
                           )}
@@ -450,38 +478,6 @@ export default function Simulador() {
                 })}
               </Box>
             </Paper>
-            
-            {/* Botón REGRESAR para vista móvil - Fuera del tarjetón */}
-            <Box
-              sx={{
-                position: 'fixed',
-                bottom: '10px',
-                left: '0',
-                right: '0',
-                display: 'flex',
-                justifyContent: 'center',
-                zIndex: 10,
-              }}
-            >
-              <Button 
-                variant="contained"
-                onClick={goToInicio}
-                disableElevation
-                sx={{ 
-                  backgroundColor: '#25346d', 
-                  '&:hover': { backgroundColor: '#1c2851' },
-                  fontSize: '0.8rem',
-                  py: 0.8,
-                  px: 5,
-                  borderRadius: 1,
-                  textTransform: 'uppercase',
-                  fontWeight: 'bold',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                }}
-              >
-                REGRESAR
-              </Button>
-            </Box>
           </Box>
         ) : (
           // Vista desktop original
