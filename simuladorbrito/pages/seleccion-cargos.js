@@ -146,6 +146,24 @@ const GobernadorCard = ({ nombre, foto, logo, onClick, sx }) => (
   </Card>
 );
 
+// Mapeo de IDs a nombres de archivo
+const ID_TO_FILENAME = {
+  'venezuela_unidad': 'VU',
+  'ad': 'AD',
+  'voluntad_popular': 'VPA',
+  'udp': 'UVV',
+  // Agregar el resto de los mapeos si son necesarios
+  'copei': 'COPEI',
+  'mr': 'MR',
+  'pj': 'PJ',
+  'une': 'UNE',
+  'el_cambio': 'EL CAMBIO',
+  'cambiemos': 'CAMBIEMOS',
+  'ap': 'AP',
+  'br': 'BR',
+  'min_unidad': 'MINUNIDAD'
+};
+
 export default function SeleccionCargos() {
   const router = useRouter();
   const [partido, setPartido] = useState(null);
@@ -173,7 +191,14 @@ export default function SeleccionCargos() {
   }, [router.query.partido, router]);
 
   const handleVotar = () => setShowConf(true);
-  const handleCardClick = e => { e.preventDefault(); setShowWarn(true); };
+  
+  const handlePageClick = (e) => {
+    // Si el clic no fue en el botón VOTAR ni en el diálogo, mostrar advertencia
+    if (!e.target.closest('button') && !e.target.closest('.MuiDialog-root')) {
+      setShowWarn(true);
+    }
+  };
+
   const handleCloseAndRedirect = () => {
     setShowConf(false);
     setTimeout(() => router.push('/'), 1500);
@@ -181,322 +206,140 @@ export default function SeleccionCargos() {
 
   if (!mounted || !partido) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'grey.200' }}>
-        <Typography variant="h6">Cargando datos…</Typography>
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        backgroundColor: 'grey.200' 
+      }}>
+        Cargando datos...
       </Box>
     );
   }
 
-  const nombrePartido = partido.nombre.toUpperCase();
-  const logoPartido = partido.logo;
-  const nombreGob = partido.apoyaBrito ? 'JOSÉ BRITO' : nombrePartido;
-  const fotoGob = partido.apoyaBrito ? '/candidatos/brito.png' : null;
-  const logoCNE = '/cne/logo_cne.png';
+  // Obtener el nombre de archivo correcto usando el mapeo
+  const fileName = ID_TO_FILENAME[partido.id] || partido.id.toUpperCase();
+  const imagePath = `/tarjeton/PANTALLA ${fileName}.jpg`;
+  console.log('ID del partido:', partido.id);
+  console.log('Nombre de archivo:', fileName);
+  console.log('Ruta de imagen:', imagePath);
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundImage: isMobile ? 'none' : 'url(/fondovertical.jpg)',
-      backgroundSize: 'contain',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundColor: isMobile ? BRAND_BLUE : 'rgba(255,255,255,0.87)',
-      backgroundBlendMode: 'lighten'
-    }}>
+    <Box 
+      onClick={handlePageClick}
+      sx={{
+        height: '100vh',
+        width: '100vw',
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       <Head>
-        <title>Selección de Voto - {nombrePartido}</title>
-        <meta name="description" content={`Simulador de voto para ${nombrePartido}`} />
+        <title>Selección de Voto - {partido.nombre}</title>
+        <meta name="description" content={`Simulador de voto para ${partido.nombre}`} />
       </Head>
 
-      {/* ───────── CABECERA FIJA ───────── */}
-      <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200 }}>
-        <Box sx={{
-          backgroundColor: BRAND_BLUE,
-          color: 'white',
-          py: 0.5,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 1
-        }}>
-          <Image src={logoCNE} alt="CNE" width={20} height={20} />
-          <Typography sx={{ fontSize: { xs: '0.65rem', md: '0.8rem' } }}>
-            ELECCIONES REGIONALES Y NACIONALES 2025
-          </Typography>
-        </Box>
-        <Box sx={{
-          backgroundColor: BRAND_BLUE,
-          color: 'white',
-          py: 0.5,
-          textAlign: 'center',
-          borderTop: '1px solid rgba(255,255,255,0.2)'
-        }}>
-          <Typography sx={{ fontWeight: 'bold', fontSize: { md: '1rem' } }}>
-            REVISE SUS OPCIONES Y PRESIONE EL BOTÓN «VOTAR»
-          </Typography>
-        </Box>
+      <Box sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: isMobile ? 'rotate(90deg) scale(1.8)' : 'scale(1.07)',
+        transformOrigin: 'center center',
+        overflow: 'hidden',
+        padding: isMobile ? 0 : '20px'
+      }}>
+        <Image
+          src={imagePath}
+          alt={`Tarjetón ${partido.nombre}`}
+          fill
+          priority
+          style={{
+            objectFit: 'contain',
+            width: '100%',
+            height: '100%'
+          }}
+        />
       </Box>
 
-      {/* ───────── CONTENIDO PRINCIPAL ───────── */}
-      {isMobile ? (
-        <Box sx={{
-          width: '100%',
-          height: '100vh',
-          position: 'relative',
-          backgroundColor: BRAND_BLUE,
-          overflow: 'hidden',
-          paddingTop: `${HEADER_HEIGHT}px`,
-          paddingBottom: `${FOOTER_HEIGHT}px`,
-        }}>
-          {/* Textos laterales eliminados */}
-          
-          {/* Tarjetón central */}
-          <Paper elevation={6} sx={{
-            position: 'absolute',
-            top: `calc(${HEADER_HEIGHT}px + 10px)`,
-            left: 0,
-            right: 0,
-            height: `calc(100vh - ${HEADER_HEIGHT}px - ${FOOTER_HEIGHT}px - 20px)`,
-            width: '100%',
-            backgroundColor: 'white',
-            borderRadius: '10px 10px 0 0',
-            px: 1.5, 
-            pt: 1.5, 
-            pb: 8,
-            boxSizing: 'border-box',
-            overflow: 'auto'
-          }}>
-            <Grid container direction="column" spacing={0.5}>
-              <Grid item>
-                <SectionHeader title="DIPUTADO ASAMBLEA NACIONAL" />
-              </Grid>
-              <Grid item>
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <SectionHeader title="DIPUTADO LISTA" />
-                    <VotoCard subText="LISTA" logoSrc={logoPartido} onClick={handleCardClick} />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <SectionHeader title="DIPUTADO NOMINAL" />
-                    <VotoCard subText="CANDIDATO" logoSrc={logoPartido} onClick={handleCardClick} />
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item sx={{ mt: 1 }}>
-                <SectionHeader title="GOBERNADORES Y CONSEJO LEGISLATIVO ESTADAL" />
-              </Grid>
-              <Grid item>
-                <SectionHeader title="GOBERNADOR" />
-              </Grid>
-              <Grid item>
-                <GobernadorCard 
-                  nombre={nombreGob} 
-                  foto={fotoGob} 
-                  logo={logoPartido} 
-                  onClick={handleCardClick} 
-                  sx={{ 
-                    height: { xs: '180px', md: 'auto' },
-                    mb: 1
-                  }}
-                />
-              </Grid>
-              <Grid item>
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <SectionHeader title="CONSEJO LEGISLATIVO LISTA" />
-                    <VotoCard subText="LISTA" logoSrc={logoPartido} onClick={handleCardClick} />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <SectionHeader title="CONSEJO LEGISLATIVO NOMINAL" />
-                    <VotoCard subText="CANDIDATO" logoSrc={logoPartido} onClick={handleCardClick} />
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          </Paper>
-
-          {/* Botón VOTAR - posición ajustada */}
-          <Box sx={{
-            position: 'absolute',
-            bottom: 45,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            zIndex: 3
-          }}>
-            <Button
-              variant="contained"
-              onClick={handleVotar}
-              disableElevation
-              sx={{
-                backgroundColor: BRAND_BLUE,
-                '&:hover': { backgroundColor: BRAND_BLUE_HOVER },
-                textTransform: 'uppercase',
-                fontWeight: 'bold',
-                px: 6, py: 1
-              }}
-            >
-              VOTAR
-            </Button>
-          </Box>
-        </Box>
-      ) : (
-        <Box
-          component="main"
+      <Box sx={{
+        position: 'absolute',
+        top: isMobile ? '45%' : '80%',
+        left: isMobile ? '55px' : '50%',
+        transform: isMobile ? 
+          'translateY(-50%) rotate(90deg)' : 
+          'translateX(-50%)',
+        transformOrigin: isMobile ? 'left center' : 'center',
+        zIndex: 1000
+      }}>
+        <Button
+          variant="contained"
+          onClick={handleVotar}
           sx={{
-            flexGrow: 1,
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            pt: `${HEADER_HEIGHT + 8}px`,
-            pb: `${FOOTER_HEIGHT + 8}px`
+            fontSize: { xs: '1rem', md: '1.5rem' },
+            px: { xs: 3, md: 6 },
+            py: { xs: 0.5, md: 2 },
+            backgroundColor: 'rgb(21, 40, 82)',
+            '&:hover': {
+              backgroundColor: 'rgb(15, 30, 62)'
+            },
+            minWidth: { xs: '150px', md: '200px' },
+            transform: isMobile ? 'scale(0.9)' : 'none'
           }}
         >
-          <Paper
-            elevation={0}
-            sx={{
-              width: '100%',
-              maxWidth: { md: 1600 },
-              backgroundColor: { xs: 'transparent', md: 'white' },
-              border: { md: `3px solid ${BRAND_BLUE}` },
-              borderRadius: { md: 2 },
-              p: { xs: 0, md: 2 },
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
-            }}
-          >
-            {/* ───── GRID DESKTOP (md+) │ nuevo layout ───── */}
-            <Grid
-              container
-              spacing={2}
-              sx={{ display: { xs: 'none', md: 'flex' } }}
-            >
-              {/* ===== Bloque 1 ─ Diputado Asamblea Nacional (colspan 5) ===== */}
-              <Grid item md={5}>
-                <SectionHeader title="DIPUTADO ASAMBLEA NACIONAL" />
-
-                <Grid container>
-                  <Grid item md={6} sx={{ p: 1 }}>
-                    <SectionHeader title="DIPUTADO LISTA" />
-                    <VotoCard
-                      subText="LISTA"
-                      cardTitle={null}
-                      logoSrc={logoPartido}
-                      onClick={handleCardClick}
-                    />
-                  </Grid>
-
-                  <Grid item md={6} sx={{ p: 1 }}>
-                    <SectionHeader title="DIPUTADO NOMINAL" />
-                    <VotoCard
-                      subText="CANDIDATO"
-                      cardTitle={null}
-                      logoSrc={logoPartido}
-                      onClick={handleCardClick}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-
-              {/* ===== Bloque 2 ─ Gob y Consejo Legislativo (colspan 7) ===== */}
-              <Grid item md={7}>
-                <SectionHeader title="GOBERNADORES Y CONSEJO LEGISLATIVO ESTADAL" />
-
-                <Grid container>
-                  {/* Col 3 – Gobernador (ocupa más espacio) */}
-                  <Grid item md={7} sx={{ p: 1 }}>
-                    <SectionHeader title="GOBERNADOR" />
-                    <GobernadorCard
-                      nombre={nombreGob || nombrePartido}
-                      foto={fotoGob}
-                      logo={logoPartido}
-                      onClick={handleCardClick}
-                    />
-                  </Grid>
-
-                  {/* Col 4 – Consejo Lista + Nominal (ocupa menos espacio) */}
-                  <Grid item md={5} sx={{ p: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Box>
-                      <SectionHeader title="CONSEJO LEGISLATIVO LISTA" />
-                      <VotoCard
-                        subText="LISTA"
-                        cardTitle={null}
-                        logoSrc={logoPartido}
-                        onClick={handleCardClick}
-                        sx={{ height: '100%', mb: 1 }}
-                      />
-                    </Box>
-
-                    <Box>
-                      <SectionHeader title="CONSEJO LEGISLATIVO NOMINAL" />
-                      <VotoCard
-                        subText="CANDIDATO"
-                        cardTitle={null}
-                        logoSrc={logoPartido}
-                        onClick={handleCardClick}
-                      />
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* BOTÓN VOTAR (solo desktop) */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: `${FOOTER_HEIGHT + 8}px`,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: { xs: 'none', md: 'flex' }
-              }}
-            >
-              <Button
-                variant="contained"
-                onClick={handleVotar}
-                sx={{
-                  backgroundColor: BRAND_BLUE,
-                  fontWeight: 'bold',
-                  px: 8,
-                  py: 1.25,
-                  '&:hover': { backgroundColor: BRAND_BLUE_HOVER }
-                }}
-              >
-                VOTAR
-              </Button>
-            </Box>
-          </Paper>
-        </Box>
-      )}
-
-      {/* ───────── PIE DE PÁGINA ───────── */}
-      <Box sx={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: BRAND_BLUE,
-        color: 'white',
-        py: 0.5,
-        textAlign: 'center',
-        height: FOOTER_HEIGHT
-      }}>
-        <Typography variant="caption">
-          &copy; 2025 Simulador Electoral – Selección de Voto
-        </Typography>
+          VOTAR
+        </Button>
       </Box>
 
-      <Dialog open={showWarningDialog} onClose={() => setShowWarn(false)}>
-        <DialogTitle>¡No lo pienses!</DialogTitle>
+      <Dialog 
+        open={showWarningDialog} 
+        onClose={() => setShowWarn(false)}
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: 1,
+            padding: 2,
+            minWidth: { xs: '250px', md: '300px' }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          textAlign: 'center',
+          fontWeight: 'bold',
+          pb: 1
+        }}>
+          ¡No lo pienses!
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>No inventes. Presiona VOTAR.</DialogContentText>
+          <DialogContentText sx={{ 
+            textAlign: 'center',
+            pb: 2
+          }}>
+            No inventes. Presiona VOTAR.
+          </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowWarn(false)} color="error" variant="contained">Cerrar</Button>
+        <DialogActions sx={{ justifyContent: 'center' }}>
+          <Button 
+            onClick={() => setShowWarn(false)} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#dc3545',
+              '&:hover': {
+                backgroundColor: '#c82333'
+              }
+            }}
+          >
+            Cerrar
+          </Button>
         </DialogActions>
       </Dialog>
 
