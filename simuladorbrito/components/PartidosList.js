@@ -1,34 +1,63 @@
-import Image from 'next/image';
+import React from 'react';
+import { Grid, Box } from '@mui/material';
+import PartidoCard from './PartidoCard';
 
 /**
- * Componente para mostrar la lista de partidos que apoyan a un candidato
+ * Componente para mostrar una lista de partidos políticos en un grid
  * 
  * @param {Object} props - Propiedades del componente
- * @param {Array} props.partidos - Lista de partidos políticos
- * @param {string} props.className - Clases adicionales para el contenedor
- * @param {string} props.title - Título del componente
+ * @param {Array} props.partidos - Lista de partidos a mostrar
+ * @param {Function} props.onSelectPartido - Función a ejecutar al seleccionar un partido
+ * @param {Boolean} props.isMobile - Indica si se está en vista móvil
+ * @param {Boolean} props.horizontal - Indica si se debe usar vista horizontal en móvil
  */
-const PartidosList = ({ partidos, className = '', title = 'Partidos que respaldan a José Brito' }) => {
+const PartidosList = ({ partidos, onSelectPartido, isMobile = false, horizontal = false }) => {
+  if (!partidos || partidos.length === 0) {
+    return <p className="text-center py-4">No hay partidos disponibles</p>;
+  }
+
   return (
-    <div className={`bg-white rounded-lg shadow-lg p-6 ${className}`}>
-      <h2 className="text-2xl font-bold text-center mb-6">{title}</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+    <Box sx={{ 
+      width: '100%', 
+      mt: isMobile ? 0.5 : 2,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}>
+      <Grid 
+        container 
+        spacing={isMobile ? 0.5 : 2}
+        justifyContent="center"
+        sx={{
+          maxWidth: isMobile ? '100%' : '90%',
+          backgroundColor: isMobile ? '#f5f5f5' : 'transparent'
+        }}
+      >
         {partidos.map((partido) => (
-          <div key={partido.id} className="flex flex-col items-center">
-            <div className="bg-white border border-gray-200 rounded-lg p-2 w-full h-24 flex items-center justify-center mb-2">
-              <Image
-                src={partido.logo}
-                alt={partido.nombre}
-                width={100}
-                height={50}
-                className="max-h-20 object-contain"
-              />
-            </div>
-            <span className="text-xs text-center font-medium">{partido.nombre}</span>
-          </div>
+          <Grid 
+            item 
+            xs={isMobile ? 1.7 : (horizontal ? 4 : 6)} 
+            sm={horizontal ? 3 : 4} 
+            md={3} 
+            key={partido.id} 
+            sx={{ 
+              aspectRatio: isMobile ? '3/1' : (horizontal ? '1/1' : '2/1'),
+              mb: isMobile ? 0.5 : 1,
+              height: 'auto',
+              p: isMobile ? 0.25 : 0.5,
+            }}
+          >
+            <PartidoCard 
+              partido={partido} 
+              onClick={onSelectPartido}
+              isMobile={isMobile}
+              horizontal={horizontal}
+              showBorder={true}
+            />
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Box>
   );
 };
 
