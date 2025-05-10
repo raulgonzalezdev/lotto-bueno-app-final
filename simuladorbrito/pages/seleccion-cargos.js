@@ -308,7 +308,11 @@ export default function SeleccionCargos() {
           '& .MuiDialog-paper': {
             borderRadius: 1,
             padding: 2,
-            minWidth: { xs: '250px', md: '300px' }
+            minWidth: { xs: '250px', md: '300px' },
+            transform: isMobile ? 'rotate(90deg)' : 'none'
+          },
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)'
           }
         }}
       >
