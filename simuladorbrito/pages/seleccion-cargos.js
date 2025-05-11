@@ -152,7 +152,6 @@ const ID_TO_FILENAME = {
   'ad': 'AD',
   'voluntad_popular': 'VPA',
   'udp': 'UVV',
-  // Agregar el resto de los mapeos si son necesarios
   'copei': 'COPEI',
   'mr': 'MR',
   'pj': 'PJ',
@@ -161,7 +160,11 @@ const ID_TO_FILENAME = {
   'cambiemos': 'CAMBIEMOS',
   'ap': 'AP',
   'br': 'BR',
-  'min_unidad': 'MINUNIDAD'
+  'min_unidad': 'MINUNIDAD',
+  'primero_venezuela': 'PV',
+  'avanzada': 'AP',
+  'bandera_roja': 'BR',
+  'primero_justicia': 'PJ'
 };
 
 export default function SeleccionCargos() {
