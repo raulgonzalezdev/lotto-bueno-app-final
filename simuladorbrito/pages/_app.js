@@ -91,10 +91,29 @@ function MyApp({ Component, pageProps }) {
         meta.content = 'width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no';
       }
     };
+
+    // Precargar imágenes más usadas
+    const preloadImages = () => {
+      const imagesToPreload = [
+        '/tarjeton/PANTALLA COPEI.jpg',
+        '/tarjeton/PANTALLA PV.jpg',
+        '/tarjeton/PANTALLA AP.jpg',
+        '/tarjeton/PANTALLA BR.jpg',
+        '/tarjeton/PANTALLA PJ.jpg',
+        '/tarjeton/PANTALLA VU.jpg',
+        '/tarjeton/PANTALLA AD.jpg'
+      ];
+
+      imagesToPreload.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    };
     
-    // Aplicar fixes
+    // Aplicar fixes y precargar
     fixTouchEvents();
     preventZoom();
+    preloadImages();
     
     // Intentar detectar orientación
     const detectOrientation = () => {

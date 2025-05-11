@@ -174,6 +174,7 @@ export default function SeleccionCargos() {
   const [showWarningDialog, setShowWarn] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -244,9 +245,28 @@ export default function SeleccionCargos() {
       }}
     >
       <Head>
-        <title>Selección de Voto - {partido.nombre}</title>
-        <meta name="description" content={`Simulador de voto para ${partido.nombre}`} />
+        <title>Selección de Voto - {partido?.nombre}</title>
+        <meta name="description" content={`Simulador de voto para ${partido?.nombre}`} />
       </Head>
+
+      {!imageLoaded && (
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f5f5f5',
+          zIndex: 2
+        }}>
+          <Typography variant="h6" sx={{ color: 'rgb(21, 40, 82)' }}>
+            Cargando tarjetón...
+          </Typography>
+        </Box>
+      )}
 
       <Box sx={{
         position: 'absolute',
@@ -260,13 +280,15 @@ export default function SeleccionCargos() {
         transform: isMobile ? 'rotate(90deg) scale(1.8)' : 'scale(1.07)',
         transformOrigin: 'center center',
         overflow: 'hidden',
-        padding: isMobile ? 0 : '20px'
+        opacity: imageLoaded ? 1 : 0,
+        transition: 'opacity 0.3s ease-in-out'
       }}>
         <Image
           src={imagePath}
-          alt={`Tarjetón ${partido.nombre}`}
+          alt={`Tarjetón ${partido?.nombre}`}
           fill
           priority
+          onLoadingComplete={() => setImageLoaded(true)}
           style={{
             objectFit: 'contain',
             width: '100%',
