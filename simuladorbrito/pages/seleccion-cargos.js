@@ -310,6 +310,22 @@ export default function SeleccionCargos() {
         transformOrigin: isMobile ? 'left center' : 'center',
         zIndex: 1000
       }}>
+        {/* Flecha adicional grande sobre el botón */}
+        <Box sx={{ 
+          position: 'absolute', 
+          bottom: isMobile ? '60px' : '100px',
+          left: isMobile ? '50%' : '50%',
+          transform: isMobile ? 'translateX(-50%) rotate(240deg)' : 'translateX(-50%) rotate(240deg)',
+          zIndex: 1000
+        }}>
+          <Image
+            src="/flecha.gif"
+            alt="Flecha indicadora grande"
+            width={isMobile ? 150 : 200}
+            height={isMobile ? 60 : 100}
+          />
+        </Box>
+        
         {isMobile && (
           <Box sx={{ mr: '-5px', mt: '0px' }}>
             <Image
