@@ -301,12 +301,26 @@ export default function SeleccionCargos() {
         position: 'absolute',
         top: isMobile ? '45%' : '80%',
         left: isMobile ? '55px' : '50%',
+        display: 'flex',
+        flexDirection: isMobile ? 'row' : 'column',
+        alignItems: 'center',
         transform: isMobile ? 
           'translateY(-50%) rotate(90deg)' : 
           'translateX(-50%)',
         transformOrigin: isMobile ? 'left center' : 'center',
         zIndex: 1000
       }}>
+        {isMobile && (
+          <Box sx={{ mr: '-5px', mt: '0px' }}>
+            <Image
+              src="/flecha.gif"
+              alt="Flecha indicadora"
+              width={40}
+              height={40}
+              style={{ transform: 'scaleX(-1)' }}
+            />
+          </Box>
+        )}
         <Button
           variant="contained"
           onClick={handleVotar}
@@ -324,6 +338,22 @@ export default function SeleccionCargos() {
         >
           VOTAR
         </Button>
+        {!isMobile && (
+          <Box sx={{ 
+            position: 'absolute', 
+            left: '-70px',
+            top: '50%',
+            transform: 'translateY(-50%)'
+          }}>
+            <Image
+              src="/flecha.gif"
+              alt="Flecha indicadora"
+              width={60}
+              height={60}
+              style={{ transform: 'scaleX(-1)' }}
+            />
+          </Box>
+        )}
       </Box>
 
       <Dialog 
