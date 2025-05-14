@@ -315,7 +315,7 @@ export default function SeleccionCargos() {
           position: 'absolute', 
           bottom: isMobile ? '60px' : '100px',
           left: isMobile ? '50%' : '50%',
-          transform: isMobile ? 'translateX(-50%) rotate(240deg)' : 'translateX(-50%) rotate(240deg)',
+          transform: isMobile ? 'translateX(-50%) rotate(270deg)' : 'translateX(-50%) rotate(240deg)',
           zIndex: 1000
         }}>
           <Image
